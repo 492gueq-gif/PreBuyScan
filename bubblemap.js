@@ -51,6 +51,12 @@
       const a = lc(t.from), b = lc(t.to);
       if (nodes[a] && nodes[b] && !BURN.has(a) && !BURN.has(b) && !(ctx.pools || new Set()).has(a) && !(ctx.pools || new Set()).has(b)) link(a, b, "token");
     }
+    // Deployer of a funding contract: drawn only if it connects to a time node that is on the map.
+    for (const e of ctx.extra || []) {
+      if (!nodes[e.b] || busy.has(e.a)) continue;
+      add(e.a, { kind: nodes[e.a] ? nodes[e.a].kind : "magic", deployer: true }); link(e.a, e.b, "fund");
+    }
+    for (const n of Object.values(nodes)) if (n.id.includes("@")) { n.timeNode = true; n.label = "contrato que fondeó en la misma hora"; }
     for (const s of ctx.snipers || []) if (nodes[s]) nodes[s].sniper = true;
     const ids = Object.keys(nodes);
     const groups = clusters(ids, edges)
@@ -98,7 +104,7 @@
       } catch (e) { partial.transfers = true; break; }
     }
     // Who funded each wallet (first incoming ETH). Reuse what the scan already found; contracts are skipped.
-    const funders = {};
+    const funders = {}, fts = {};
     for (const w of ((ctx.snipers && ctx.snipers.wallets) || [])) if (w.funder) funders[w.addr] = w.funder;
     const creator = ctx.creator ? lc(ctx.creator) : null;
     const wallets = holders.filter(x => !x.contract).map(x => x.addr);
@@ -110,7 +116,7 @@
         const w = todo.shift();
         try {
           const f = await C._firstFunder(w);
-          funders[w] = f.funder || null;
+          funders[w] = f.funder || null; fts[w] = f.ts || null;
         } catch (e) { partial.funders++; if (String(e.message).includes("time budget")) stop = true; }
         progress("Buscando quién fondeó cada wallet… " + (++done) + "/" + (done + todo.length));
       }
@@ -126,7 +132,24 @@
       try { const n = Number(BigInt(await C._rpc("eth_getTransactionCount", [f, "latest"]))); if (n > SUPERNODE_NONCE) busy.add(f); }
       catch (e) { /* unknown: keep */ }
     }
-    const g = graph(holders, funders, transfers, busy, { creator, creatorFunder, pools,
+    // Contract funders (disperse contracts, bridges): only wallets funded within the same hour count
+    // as one group ("time node"), and the contract's deployer is linked when known.
+    const extra = [];
+    for (const f of Object.keys(fc).filter(f => fc[f] >= 2 && !busy.has(f))) {
+      let info = null;
+      try { info = await C._get(BS + "/v2/addresses/" + f, 8000); } catch (e) { continue; }
+      if (!info || !info.is_contract || info.proxy_type === "eip7702") continue;
+      const ws = Object.keys(funders).filter(w => funders[w] === f).sort((a, b) => (fts[a] || 0) - (fts[b] || 0));
+      let bucket = 0, start = null;
+      for (const w of ws) {
+        if (fts[w] == null) { funders[w] = null; continue; }
+        if (start == null || fts[w] - start > 3600e3) { bucket++; start = fts[w]; }
+        funders[w] = f + "@" + bucket;
+      }
+      const dep = lc(info.creator_address_hash);
+      for (let b = 1; b <= bucket; b++) if (dep) extra.push({ a: dep, b: f + "@" + b });
+    }
+    const g = graph(holders, funders, transfers, busy, { creator, creatorFunder, pools, extra,
       snipers: new Set(((ctx.snipers && ctx.snipers.wallets) || []).map(w => w.addr)) });
     g.partial = partial; g.checked = wallets.length; g.holdersShown = holders.length; g.busy = [...busy];
     return g;

@@ -526,7 +526,7 @@ function renderMap(g,cr){
    <div class="tnote">Mostramos ${g.holdersShown} holders (los mayores, sin pools ni quemado, más los snipers que aún tienen tokens). Exchanges y puentes con miles de transacciones no cuentan como «mismo dueño».${part} Este grupo no cambia la puntuación de arriba.</div>`;
   window.PBMap.draw($("#mapsvg"),g,{onPick:n=>{
     const f=g.nodes.find(m=>m.id===n.id);
-    $("#mapinfo").innerHTML=`<b class="w">${esc(n.id)}</b> · ${n.creator?"creador · ":""}${n.sniper?"sniper · ":""}${n.kind==="magic"?"no es holder":(n.pct||0).toLocaleString("es-MX",{maximumFractionDigits:2})+" % del total"}${n.contract?" · contrato"+(n.name?" ("+esc(n.name)+")":""):""}${n.group?" · grupo "+n.group:""}`;
+    $("#mapinfo").innerHTML=`<b class="w">${esc(n.id.split("@")[0])}</b> · ${n.creator?"creador · ":""}${n.sniper?"sniper · ":""}${n.timeNode?"contrato que fondeó a varias wallets en la misma hora: "+esc(n.id.split("@")[0])+" · ":""}${n.deployer?"creó el contrato que fondeó · ":""}${n.kind==="magic"?"no es holder":(n.pct||0).toLocaleString("es-MX",{maximumFractionDigits:2})+" % del total"}${n.contract?" · contrato"+(n.name?" ("+esc(n.name)+")":""):""}${n.group?" · grupo "+n.group:""}`;
   }});
 }
 
