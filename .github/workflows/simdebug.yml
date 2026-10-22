@@ -1,0 +1,18 @@
+name: Sell simulation browser debug (read-only)
+on:
+  push:
+    branches: [research/probes]
+    paths: [live_sim_debug.py, .github/workflows/simdebug.yml]
+permissions:
+  contents: read
+jobs:
+  dbg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
+      - run: python live_sim_debug.py 0x1b282927b9c5d39d7161f51af3203b44b1a56213 0xa01ff10774cfe53c3fbc1d7d124c42e19f6afcbd
