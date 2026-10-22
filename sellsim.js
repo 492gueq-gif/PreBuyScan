@@ -145,18 +145,27 @@
       } else if (kind === "v4") {
         const key = await v4Key(pa, pair.pairCreatedAt, o);
         const eth = "0x0000000000000000000000000000000000000000";
-        if (key.currency0 !== eth || key.currency1 !== token) {
-          out.status = "unsupported"; out.detail = "Pool V4 sin ETH nativo; simulación no disponible todavía."; return out;
+        const other = key.currency0 === token ? key.currency1 : key.currency1 === token ? key.currency0 : null;
+        if (other !== eth && other !== WETH) {
+          out.status = "unsupported"; out.detail = "Pool V4 contra un activo distinto de ETH/WETH; simulación no disponible."; return out;
         }
-        out.hooks = key.hooks;
+        out.hooks = key.hooks; out.base = other === eth ? "ETH" : "WETH";
         const router = o.v4Router || V4_ROUTERS[0];
+        const buyZeroForOne = key.currency0 === other;
+        const permit = tkn => [tx(tkn, approve(PERMIT2, MAX)),
+          tx(PERMIT2, "0x87517c45" + addr(tkn) + addr(router) + word(MAX160) + word(DEADLINE))];
         push("tokBefore", tx(token, balanceOf(token, ACTOR)));
-        push("buy", tx(router, v4Execute(key, true, BUY_WEI, eth, token), BUY_WEI));
+        if (other === eth) {
+          push("buy", tx(router, v4Execute(key, buyZeroForOne, BUY_WEI, eth, token), BUY_WEI));
+          measure = { before: ethBalance(), asset: "ETH" };
+        } else {                     // wrap the simulated ETH into WETH, then pay through Permit2
+          push("wrap", tx(WETH, "0xd0e30db0", BUY_WEI));
+          const [a1, a2] = permit(WETH); push("wapprove", a1); push("wpermit", a2);
+          push("buy", tx(router, v4Execute(key, buyZeroForOne, BUY_WEI, WETH, token)));
+          measure = { before: tx(WETH, balanceOf(WETH, ACTOR)), asset: "WETH" };
+        }
         push("tokAfter", tx(token, balanceOf(token, ACTOR)));
-        measure = { before: ethBalance(), asset: "ETH" };
-        sellCalls = amt => [tx(token, approve(PERMIT2, MAX)),
-          tx(PERMIT2, "0x87517c45" + addr(token) + addr(router) + word(MAX160) + word(DEADLINE)),
-          tx(router, v4Execute(key, false, amt, token, eth))];
+        sellCalls = amt => [...permit(token), tx(router, v4Execute(key, !buyZeroForOne, amt, token, other))];
       } else { out.status = "unsupported"; out.detail = "Tipo de pool no reconocido."; return out; }
 
       // First simulation: the buy, to learn the exact amount received.
@@ -167,6 +176,7 @@
         return r[0].calls;
       };
       const first = await sim(calls);
+      for (const k of ["wrap", "wapprove", "wpermit"]) if (k in idx && first[idx[k]].status !== "0x1") { out.status = "unknown"; out.detail = "Preparación de WETH simulada fallida."; return out; }
       if (first[idx.buy].status !== "0x1") { out.status = "buy_failed"; out.detail = "La compra simulada falló."; return out; }
       const got = uint(decodeOrNull(first[idx.tokAfter])) - uint(decodeOrNull(first[idx.tokBefore]));
       if (got <= 0n) { out.status = "buy_failed"; out.detail = "La compra simulada no entregó tokens."; return out; }
