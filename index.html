@@ -165,11 +165,13 @@ async function traders(pool){
     if(a.kind==="buy"){x.bought+=v;x.nb++;x.buys.push({v,b:a.block_number});}else if(a.kind==="sell"){x.sold+=v;x.ns++;}
   }
   const list=Object.values(w);
-  const top=list.filter(x=>x.ns>0).map(x=>({...x,pnl:x.sold-x.bought})).sort((a,b)=>b.pnl-a.pnl).slice(0,5);
+  // Only wallets that bought AND sold inside the visible window: earlier buys are unknown.
+  const top=list.filter(x=>x.ns>0&&x.nb>0).map(x=>({...x,pnl:x.sold-x.bought})).sort((a,b)=>b.pnl-a.pnl).slice(0,5);
   // Identical buys: 3+ different wallets whose buy sizes match within 0.5 % (> $50).
   const big=list.flatMap(x=>x.buys.filter(b=>b.v>50).map(b=>({...b,addr:x.addr}))).sort((a,b)=>a.v-b.v);
   let clone=[];
-  for(let i=0;i<big.length;i++){const grp=big.filter(b=>Math.abs(b.v-big[i].v)<=big[i].v*0.005);const ws=new Set(grp.map(g=>g.addr));if(ws.size>clone.length)clone=[...ws].map(a=>({addr:a,v:big[i].v}));}
+  // Same size (±0.5 %) AND nearly simultaneous (≤ 50 blocks, ~5 s): a coordinated launch buy, not routine bots.
+  for(let i=0;i<big.length;i++){const grp=big.filter(b=>Math.abs(b.v-big[i].v)<=big[i].v*0.005&&Math.abs(b.b-big[i].b)<=50);const ws=new Set(grp.map(g=>g.addr));if(ws.size>clone.length)clone=[...ws].map(a=>({addr:a,v:big[i].v}));}
   const byBlock={};for(const x of list)for(const b of x.buys){(byBlock[b.b]=byBlock[b.b]||new Set()).add(x.addr);}
   const sameBlock=Math.max(0,...Object.values(byBlock).map(s=>s.size));
   const sells=list.reduce((t,x)=>t+x.sold,0),topSeller=list.reduce((m,x)=>x.sold>m.sold?x:m,{sold:0});
@@ -237,6 +239,8 @@ async function inspect(token){
   if(pair&&pair.pairAddress){
     try{
       tr=await traders(pair.pairAddress);
+      const young=pair.pairCreatedAt&&(Date.now()-pair.pairCreatedAt)<72*3.6e6;   // bundles matter at launch
+      if(!young){tr.clone=[];tr.sameBlock=0;}
       if(tr.clone.length)checks.push({s:"high",t:"Varias wallets compraron exactamente lo mismo",d:tr.clone.length+" wallets distintas compraron ~"+usd(tr.clone[0].v)+" cada una: típico de un grupo coordinado o del propio creador (bundle) que luego vende a la gente."});
       if(tr.sameBlock>=3)checks.push({s:"warn",t:"Compras de varias wallets en el mismo bloque",d:tr.sameBlock+" wallets compraron en el mismo bloque: posibles bots o compras coordinadas."});
       if(tr.sellShare!=null&&tr.sellShare>0.5&&tr.topSeller.sold>500)checks.push({s:"warn",t:"Una sola wallet domina las ventas",d:short(tr.topSeller.addr)+" hizo "+Math.round(tr.sellShare*100)+" % del volumen vendido reciente ("+usd(tr.topSeller.sold)+")."});
@@ -304,7 +308,7 @@ function render(token,{checks,facts,notChecked,tr}){
      <div class="counts">${["high","warn","ok","unk"].filter(k=>n(k)).map(k=>`<span class="pill ${k}">${n(k)} ${lbl[k].toLowerCase()}</span>`).join("")}</div></div></div>
    <section><h3>Hallazgos</h3><ol class="checks">${checks.map(c=>`<li><span class="pill ${c.s}">${lbl[c.s]}</span><div class="ck"><b>${esc(c.t)}</b><span>${esc(c.d)}</span></div></li>`).join("")}</ol></section>
    ${factHtml?`<section><h3>Mercado</h3><dl class="facts">${factHtml}</dl></section>`:""}
-   ${tr&&tr.top.length?`<section><h3>Mayores ganadores al vender</h3><div class="tw"><table class="tt"><thead><tr><th>Wallet</th><th>Compró</th><th>Vendió</th><th>Resultado</th></tr></thead><tbody>${tr.top.map(x=>`<tr><td class="w" title="${esc(x.addr)}">${esc(short(x.addr))}${tr.clone.some(c=>c.addr===x.addr)?" ⚑":""}</td><td>${usd(Math.round(x.bought))} <small>(${x.nb})</small></td><td>${usd(Math.round(x.sold))} <small>(${x.ns})</small></td><td class="${x.pnl>=0?"pos":"neg"}">${x.pnl>=0?"+":"−"}${usd(Math.round(Math.abs(x.pnl)))}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Según las últimas ${tr.n} operaciones del par principal (GeckoTerminal), no el historial completo. Entre paréntesis, número de operaciones.${tr.clone.length?" ⚑ = compró el mismo monto que otras wallets.":""}</div></section>`:""}
+   ${tr&&tr.top.length?`<section><h3>Mayores ganadores al vender</h3><div class="tw"><table class="tt"><thead><tr><th>Wallet</th><th>Compró</th><th>Vendió</th><th>Resultado</th></tr></thead><tbody>${tr.top.map(x=>`<tr><td class="w" title="${esc(x.addr)}">${esc(short(x.addr))}${tr.clone.some(c=>c.addr===x.addr)?" ⚑":""}</td><td>${usd(Math.round(x.bought))} <small>(${x.nb})</small></td><td>${usd(Math.round(x.sold))} <small>(${x.ns})</small></td><td class="${x.pnl>=0?"pos":"neg"}">${x.pnl>=0?"+":"−"}${usd(Math.round(Math.abs(x.pnl)))}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Según las últimas ${tr.n} operaciones del par principal (GeckoTerminal), no el historial completo. Solo wallets que compraron y vendieron dentro de ese periodo. Entre paréntesis, número de operaciones.${tr.clone.length?" ⚑ = compró el mismo monto que otras wallets.":""}</div></section>`:""}
    <div class="note">No revisado todavía: ${esc(notChecked.join("; "))}.${facts.url?` Ver el par en <a href="${esc(facts.url)}" target="_blank" rel="noopener">DexScreener</a>.`:""}</div>`;
 }
 
