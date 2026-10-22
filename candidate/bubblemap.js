@@ -86,14 +86,16 @@
       if (!known.has(w.addr) && (w.pct || 0) > 0 && !pools.has(w.addr)) { holders.push({ addr: w.addr, pct: w.pct, contract: false, name: null }); known.add(w.addr); }
     }
     const partial = { funders: 0, transfers: false };
-    // Token transfers first: two calls, the most direct evidence.
+    // Token transfers between wallets (v2 API, newest first, up to 4 pages).
     progress("Leyendo transferencias del token…");
-    let transfers = [];
-    for (const sort of ["asc", "desc"]) {
+    let transfers = [], next = null;
+    for (let pg = 0; pg < 4; pg++) {
       try {
-        const j = await C._get(BS + "?module=account&action=tokentx&contractaddress=" + token + "&sort=" + sort + "&page=1&offset=300", 15000);
-        transfers = transfers.concat((j.result || []).map(t => ({ from: t.from, to: t.to })));
-      } catch (e) { partial.transfers = true; }
+        const qs = next ? "?" + new URLSearchParams(next).toString() : "";
+        const j = await C._get(BS + "/v2/tokens/" + token + "/transfers" + qs, 15000);
+        transfers = transfers.concat((j.items || []).map(t => ({ from: t.from && t.from.hash, to: t.to && t.to.hash })));
+        next = j.next_page_params; if (!next) break;
+      } catch (e) { partial.transfers = true; break; }
     }
     // Who funded each wallet (first incoming ETH). Reuse what the scan already found; contracts are skipped.
     const funders = {};
@@ -107,9 +109,8 @@
       while (todo.length && !stop) {
         const w = todo.shift();
         try {
-          const a = await C._get(BS + "?module=account&action=txlist&address=" + w + "&sort=asc&page=1&offset=5", 10000);
-          const f = (a.result || []).find(t => lc(t.to) === w && BigInt(t.value || "0") > 0n);
-          funders[w] = f ? lc(f.from) : null;
+          const f = await C._firstFunder(w);
+          funders[w] = f.funder || null;
         } catch (e) { partial.funders++; if (String(e.message).includes("time budget")) stop = true; }
         progress("Buscando quién fondeó cada wallet… " + (++done) + "/" + (done + todo.length));
       }
