@@ -192,6 +192,11 @@ SCAN_JS = """async t=>{
 }"""
 
 
+def log_run(entry):
+    with open("data/runs.jsonl", "a") as f:
+        f.write(json.dumps(entry, sort_keys=True) + "\n")
+
+
 def collect(now=None, smoke=False):
     from playwright.sync_api import sync_playwright
     import http.server
@@ -204,13 +209,16 @@ def collect(now=None, smoke=False):
     if not smoke and (now < START or now > END):
         print("outside collection window"); return 0
     seen = {s["token"] for s in _read(SCANS)}
-    pages = []
-    for p in (1, 2, 3):
+    pages, failed = [], 0
+    for p in range(1, 11):
         try:
-            pages.append(get_json(GT + "new_pools?page=%d&include=base_token" % p))
+            pages.append(get_json(GT + "new_pools?page=%d" % p)); time.sleep(2.5)
         except Exception as e:
-            print("new_pools page", p, "failed:", type(e).__name__)
-    chosen = pick(candidates(pages, now, seen), 2 if smoke else PER_RUN)
+            failed += 1; print("new_pools page", p, "failed:", type(e).__name__)
+    cands = candidates(pages, now, seen)
+    chosen = pick(cands, 2 if smoke else PER_RUN)
+    log_run(dict(at=now, smoke=smoke, pools=sum(len(pg.get("data") or []) for pg in pages), pages_failed=failed,
+                 eligible=len(cands), chosen=len(chosen)))
     if not chosen:
         print("no eligible tokens"); return 0
     # Serve the frozen scanner without its auto-run on load.

@@ -17,7 +17,7 @@ Se ejecuta en Chromium sin interfaz llamando a la misma función `inspect()` que
 
 ## Universo y muestra (prospectiva, sin sesgo de supervivencia)
 
-- Fuente: listado público `new_pools` de GeckoTerminal para Robinhood Chain, páginas 1 a 3, consultado cada hora.
+- Fuente: listado público `new_pools` de GeckoTerminal para Robinhood Chain, páginas 1 a 10, consultado cada hora. Cada corrida queda registrada en `data/runs.jsonl` (pools vistos, elegibles y elegidos).
 - Elegibles: pools con 15 a 75 minutos de edad en el momento de la consulta; un registro por token; tokens ya escaneados se excluyen. Si WETH es el token base, el token estudiado es el otro.
 - Muestra: en cada corrida, los 8 elegibles con menor SHA-256 de su dirección (no depende de precio, liquidez ni volumen).
 - Ventana de recolección: escaneos desde 2026-10-22T17:00Z hasta 2026-10-29T14:00Z.
@@ -68,3 +68,7 @@ Se publican TODAS las señales, útiles o no, en la página de PreBuyScan y en e
 - El explorador público limita consultas: algunas señales saldrán «Sin datos» y se excluyen; se reporta cuántas.
 - Tokens con 15 a 75 minutos de vida: no dice nada de tokens viejos.
 - Colapsar no prueba estafa, y no colapsar no prueba seguridad.
+
+## Cambio de ejecución (no de protocolo), 22 oct 2026, antes del primer escaneo
+
+La prueba de humo mostró que 3 páginas de `new_pools` (60 pools, unos 20 minutos de lanzamientos en Robinhood Chain) no cubren la ventana de 15 a 75 minutos de edad. Se consultan 10 páginas. Universo, muestra, señales, resultado y reglas no cambian.
