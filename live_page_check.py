@@ -9,9 +9,8 @@ with sync_playwright() as p:
         items=list(zip(pg.locator("ol.checks li .pill").all_inner_texts(),pg.locator("ol.checks li b").all_inner_texts(),pg.locator("ol.checks li .ck span").all_inner_texts()))
         facts=dict(zip(pg.locator(".fact dt").all_inner_texts(),pg.locator(".fact dd").all_inner_texts()))
         out={"token":t,"stamp":pg.inner_text(".stamp"),"checks":items,"facts":facts,"note":pg.inner_text(".note"),
-             "rpc_statuses":sorted(set(str(x[0]) for x in rpcs)),"rpc_n":len(rpcs),"rpc_non200":[x for x in rpcs if x[0]!=200][:5],"table":pg.locator("table.tt").inner_text() if pg.locator("table.tt").count() else None}
+             "rpc_statuses":sorted(set(str(x[0]) for x in rpcs)),"rpc_n":len(rpcs),"rpc_non200":[x for x in rpcs if x[0]!=200][:5],"tables":pg.locator("#out table.tt").all_inner_texts()}
         out["og"]=pg.evaluate("document.querySelector('meta[property=\"og:image\"]').content");out["creatorjs"]=pg.evaluate("!!window.PBCreator");pg.wait_for_selector("#radar table.tt",timeout=60000);out["radar"]=pg.locator("#radar tbody tr").count()
-        _x=pg.evaluate("""async t=>{const ps=await (await fetch('https://api.dexscreener.com/tokens/v1/robinhood/'+t)).json();const pr=ps.sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];const r=await window.PBSellSim.simulate(t,pr);return r;}""",t)
         s=json.dumps(out,ensure_ascii=False);print(s)
         for i in range(0,len(s),3000):print("::notice title=page_%d::"%(i//3000)+s[i:i+3000].replace("%","%25"))
     b.close()
