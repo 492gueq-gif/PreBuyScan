@@ -1,0 +1,23 @@
+name: Candidate page check (read-only)
+on:
+  push:
+    branches: [research/probes]
+    paths: [cand_check.py, candidate/**, .github/workflows/candidate.yml]
+permissions:
+  contents: read
+jobs:
+  page:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
+      - run: python cand_check.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shots
+          path: "*.png"

@@ -1,0 +1,503 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PreBuyScan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Escáner de tokens de Robinhood Chain: simula la venta, revisa contrato, creador, liquidez y holders. Scan before the scam.">
+<meta property="og:title" content="PreBuyScan · Scan before the scam">
+<meta property="og:description" content="Revisa un token de Robinhood Chain antes de comprar: venta simulada, contrato, creador, liquidez y holders.">
+<meta property="og:image" content="https://492gueq-gif.github.io/PreBuyScan/og.png">
+<meta property="og:url" content="https://492gueq-gif.github.io/PreBuyScan/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single inspection sheet — input strip, verdict stamp, then itemized findings like a vehicle inspection report. */
+:root{
+  --bg:#eef1f3; --sheet:#fbfcfc; --ink:#14212b; --muted:#5b6a75; --line:#d3dade;
+  --accent:#0f5f66; --accent-ink:#ffffff;
+  --high:#b42318; --high-bg:#fdecea; --warn:#9a5b00; --warn-bg:#fff4e0;
+  --ok:#1f7a45; --ok-bg:#e7f5ec; --unk:#5b6a75; --unk-bg:#eceff1;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161b; --sheet:#151f26; --ink:#e3e9ed; --muted:#93a3ae; --line:#2a3842;
+  --accent:#4fb3bb; --accent-ink:#06191b;
+  --high:#ff8a7a; --high-bg:#3a1a17; --warn:#f2b54b; --warn-bg:#352812; --ok:#6fd39a; --ok-bg:#15301f; --unk:#a5b3bc; --unk-bg:#22303a;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161b; --sheet:#151f26; --ink:#e3e9ed; --muted:#93a3ae; --line:#2a3842;
+  --accent:#4fb3bb; --accent-ink:#06191b;
+  --high:#ff8a7a; --high-bg:#3a1a17; --warn:#f2b54b; --warn-bg:#352812; --ok:#6fd39a; --ok-bg:#15301f; --unk:#a5b3bc; --unk-bg:#22303a;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:860px;margin:0 auto;display:grid;gap:20px}
+header{display:grid;gap:6px}
+.brand{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,4vw,2.2rem);letter-spacing:-.01em;text-wrap:balance}
+.brand span{color:var(--accent)}
+.sub{color:var(--muted);max-width:62ch}
+form{display:flex;flex-wrap:wrap;gap:10px;background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:14px}
+label{flex-basis:100%;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+input{flex:1 1 320px;min-width:0;font-family:var(--mono);font-size:.92rem;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button{font-family:var(--display);font-weight:700;font-size:1rem;padding:11px 20px;border:0;border-radius:8px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+button:disabled{opacity:.6;cursor:progress}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.verdict{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;padding:20px;border-bottom:1px solid var(--line)}
+.stamp{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:1rem;line-height:1.1;
+  border:3px solid currentColor;border-radius:6px;padding:10px 12px;transform:rotate(-3deg);text-align:center;min-width:9.5rem}
+.stamp.high{color:var(--high)}.stamp.warn{color:var(--warn)}.stamp.ok{color:var(--ok)}.stamp.unk{color:var(--unk)}
+.vtext{min-width:0}
+.vtext h2{font-family:var(--display);font-size:1.25rem;margin:0 0 4px;text-wrap:balance;overflow-wrap:anywhere}
+.vtext p{margin:0;color:var(--muted)}
+.counts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pill{font-size:.78rem;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill.high{background:var(--high-bg);color:var(--high)}.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.unk{background:var(--unk-bg);color:var(--unk)}
+section h3{font-family:var(--display);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0;padding:14px 20px 6px}
+ol.checks{list-style:none;margin:0;padding:0}
+ol.checks li{display:grid;grid-template-columns:7.5rem 1fr;gap:14px;padding:12px 20px;border-top:1px solid var(--line);align-items:start}
+ol.checks li .pill{justify-self:start;margin-top:2px}
+.ck{min-width:0}
+.ck b{display:block;font-weight:600}
+.ck span{color:var(--muted);font-size:.9rem;overflow-wrap:anywhere}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.fact{background:var(--sheet);padding:12px 20px;min-width:0}
+.fact dt{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.fact dd{margin:2px 0 0;font-family:var(--mono);font-size:.98rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.btn2{font-family:var(--body);font-weight:600;font-size:.9rem;padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--sheet);color:var(--ink);cursor:pointer}
+.btn2:hover{border-color:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:8px;flex:1 1 100%}
+.row input{flex:1 1 260px}
+.score{background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:16px 20px;display:grid;gap:12px}
+.score h3{font-family:var(--display);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0;padding:0}
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:8.5rem 1fr 3.4rem;gap:10px;align-items:center;font-size:.9rem}
+.track{height:12px;background:var(--unk-bg);border-radius:6px;overflow:hidden}
+.fill{height:100%;border-radius:6px}
+.fill.high{background:var(--high)}.fill.warn{background:var(--warn)}.fill.ok{background:var(--ok)}
+.bar b{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.score p{margin:0;font-size:.86rem;color:var(--muted);max-width:70ch}
+.score a{color:var(--accent)}
+.tw{overflow-x:auto;border-top:1px solid var(--line)}
+table.tt{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+table.tt th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:right;padding:8px 20px}
+table.tt th:first-child,table.tt td:first-child{text-align:left}
+table.tt td{padding:8px 20px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+table.tt td.w{font-family:var(--mono)}
+.pos{color:var(--ok)}.neg{color:var(--high)}
+.tnote{font-size:.8rem;color:var(--muted);padding:8px 20px 14px}
+.note{font-size:.86rem;color:var(--muted);padding:14px 20px;border-top:1px solid var(--line)}
+.note a{color:var(--accent)}
+.busy{padding:28px 20px;color:var(--muted)}
+footer{font-size:.82rem;color:var(--muted);max-width:70ch}
+.sc{display:block;font-size:2rem;line-height:1;margin-top:6px}.sc small{font-size:.8rem}
+.cnt{font-weight:500;letter-spacing:0;text-transform:none;margin-left:6px}
+.sharebar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px}
+.btn2.sm{padding:6px 10px;font-size:.82rem}
+.btn2[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.shmsg{font-size:.82rem;color:var(--ok)}
+.scorenote{margin:0;padding:10px 20px;font-size:.82rem;color:var(--muted);border-bottom:1px solid var(--line)}
+.rhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:6px 20px 10px 0}
+.tabs{display:flex;gap:6px}
+table.tt a{color:var(--accent)}
+table.radar td{vertical-align:middle}
+@media (max-width:520px){.rhead{padding-left:0}table.radar th:nth-child(4),table.radar td:nth-child(4){display:none}table.tt th,table.tt td{padding:8px 4px;font-size:.74rem}table.tt th{font-size:.62rem;letter-spacing:.03em}table.tt th:first-child,table.tt td:first-child{padding-left:12px}table.tt th:last-child,table.tt td:last-child{padding-right:12px}table.tt td small{display:none}.verdict{grid-template-columns:1fr}.stamp{justify-self:start}ol.checks li{grid-template-columns:1fr;gap:6px}}
+@media (prefers-reduced-motion:reduce){.stamp{transform:none}}
+</style></head><body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">PreBuy<span>Scan</span></div>
+    <div class="sub"><b>Scan before the scam.</b> Pega la dirección de un token de Robinhood Chain y detecta en segundos las señales de estafa más comunes.</div>
+  </header>
+
+  <form id="f" autocomplete="off">
+    <label for="addr">Dirección del token (Robinhood Chain)</label>
+    <div class="row">
+      <input id="addr" name="addr" spellcheck="false" placeholder="0x…" value="0x39dbed3a2bd333467115de45665cc57f813c4571">
+      <button id="paste" class="btn2" type="button">Pegar</button>
+      <button id="clear" class="btn2" type="button">Borrar</button>
+      <button id="go" type="submit">Revisar token</button>
+    </div>
+  </form>
+
+  <div id="out" class="sheet" aria-live="polite"><div class="busy">Revisando…</div></div>
+
+  <section id="radar" class="sheet" aria-labelledby="radar-h">
+    <div class="rhead"><h3 id="radar-h">Tokens de Robinhood Chain ahora</h3>
+      <div class="tabs"><button class="btn2 sm" type="button" data-k="new" aria-pressed="true">Nuevos</button><button class="btn2 sm" type="button" data-k="trending" aria-pressed="false">En tendencia</button></div></div>
+    <div id="radar-body"><div class="busy">Se carga después de la primera revisión.</div></div>
+  </section>
+
+  <section class="score" aria-labelledby="score-h">
+    <h3 id="score-h">Qué tan seguido acierta</h3>
+    <p>Medimos las señales de mercado de PreBuyScan con 749 tokens nuevos de Robinhood Chain (17–21 oct 2026), con las reglas fijadas antes de ver los resultados. Porcentaje que colapsó en las 24 h siguientes (sin operaciones o caída de 90 % o más):</p>
+    <div class="bars">
+      <div class="bar"><span>Riesgo alto <small>(343)</small></span><div class="track"><div class="fill high" style="width:87%"></div></div><b>87 %</b></div>
+      <div class="bar"><span>Precaución <small>(348)</small></span><div class="track"><div class="fill warn" style="width:61%"></div></div><b>61 %</b></div>
+      <div class="bar"><span>Sin alertas <small>(58)</small></span><div class="track"><div class="fill ok" style="width:57%"></div></div><b>57 %</b></div>
+    </div>
+    <p>Lo que significa: un «riesgo alto» casi siempre termina mal, pero «sin alertas» tampoco es seguro; más de la mitad de los tokens nuevos colapsa igual. Esta prueba evaluó solo las señales de mercado, no las del contrato, y 41 % de la muestra no tenía datos del proveedor. <a href="https://github.com/492gueq-gif/PreBuyScan/blob/research/base-rates-v1/docs/PRECISION_V1.md" target="_blank" rel="noopener">Ver método</a>.</p>
+  </section>
+
+  <footer>PreBuyScan, por VIGIA. Herramienta informativa. Revisa datos públicos de mercado (DexScreener, GeckoTerminal) y el contrato en la cadena (RPC pública de Robinhood Chain) desde tu navegador, y simula una compra y venta sin firmar ni enviar nada. No es asesoría financiera ni una auditoría: «sin alertas» no significa «seguro», y ninguna revisión garantiza que puedas vender.</footer>
+</div>
+
+<script src="sellsim.js"></script>
+<script src="creator.js"></script>
+<script>
+const RPC="https://rpc.mainnet.chain.robinhood.com";
+const DEX="https://api.dexscreener.com/tokens/v1/robinhood/";
+const IMPL_SLOT="0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+const RISKY={
+  mint:{label:"Puede crear tokens nuevos (mint)",sel:["40c10f19","a0712d68"]},
+  blacklist:{label:"Puede bloquear wallets (lista negra)",sel:["153b0d1e","f9f92be4","44337ea1","455a4396","9c0db5f3","d34628cc"]},
+  fees:{label:"Puede cambiar las comisiones de compra/venta",sel:["69fe0e2d","0b78f9c0","c4081a4c","0cc835a3","8b4cee08","6db79437"]},
+  trading:{label:"Puede pausar o activar el trading",sel:["8456cb59","8a8c523c","c9567bf9","c2e5ec04"]},
+  limits:{label:"Puede limitar cuánto se compra o vende",sel:["ec28438a","ea1644d5"]}
+};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const usd=v=>v==null||isNaN(v)?"—":"$"+Number(v).toLocaleString("es-MX",{maximumFractionDigits:v<1?8:0});
+const num=v=>v==null||isNaN(v)?"—":Number(v).toLocaleString("es-MX");
+
+async function timed(url,opts={},ms=9000){
+  const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);
+  try{const r=await fetch(url,{...opts,signal:c.signal});if(!r.ok)throw new Error("HTTP "+r.status);return await r.json();}
+  finally{clearTimeout(t)}
+}
+let rpcId=0;
+async function rpc(method,params){
+  const j=await timed(RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:++rpcId,method,params})});
+  if(j.error)throw new Error("rpc");return j.result;
+}
+const hasSel=(code,sels)=>sels.some(s=>code.includes("63"+s));
+const pct=v=>v==null||isNaN(v)?"—":(v>0?"+":"")+Number(v).toLocaleString("es-MX",{maximumFractionDigits:1})+" %";
+const word=a=>a.toLowerCase().replace(/^0x/,"").padStart(64,"0");
+async function uintCall(to,data){const r=await rpc("eth_call",[{to,data},"latest"]);if(!r||r==="0x")throw new Error("empty");return BigInt(r.slice(0,66));}
+const GT="https://api.geckoterminal.com/api/v2/networks/robinhood/pools/";
+const short=a=>a.slice(0,6)+"…"+a.slice(-4);
+async function traders(pool){
+  const j=await timed(GT+pool+"/trades");
+  const rows=(j.data||[]).map(d=>d.attributes).filter(a=>a&&a.tx_from_address&&!a.is_anomalous);
+  const w={};
+  for(const a of rows){
+    const k=a.tx_from_address.toLowerCase(),v=Number(a.volume_in_usd)||0;
+    const x=w[k]||(w[k]={addr:k,bought:0,sold:0,nb:0,ns:0,buys:[]});
+    if(a.kind==="buy"){x.bought+=v;x.nb++;x.buys.push({v,b:a.block_number});}else if(a.kind==="sell"){x.sold+=v;x.ns++;}
+  }
+  const list=Object.values(w);
+  // Only wallets that bought AND sold inside the visible window: earlier buys are unknown.
+  const top=list.filter(x=>x.ns>0&&x.nb>0).map(x=>({...x,pnl:x.sold-x.bought})).sort((a,b)=>b.pnl-a.pnl).slice(0,5);
+  // Identical buys: 3+ different wallets whose buy sizes match within 0.5 % (> $50).
+  const big=list.flatMap(x=>x.buys.filter(b=>b.v>50).map(b=>({...b,addr:x.addr}))).sort((a,b)=>a.v-b.v);
+  let clone=[];
+  // Same size (±0.5 %) AND nearly simultaneous (≤ 50 blocks, ~5 s): a coordinated launch buy, not routine bots.
+  for(let i=0;i<big.length;i++){const grp=big.filter(b=>Math.abs(b.v-big[i].v)<=big[i].v*0.005&&Math.abs(b.b-big[i].b)<=50);const ws=new Set(grp.map(g=>g.addr));if(ws.size>clone.length)clone=[...ws].map(a=>({addr:a,v:big[i].v}));}
+  const byBlock={};for(const x of list)for(const b of x.buys){(byBlock[b.b]=byBlock[b.b]||new Set()).add(x.addr);}
+  const sameBlock=Math.max(0,...Object.values(byBlock).map(s=>s.size));
+  const sells=list.reduce((t,x)=>t+x.sold,0),topSeller=list.reduce((m,x)=>x.sold>m.sold?x:m,{sold:0});
+  return {n:rows.length,wallets:list,top,clone:clone.length>=3?clone:[],sameBlock,sellShare:sells>0?topSeller.sold/sells:null,topSeller};
+}
+const share=(part,total)=>total>0n?Number(part*10000n/total)/100:null;
+
+async function inspect(token){
+  const checks=[];const facts={};const notChecked=[];let cat="Mercado";const add=o=>checks.push({c:cat,...o});
+  // Market data
+  let pair=null,pairsFound=0,allPairs=[];
+  try{
+    const pairs=await timed(DEX+token);
+    if(Array.isArray(pairs)&&pairs.length){pairsFound=pairs.length;allPairs=pairs;pair=pairs.slice().sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];}
+  }catch(e){add({s:"unk",t:"Datos de mercado no disponibles",d:"No se pudo consultar DexScreener desde este navegador."});}
+  if(pair){
+    const liq=pair.liquidity?.usd, fdv=pair.fdv??pair.marketCap, ageH=pair.pairCreatedAt?(Date.now()-pair.pairCreatedAt)/3.6e6:null;
+    const h24=pair.txns?.h24||{}, h1=pair.txns?.h1||{};
+    facts.name=(pair.baseToken?.name||"")+(pair.baseToken?.symbol?" ("+pair.baseToken.symbol+")":"");
+    const pc=pair.priceChange||{}, vol=pair.volume||{};
+    const socials=(pair.info?.socials||[]).length, sites=(pair.info?.websites||[]).length;
+    Object.assign(facts,{Precio:usd(Number(pair.priceUsd)),Liquidez:usd(liq),"Valor total (FDV)":usd(fdv),"Capitalización":usd(pair.marketCap),
+      "Edad del par":ageH==null?"—":ageH<48?ageH.toFixed(1)+" h":(ageH/24).toFixed(1)+" días",
+      "Volumen 1 h / 24 h":usd(vol.h1)+" / "+usd(vol.h24),
+      "Compras / ventas 1 h":num(h1.buys)+" / "+num(h1.sells),"Compras / ventas 24 h":num(h24.buys)+" / "+num(h24.sells),
+      "Cambio 1 h / 6 h / 24 h":pct(pc.h1)+" · "+pct(pc.h6)+" · "+pct(pc.h24),
+      "Web y redes":sites+socials?(sites?"web":"")+(sites&&socials?" + ":"")+(socials?socials+" red(es)":""):"ninguna",
+      "Pares encontrados":num(pairsFound),
+      DEX:(pair.dexId||"—")+(pair.labels?.length?" "+pair.labels.join(","):"")});
+    facts.url=pair.url;facts._pair=pair.pairAddress;
+    if(liq==null)add({s:"unk",t:"Liquidez desconocida",d:"El par no reporta liquidez."});
+    else if(liq<5000)add({s:"high",t:"Liquidez muy baja",d:usd(liq)+": una venta pequeña mueve mucho el precio y es fácil de manipular."});
+    else if(liq<25000)add({s:"warn",t:"Liquidez baja",d:usd(liq)+": el deslizamiento puede ser alto."});
+    else add({s:"ok",t:"Liquidez aceptable",d:usd(liq)+" en el par principal."});
+    if(liq&&fdv&&fdv/liq>50)add({s:"warn",t:"Valoración muy alta frente a la liquidez",d:"El FDV es "+Math.round(fdv/liq)+" veces la liquidez: el precio de pantalla no se puede realizar en tamaño."});
+    if(pc.h1!=null&&pc.h1<=-50)add({s:"high",t:"Caída fuerte en la última hora",d:"El precio cayó "+pct(pc.h1)+" en 1 h: puede ser una salida masiva o un rug en curso."});
+    else if(pc.h24!=null&&pc.h24<=-70)add({s:"warn",t:"Caída fuerte en 24 h",d:"El precio cayó "+pct(pc.h24)+" en 24 h."});
+    if(liq&&vol.h24&&vol.h24/liq>20)add({s:"warn",t:"Volumen inusualmente alto frente a la liquidez",d:"Volumen de 24 h "+Math.round(vol.h24/liq)+" veces la liquidez: puede ser volumen inflado entre wallets del mismo dueño."});
+    if(!socials&&!sites)add({s:"warn",t:"Sin web ni redes sociales registradas",d:"DexScreener no tiene web ni redes de este token. Los proyectos serios casi siempre las publican."});
+    if(ageH!=null&&ageH<1)add({s:"warn",t:"Token recién creado",d:"Menos de 1 hora de vida: la mayoría de estafas ocurren en las primeras horas."});
+    if((h24.buys||0)>=20&&(h24.sells||0)===0)add({s:"high",t:"Nadie ha vendido",d:num(h24.buys)+" compras y 0 ventas en 24 h: señal clásica de token que no deja vender (honeypot)."});
+    else if((h24.buys||0)>0&&(h24.sells||0)/(h24.buys||1)<0.15)add({s:"warn",t:"Muy pocas ventas",d:"Solo "+num(h24.sells)+" ventas frente a "+num(h24.buys)+" compras en 24 h."});
+    else if((h24.sells||0)>0)add({s:"ok",t:"Hay ventas de otros usuarios",d:num(h24.sells)+" ventas en 24 h. Que otros vendan no garantiza que tú puedas."});
+  }else if(!checks.length){add({s:"high",t:"Sin mercado en DexScreener",d:"No hay pares de este token en Robinhood Chain: no se puede comprar ni vender de forma normal."});}
+
+  // Sell simulation: buy 0.01 ETH -> approve -> sell everything, in one simulated block
+  let simDone=false;cat="Venta";step("Simulando compra y venta…");
+  if(pair&&window.PBSellSim){
+    const r=await window.PBSellSim.simulate(token,pair);
+    const keep=r.retention!=null?Math.round(r.retention*1000)/10:null;
+    if(r.status==="round_trip_ok"){
+      simDone=true;
+      facts["Venta simulada (0.01 ETH)"]="recuperas "+keep+" %";
+      if(keep<70)add({s:"high",t:"Pérdida muy alta al vender",d:"En la simulación recuperarías solo "+keep+" % de lo invertido (comisiones, impacto e impuestos del token). Posible impuesto de venta abusivo."});
+      else if(keep<90)add({s:"warn",t:"Pérdida alta al vender",d:"En la simulación recuperarías "+keep+" % de lo invertido: puede haber un impuesto de venta o poca liquidez."});
+      else{const nv=checks.find(c=>c.t==="Nadie ha vendido");if(nv){nv.s="warn";nv.d+=" Aun así, la simulación sí pudo vender: no parece un bloqueo del contrato.";}
+        add({s:"ok",t:"La venta simulada funciona",d:"Simulamos comprar con 0.01 ETH y vender todo: recuperarías "+keep+" % (incluye comisiones e impacto). No garantiza que siga así."});}
+    }else if(r.status==="sell_failed"){simDone=true;add({s:"high",t:"La venta simulada falla",d:"Se pudo comprar pero no vender en la simulación: señal fuerte de honeypot."});}
+    else if(r.status==="hook_restricted")add({s:"warn",t:"Solo se puede operar desde su propio router",d:"El hook del pool rechaza compras desde los routers estándar de Uniswap; las compras reales pasan por un contrato propio de la plataforma. No pudimos simular la venta y dependes de esa plataforma para vender."});
+    else if(r.status==="buy_failed")add({s:"warn",t:"No se pudo simular la compra",d:r.detail||"La compra simulada falló."});
+    else add({s:"unk",t:"Venta no simulada",d:r.detail||"Simulación no disponible para este par."});
+    if(r.hooks&&!/^0x0+$/.test(r.hooks))add({s:"warn",t:"El pool V4 tiene un hook",d:"Código extra en el pool ("+short(r.hooks)+") que puede cambiar comisiones o reglas de compra y venta."});
+  }
+  // Recent trades: top winners and coordinated buying
+  let tr=null;cat="Mercado";step("Revisando operaciones recientes…");
+  if(pair&&pair.pairAddress){
+    try{
+      tr=await traders(pair.pairAddress);
+      const young=pair.pairCreatedAt&&(Date.now()-pair.pairCreatedAt)<72*3.6e6;   // bundles matter at launch
+      if(!young){tr.clone=[];tr.sameBlock=0;}
+      if(tr.clone.length)add({s:"high",t:"Varias wallets compraron exactamente lo mismo",d:tr.clone.length+" wallets distintas compraron ~"+usd(tr.clone[0].v)+" cada una: típico de un grupo coordinado o del propio creador (bundle) que luego vende a la gente."});
+      if(tr.sameBlock>=3)add({s:"warn",t:"Compras de varias wallets en el mismo bloque",d:tr.sameBlock+" wallets compraron en el mismo bloque: posibles bots o compras coordinadas."});
+      if(tr.sellShare!=null&&tr.sellShare>0.5&&tr.topSeller.sold>500)add({s:"warn",t:"Una sola wallet domina las ventas",d:short(tr.topSeller.addr)+" hizo "+Math.round(tr.sellShare*100)+" % del volumen vendido reciente ("+usd(tr.topSeller.sold)+")."});
+    }catch(e){notChecked.push("mayores ganadores (historial de operaciones no disponible)");}
+  }
+  // On-chain contract checks
+  cat="Contrato";let owner=null;step("Revisando el contrato…");
+  try{
+    const code=await rpc("eth_getCode",[token,"latest"]);
+    if(!code||code==="0x"){add({s:"high",t:"No hay contrato en esa dirección",d:"La dirección no tiene código en Robinhood Chain."});}
+    else{
+      let scan=code.toLowerCase();
+      facts["Tamaño del contrato"]=num((code.length-2)/2)+" bytes";
+      try{
+        const slot=await rpc("eth_getStorageAt",[token,IMPL_SLOT,"latest"]);
+        if(slot&&BigInt(slot)!==0n){
+          const impl="0x"+slot.slice(-40);
+          add({s:"warn",t:"Contrato actualizable (proxy)",d:"Quien controla el proxy puede cambiar las reglas del token. Implementación: "+impl});
+          try{const ic=await rpc("eth_getCode",[impl,"latest"]);if(ic&&ic!=="0x")scan+=ic.toLowerCase();}catch(e){}
+        }
+      }catch(e){notChecked.push("si el contrato es actualizable");}
+      try{const o=await rpc("eth_call",[{to:token,data:"0x8da5cb5b"},"latest"]);if(o&&o.length===66)owner="0x"+o.slice(-40);}catch(e){}
+      const renounced=owner!==null&&/^0x0+$/.test(owner);
+      const found=Object.entries(RISKY).filter(([,v])=>hasSel(scan,v.sel)).map(([,v])=>v.label);
+      if(owner===null)add({s:"unk",t:"Dueño del contrato no identificado",d:"El contrato no expone owner(); puede tener otros roles de control."});
+      else if(renounced)add({s:"ok",t:"Propiedad renunciada",d:"owner() es la dirección cero. Ojo: otros roles pueden seguir activos."});
+      else add({s:found.length?"high":"warn",t:"El contrato tiene dueño activo",d:"Dueño: "+owner+(found.length?". Combinado con las funciones de abajo, puede cambiar las reglas.":".")});
+      try{
+        const supply=await uintCall(token,"0x18160ddd");
+        let dec=18;try{dec=Number(await uintCall(token,"0x313ce567"));}catch(e){}
+        facts["Suministro total"]=num(Number(supply/10n**BigInt(Math.max(0,dec-2)))/100);
+        if(owner&&!renounced){
+          const ob=share(await uintCall(token,"0x70a08231"+word(owner)),supply);
+          facts["En manos del dueño"]=ob==null?"—":ob+" %";
+          if(ob!=null&&ob>20)add({s:"high",t:"El dueño tiene mucho del suministro",d:"El dueño guarda "+ob+" % de todos los tokens: puede venderlos de golpe."});
+          else if(ob!=null&&ob>5)add({s:"warn",t:"El dueño guarda una parte importante",d:ob+" % del suministro está en la wallet del dueño."});
+        }
+        if(facts._pair&&/^0x[0-9a-fA-F]{40}$/.test(facts._pair)){
+          const pb=share(await uintCall(token,"0x70a08231"+word(facts._pair)),supply);
+          if(pb!=null)facts["En el pool"]=pb+" %";
+        }
+      }catch(e){notChecked.push("suministro y tokens del dueño");}
+      if(found.length)found.forEach(f=>add({s:renounced?"warn":"high",t:f,d:renounced?"La función existe en el código, aunque la propiedad está renunciada.":"Función detectada en el código del contrato (búsqueda por huella; puede haber falsos positivos)."}));
+      else add({s:"ok",t:"Sin funciones peligrosas comunes",d:"No se encontraron mint, lista negra, cambio de comisiones ni pausa entre las variantes conocidas."});
+    }
+  }catch(e){add({s:"unk",t:"Contrato no revisado",d:"No se pudo consultar la cadena desde este navegador. Prueba de nuevo más tarde."});}
+  if(!simDone)notChecked.push("si se puede vender (simulación no disponible para este par)");
+  // Creator, liquidity control and holders (explorer data)
+  let cr=null;step("Revisando creador, liquidez y holders…");
+  if(window.PBCreator){
+    try{cr=await window.PBCreator.analyze(token,pair,allPairs);}catch(e){cr=null;}
+  }
+  cat="Creador y liquidez";
+  if(!cr||!cr.creator){add({s:"unk",t:"Creador no identificado",d:"El explorador de Robinhood Chain no respondió o no tiene el origen de este contrato."});}
+  else{
+    const D=cr.creator.deployer,rep=cr.rep;
+    if(rep){
+      const others=rep.others,dead=rep.dead,known=rep.dead+rep.alive;
+      if(others===0)add({s:"ok",t:"No lanzó otros tokens",d:"No encontramos otros tokens creados por "+short(D)+" (revisamos sus últimas "+rep.txCount+" transacciones)."});
+      else if(known>=3&&dead/known>=0.7)add({s:"high",t:"El creador lanzó "+others+" tokens y "+dead+" murieron",d:"De los que pudimos revisar, "+dead+" de "+known+" ya no tienen liquidez (menos de $1,000). Patrón típico de quien lanza tokens en serie y los abandona."});
+      else if(dead>0)add({s:"warn",t:"El creador tiene "+dead+" token(s) muerto(s)",d:"Lanzó "+others+" token(s) además de este; "+dead+" de "+known+" revisados ya no tienen liquidez."});
+      else add({s:"ok",t:"Los otros tokens del creador siguen vivos",d:"Lanzó "+others+" token(s) más; ninguno de los revisados está abandonado."});
+      if(rep.firstSeen&&cr.creator.createdAt&&cr.creator.createdAt-rep.firstSeen<24*3.6e6)add({s:"warn",t:"Wallet del creador recién creada",d:"Su primera transacción fue menos de 24 h antes de crear el token: típico de wallets desechables."});
+      facts["Creador"]=short(D);
+      if(rep.funder)facts["Fondeado por"]=short(rep.funder)+(rep.fundEth!=null?" ("+rep.fundEth+" ETH)":"");
+    }else add({s:"unk",t:"Historial del creador no disponible",d:"No se pudo consultar el historial de "+short(D)+"."});
+    const lp=cr.lp;
+    if(!lp)add({s:"unk",t:"Control de la liquidez no revisado",d:"No se pudo consultar quién tiene la liquidez del par."});
+    else if(lp.kind==="v2"){
+      if(lp.creatorShare>=50)add({s:"high",t:"El creador puede retirar la liquidez",d:"Tiene "+lp.creatorShare.toFixed(1)+" % de los tokens LP del par en su wallet, sin bloqueo: puede sacar la liquidez cuando quiera (rug pull)."});
+      else if(lp.burned>=90)add({s:"ok",t:"Liquidez quemada",d:lp.burned.toFixed(1)+" % de los tokens LP están en una dirección de quemado: nadie puede retirarla."});
+      else if(lp.eoaTop>=50)add({s:"high",t:"Una wallet puede retirar la liquidez",d:"Una sola wallet tiene "+lp.eoaTop.toFixed(1)+" % de los tokens LP, sin bloqueo."});
+      else if(lp.contractShare>=50)add({s:"unk",t:"Liquidez en un contrato",d:lp.contractShare.toFixed(1)+" % de los tokens LP está en un contrato (posible bloqueo). No verificamos hasta cuándo."});
+      else add({s:"warn",t:"Liquidez repartida sin bloqueo claro",d:"Quemada "+lp.burned.toFixed(1)+" %, del creador "+lp.creatorShare.toFixed(1)+" %. Parte puede retirarse."});
+    }else{
+      if(lp.creatorShare!=null&&lp.creatorShare>=50||lp.creatorHasPosition)add({s:"high",t:"El creador puede retirar la liquidez",d:"Su wallet tiene la posición de liquidez del pool"+(lp.creatorShare!=null?" ("+lp.creatorShare.toFixed(0)+" % de la liquidez activa)":"")+", sin bloqueo: puede sacarla cuando quiera (rug pull)."});
+      else if(lp.creatorShare>=10)add({s:"warn",t:"El creador controla parte de la liquidez",d:"Su wallet tiene "+lp.creatorShare.toFixed(1)+" % de la liquidez activa del pool."});
+      else add({s:"unk",t:"No sabemos quién tiene la liquidez",d:"El creador no tiene posiciones en este pool ("+lp.kind.toUpperCase()+"), pero no pudimos verificar si el resto está bloqueado."});
+    }
+    if(owner===D){}
+    else if(cr.creatorPct>20)add({s:"high",t:"El creador guarda mucho del suministro",d:"Su wallet tiene "+cr.creatorPct+" % de los tokens: puede venderlos de golpe."});
+    else if(cr.creatorPct>5)add({s:"warn",t:"El creador guarda una parte importante",d:cr.creatorPct+" % del suministro está en su wallet."});
+    if(tr&&tr.wallets){const me=tr.wallets.find(w=>w.addr===D);if(me&&me.sold>100)add({s:"warn",t:"El creador ya vendió",d:"Vendió "+usd(Math.round(me.sold))+" en las operaciones recientes del par."});}
+  }
+  cat="Holders";
+  const H=cr&&cr.holders;
+  if(!H||H.top10==null)add({s:"unk",t:"Holders no revisados",d:"No se pudo consultar la lista de holders."});
+  else{
+    if(H.count)facts["Holders"]=num(H.count);
+    const big=H.top[0];
+    if(H.top10>50)add({s:"high",t:"Muy concentrado: 10 wallets tienen "+H.top10+" %",d:"Sin contar pools ni quemado. Pocas wallets pueden tirar el precio."});
+    else if(H.top10>30)add({s:"warn",t:"Concentrado: 10 wallets tienen "+H.top10+" %",d:"Sin contar pools ni quemado."});
+    else add({s:"ok",t:"Holders repartidos",d:"Las 10 wallets más grandes tienen "+H.top10+" % (sin pools ni quemado)."});
+    if(big&&big.pct>15&&!(cr.creator&&big.addr===cr.creator.deployer))add({s:"warn",t:"Una wallet tiene "+big.pct+" %",d:short(big.addr)+(big.contract?" (contrato"+(big.name?": "+big.name:"")+")":"")+" guarda una parte grande del suministro."});
+  }
+  return {checks,facts,notChecked,tr,cr};
+}
+
+const CATS=["Venta","Contrato","Creador y liquidez","Holders","Mercado"];
+const lbl={high:"Riesgo alto",warn:"Precaución",ok:"Bien",unk:"Sin datos"};
+const order={high:0,warn:1,unk:2,ok:3};
+// Honest score: anything we could not check costs points; it never counts as passed.
+function scoreOf(checks){
+  let s=100;for(const c of checks)s-=c.s==="high"?25:c.s==="warn"?10:c.s==="unk"?5:0;
+  if(checks.some(c=>c.s==="high"))s=Math.min(s,39);else if(checks.some(c=>c.s==="warn"))s=Math.min(s,79);
+  return Math.max(0,Math.round(s));
+}
+function verdictOf(checks){
+  const n=k=>checks.filter(c=>c.s===k).length;
+  return n("high")?["high","Riesgo alto","Se detectaron señales graves. No compres sin investigar mucho más."]:
+         n("warn")?["warn","Precaución","Hay señales que conviene entender antes de comprar."]:
+         n("ok")?["ok","Sin alertas detectadas","No se encontraron las señales comunes. Esto no garantiza que sea seguro."]:
+         ["unk","Sin datos suficientes","No se pudieron completar las revisiones."];
+}
+let last=null;
+function render(token,res){
+  const {checks,facts,notChecked,tr,cr}=res;
+  const n=k=>checks.filter(c=>c.s===k).length;
+  const v=verdictOf(checks),score=scoreOf(checks);
+  last={token,name:facts.name||token,v,score,checks:checks.slice().sort((a,b)=>order[a.s]-order[b.s])};
+  const factHtml=Object.entries(facts).filter(([k])=>!["name","url","_pair"].includes(k)).map(([k,val])=>`<div class="fact"><dt>${esc(k)}</dt><dd>${esc(val)}</dd></div>`).join("");
+  const groups=CATS.map(c=>{const g=checks.filter(x=>x.c===c).sort((a,b)=>order[a.s]-order[b.s]);if(!g.length)return "";
+    const ok=g.filter(x=>x.s==="ok").length;
+    return `<section><h3>${esc(c)} <span class="cnt">${ok} de ${g.length} bien</span></h3><ol class="checks">${g.map(x=>`<li><span class="pill ${x.s}">${lbl[x.s]}</span><div class="ck"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></div></li>`).join("")}</ol></section>`;}).join("");
+  const rep=cr&&cr.rep;
+  const launches=rep&&rep.launches&&rep.launches.length?`<section><h3>Otros tokens del creador</h3><div class="tw"><table class="tt"><thead><tr><th>Token</th><th>Liquidez hoy</th><th>Estado</th></tr></thead><tbody>${rep.launches.map(l=>`<tr><td class="w">${l.addr?`<a href="?t=${esc(l.addr)}">${esc(short(l.addr))}</a>`:"—"}</td><td>${l.liq==null?"—":usd(Math.round(l.liq))}</td><td class="${l.liq==null?"":l.liq<1000?"neg":"pos"}">${l.liq==null?"sin datos":l.liq<1000?"muerto":"activo"}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Creados por ${esc(short(cr.creator.deployer))}${rep.truncated?" (últimas 300 transacciones)":""}. «Muerto» = menos de $1,000 de liquidez hoy en DexScreener.${rep.others>rep.launches.length?" Mostramos "+rep.launches.length+" de "+rep.others+".":""}</div></section>`:"";
+  const H=cr&&cr.holders;
+  const holders=H&&H.top&&H.top.length?`<section><h3>Mayores holders</h3><div class="tw"><table class="tt"><thead><tr><th>Wallet</th><th>Tipo</th><th>% del total</th></tr></thead><tbody>${H.top.map(x=>`<tr><td class="w" title="${esc(x.addr)}">${esc(short(x.addr))}${cr.creator&&x.addr===cr.creator.deployer?" ★":""}</td><td>${x.contract?esc(x.name||"contrato"):"wallet"}</td><td>${x.pct.toLocaleString("es-MX",{maximumFractionDigits:2})} %</td></tr>`).join("")}</tbody></table></div><div class="tnote">Sin contar pools de liquidez${H.pools?" ("+H.pools.toFixed(1)+" %)":""} ni direcciones de quemado${H.burned?" ("+H.burned.toFixed(1)+" %)":""}. Datos del explorador Blockscout.${cr.creator?" ★ = creador.":""}</div></section>`:"";
+  $("#out").innerHTML=`
+   <div class="verdict"><div class="stamp ${v[0]}">${v[1]}<span class="sc">${score}<small>/100</small></span></div>
+    <div class="vtext"><h2>${esc(facts.name||token)}</h2><p>${v[2]}</p>
+     <div class="counts">${["high","warn","ok","unk"].filter(k=>n(k)).map(k=>`<span class="pill ${k}">${n(k)} ${lbl[k].toLowerCase()}</span>`).join("")}</div>
+     <div class="sharebar"><button class="btn2 sm" type="button" data-act="copy">Copiar enlace</button><button class="btn2 sm" type="button" data-act="share">Compartir</button><button class="btn2 sm" type="button" data-act="img">Descargar imagen</button><span class="shmsg" role="status"></span></div></div></div>
+   <p class="scorenote">Puntuación: empieza en 100 y resta por cada alerta; lo que no pudimos revisar también resta, nunca cuenta como aprobado.</p>
+   ${groups}
+   ${launches}${holders}
+   ${factHtml?`<section><h3>Datos</h3><dl class="facts">${factHtml}</dl></section>`:""}
+   ${tr&&tr.top.length?`<section><h3>Mayores ganadores al vender</h3><div class="tw"><table class="tt"><thead><tr><th>Wallet</th><th>Compró</th><th>Vendió</th><th>Resultado</th></tr></thead><tbody>${tr.top.map(x=>`<tr><td class="w" title="${esc(x.addr)}">${esc(short(x.addr))}${tr.clone.some(c=>c.addr===x.addr)?" ⚑":""}${cr&&cr.creator&&x.addr===cr.creator.deployer?" ★":""}</td><td>${usd(Math.round(x.bought))} <small>(${x.nb})</small></td><td>${usd(Math.round(x.sold))} <small>(${x.ns})</small></td><td class="${x.pnl>=0?"pos":"neg"}">${x.pnl>=0?"+":"−"}${usd(Math.round(Math.abs(x.pnl)))}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Según las últimas ${tr.n} operaciones del par principal (GeckoTerminal), no el historial completo. Solo wallets que compraron y vendieron dentro de ese periodo. Entre paréntesis, número de operaciones.${tr.clone.length?" ⚑ = compró el mismo monto que otras wallets.":""}</div></section>`:""}
+   <div class="note">${notChecked.length?"No revisado: "+esc(notChecked.join("; "))+". ":""}Liquidez bloqueada en contratos de terceros: no verificada.${facts.url?` Ver el par en <a href="${esc(facts.url)}" target="_blank" rel="noopener">DexScreener</a>.`:""}</div>`;
+}
+
+// ---------- sharing ----------
+const linkFor=t=>location.origin+location.pathname+"?t="+t;
+function flash(m){const e=$("#out .shmsg");if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent="";},3000);}}
+async function copyLink(){try{await navigator.clipboard.writeText(linkFor(last.token));flash("Enlace copiado");}catch(e){prompt("Copia el enlace:",linkFor(last.token));}}
+function cardCanvas(){
+  const W=1200,Hh=630,c=document.createElement("canvas");c.width=W;c.height=Hh;const g=c.getContext("2d");
+  const col={high:"#ff8a7a",warn:"#f2b54b",ok:"#6fd39a",unk:"#a5b3bc"}[last.v[0]];
+  g.fillStyle="#0f161b";g.fillRect(0,0,W,Hh);
+  g.fillStyle="#e3e9ed";g.font="800 44px Archivo, Arial, sans-serif";g.fillText("PreBuy",60,90);
+  const pw=g.measureText("PreBuy").width;g.fillStyle="#4fb3bb";g.fillText("Scan",60+pw,90);
+  g.fillStyle="#93a3ae";g.font="500 26px 'Public Sans', Arial, sans-serif";g.fillText("Scan before the scam · Robinhood Chain",60,130);
+  g.fillStyle="#e3e9ed";g.font="700 50px Archivo, Arial, sans-serif";
+  let name=last.name;while(g.measureText(name).width>760&&name.length>4)name=name.slice(0,-2);if(name!==last.name)name+="…";
+  g.fillText(name,60,225);
+  g.fillStyle="#93a3ae";g.font="400 24px 'JetBrains Mono', monospace";g.fillText(last.token,60,265);
+  g.save();g.translate(1010,200);g.rotate(-0.05);g.strokeStyle=col;g.lineWidth=6;g.strokeRect(-150,-95,300,190);
+  g.fillStyle=col;g.textAlign="center";g.font="800 34px Archivo, Arial, sans-serif";g.fillText(last.v[1].toUpperCase(),0,-35);
+  g.font="800 84px Archivo, Arial, sans-serif";g.fillText(String(last.score),0,60);g.font="600 24px Archivo, Arial, sans-serif";g.fillText("/100",0,88);g.restore();
+  g.textAlign="left";let y=345;
+  for(const ck of last.checks.filter(x=>x.s!=="ok").slice(0,4)){
+    const cc={high:"#ff8a7a",warn:"#f2b54b",unk:"#a5b3bc"}[ck.s];g.fillStyle=cc;g.beginPath();g.arc(72,y-9,9,0,7);g.fill();
+    g.fillStyle="#e3e9ed";g.font="500 30px 'Public Sans', Arial, sans-serif";let t=ck.t;while(g.measureText(t).width>1040&&t.length>4)t=t.slice(0,-2);g.fillText(t,95,y);y+=52;
+  }
+  if(y===345){g.fillStyle="#6fd39a";g.font="500 30px 'Public Sans', Arial, sans-serif";g.fillText("Sin alertas en las revisiones (no garantiza que sea seguro)",60,y);}
+  g.fillStyle="#4fb3bb";g.font="600 24px 'Public Sans', Arial, sans-serif";g.fillText("492gueq-gif.github.io/PreBuyScan/?t="+last.token.slice(0,10)+"…",60,590);
+  g.fillStyle="#93a3ae";g.textAlign="right";g.fillText(new Date().toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"}),1140,590);
+  return c;
+}
+const cardBlob=()=>new Promise(r=>cardCanvas().toBlob(r,"image/png"));
+async function downloadCard(){const b=await cardBlob();const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="prebuyscan-"+last.token.slice(0,8)+".png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);flash("Imagen descargada");}
+async function shareIt(){
+  const text=last.name+": "+last.v[1]+" ("+last.score+"/100) en PreBuyScan. Scan before the scam.";
+  try{
+    const b=await cardBlob();const f=new File([b],"prebuyscan.png",{type:"image/png"});
+    if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f],text,url:linkFor(last.token)});
+    else if(navigator.share)await navigator.share({text,url:linkFor(last.token)});
+    else{await navigator.clipboard.writeText(text+" "+linkFor(last.token));flash("Texto y enlace copiados");}
+  }catch(e){if(e&&e.name!=="AbortError")copyLink();}
+}
+$("#out").addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(!b||!last)return;({copy:copyLink,share:shareIt,img:downloadCard})[b.dataset.act]();});
+
+// ---------- new and trending tokens with a quick market verdict ----------
+// Same market rules whose accuracy is published below (PRECISION_V1).
+function quick(liq,buys,sells,ageH){
+  if(liq==null)return "unk";
+  if(liq<5000||(buys>=20&&sells===0))return "high";
+  if(liq<25000||(buys>0&&sells/buys<0.15)||(ageH!=null&&ageH<1))return "warn";
+  return "ok";
+}
+const WETH_ID="robinhood_0x0bd7d308f8e1639fab988df18a8011f41eacad73";
+async function radar(kind){
+  const box=$("#radar-body");box.innerHTML=`<div class="busy">Cargando…</div>`;
+  document.querySelectorAll("#radar [data-k]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===kind));
+  try{
+    const j=await timed("https://api.geckoterminal.com/api/v2/networks/robinhood/"+(kind==="new"?"new_pools":"trending_pools")+"?page=1",{},12000);
+    const seen=new Set();
+    const rows=(j.data||[]).map(p=>{const a=p.attributes||{},r=p.relationships||{};
+      let tid=r.base_token&&r.base_token.data&&r.base_token.data.id;let nm=(a.name||"").split(" / ")[0];
+      if(tid===WETH_ID){tid=r.quote_token&&r.quote_token.data&&r.quote_token.data.id;nm=(a.name||"").split(" / ")[1]||nm;}
+      const t=(tid||"").split("_")[1];const tx=(a.transactions||{}).h6||{};
+      const ageH=a.pool_created_at?(Date.now()-Date.parse(a.pool_created_at))/3.6e6:null;const liq=a.reserve_in_usd!=null?Number(a.reserve_in_usd):null;
+      return {t,nm,ageH,liq,b:tx.buys||0,s:tx.sells||0,q:quick(liq,tx.buys||0,tx.sells||0,ageH)};})
+      .filter(x=>/^0x[0-9a-f]{40}$/.test(x.t||"")&&!seen.has(x.t)&&seen.add(x.t)).slice(0,15);
+    if(!rows.length){box.innerHTML=`<div class="busy">No hay datos ahora mismo.</div>`;return;}
+    const age=h=>h==null?"—":h<1?Math.round(h*60)+" min":h<48?h.toFixed(1)+" h":(h/24).toFixed(0)+" d";
+    box.innerHTML=`<div class="tw"><table class="tt radar"><thead><tr><th>Token</th><th>Edad</th><th>Liquidez</th><th>Compras / ventas 6 h</th><th>Rápido</th><th></th></tr></thead><tbody>${rows.map(x=>`<tr><td title="${esc(x.t)}">${esc(x.nm.slice(0,18))}</td><td>${age(x.ageH)}</td><td>${usd(x.liq==null?null:Math.round(x.liq))}</td><td>${num(x.b)} / ${num(x.s)}</td><td><span class="pill ${x.q}">${lbl[x.q]}</span></td><td><button class="btn2 sm" type="button" data-scan="${esc(x.t)}">Revisar</button></td></tr>`).join("")}</tbody></table></div><div class="tnote">Veredicto rápido solo con datos de mercado (GeckoTerminal), con las mismas reglas cuya precisión publicamos abajo. Pulsa «Revisar» para el análisis completo: venta simulada, contrato, creador, liquidez y holders.</div>`;
+  }catch(e){box.innerHTML=`<div class="busy">No se pudo cargar la lista. Prueba de nuevo en un momento.</div>`;}
+}
+$("#radar").addEventListener("click",e=>{const k=e.target.closest("[data-k]");if(k){radar(k.dataset.k);return;}
+  const s=e.target.closest("[data-scan]");if(s){$("#addr").value=s.dataset.scan;window.scrollTo({top:0,behavior:"smooth"});run();}});
+
+function step(m){const b=$("#out .busy");if(b)b.textContent=m;}
+let radarLoaded=false;
+async function run(){
+  const token=$("#addr").value.trim().toLowerCase();
+  if(!/^0x[0-9a-f]{40}$/.test(token)){$("#out").innerHTML=`<div class="busy">Esa dirección no es válida. Debe empezar con 0x y tener 40 caracteres hexadecimales después.</div>`;return;}
+  $("#go").disabled=true;$("#out").innerHTML=`<div class="busy">Revisando ${esc(token)}…</div>`;
+  try{
+    render(token,await inspect(token));
+    try{const q=new URLSearchParams(location.search);if(q.get("t")!==token){q.set("t",token);history.replaceState(null,"","?"+q.toString());}}catch(e){}
+  }
+  catch(e){$("#out").innerHTML=`<div class="busy">No se pudo completar la revisión. Comprueba tu conexión y vuelve a intentarlo.</div>`;}
+  finally{$("#go").disabled=false;if(!radarLoaded){radarLoaded=true;radar("new");}}
+}
+$("#f").addEventListener("submit",e=>{e.preventDefault();run();});
+$("#paste").addEventListener("click",async()=>{
+  try{const t=(await navigator.clipboard.readText()).trim();$("#addr").value=t;if(/^0x[0-9a-fA-F]{40}$/.test(t))run();else $("#addr").focus();}
+  catch(e){$("#addr").value="";$("#addr").focus();$("#out").innerHTML=`<div class="busy">Tu navegador no permitió leer el portapapeles. Mantén presionado el campo de dirección y elige «Pegar».</div>`;}
+});
+$("#clear").addEventListener("click",()=>{$("#addr").value="";$("#addr").focus();$("#out").innerHTML=`<div class="busy">Pega la dirección de un token y pulsa «Revisar token».</div>`;});
+(()=>{const q=new URLSearchParams(location.search).get("t")||location.hash.slice(1);if(q&&/^0x[0-9a-fA-F]{40}$/.test(q.trim()))$("#addr").value=q.trim();})();
+run();
+</script>
+</body></html>
