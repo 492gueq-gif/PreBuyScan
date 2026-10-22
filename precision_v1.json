@@ -1,0 +1,67 @@
+{
+ "excluded_unknown_outcome": 522,
+ "groups": {
+  "all": {
+   "riesgo_alto": {
+    "n": 343,
+    "collapse_rate": 0.8688046647230321,
+    "lost_half_rate": 0.8688046647230321
+   },
+   "precaucion": {
+    "n": 348,
+    "collapse_rate": 0.6120689655172413,
+    "lost_half_rate": 0.6609195402298851
+   },
+   "sin_alertas": {
+    "n": 58,
+    "collapse_rate": 0.5689655172413793,
+    "lost_half_rate": 0.603448275862069
+   },
+   "recall_high": 0.5477941176470589,
+   "n": 749
+  },
+  "discovery": {
+   "riesgo_alto": {
+    "n": 162,
+    "collapse_rate": 0.8518518518518519,
+    "lost_half_rate": 0.8518518518518519
+   },
+   "precaucion": {
+    "n": 191,
+    "collapse_rate": 0.5706806282722513,
+    "lost_half_rate": 0.6230366492146597
+   },
+   "sin_alertas": {
+    "n": 25,
+    "collapse_rate": 0.48,
+    "lost_half_rate": 0.52
+   },
+   "recall_high": 0.5328185328185329,
+   "n": 378
+  },
+  "confirmation": {
+   "riesgo_alto": {
+    "n": 181,
+    "collapse_rate": 0.8839779005524862,
+    "lost_half_rate": 0.8839779005524862
+   },
+   "precaucion": {
+    "n": 157,
+    "collapse_rate": 0.6624203821656051,
+    "lost_half_rate": 0.7070063694267515
+   },
+   "sin_alertas": {
+    "n": 33,
+    "collapse_rate": 0.6363636363636364,
+    "lost_half_rate": 0.6666666666666666
+   },
+   "recall_high": 0.5614035087719298,
+   "n": 371
+  }
+ },
+ "separation_points": {
+  "discovery": 0.3718518518518519,
+  "confirmation": 0.2476142641888498
+ },
+ "useful_signal": true
+}
