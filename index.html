@@ -230,6 +230,7 @@ async function inspect(token){
       else{const nv=checks.find(c=>c.t==="Nadie ha vendido");if(nv){nv.s="warn";nv.d+=" Aun así, la simulación sí pudo vender: no parece un bloqueo del contrato.";}
         checks.push({s:"ok",t:"La venta simulada funciona",d:"Simulamos comprar con 0.01 ETH y vender todo: recuperarías "+keep+" % (incluye comisiones e impacto). No garantiza que siga así."});}
     }else if(r.status==="sell_failed"){simDone=true;checks.push({s:"high",t:"La venta simulada falla",d:"Se pudo comprar pero no vender en la simulación: señal fuerte de honeypot."});}
+    else if(r.status==="hook_restricted")checks.push({s:"warn",t:"Solo se puede operar desde su propio router",d:"El hook del pool rechaza compras desde los routers estándar de Uniswap; las compras reales pasan por un contrato propio de la plataforma. No pudimos simular la venta y dependes de esa plataforma para vender."});
     else if(r.status==="buy_failed")checks.push({s:"warn",t:"No se pudo simular la compra",d:r.detail||"La compra simulada falló."});
     else checks.push({s:"unk",t:"Venta no simulada",d:r.detail||"Simulación no disponible para este par."});
     if(r.hooks&&!/^0x0+$/.test(r.hooks))checks.push({s:"warn",t:"El pool V4 tiene un hook",d:"Código extra en el pool ("+short(r.hooks)+") que puede cambiar comisiones o reglas de compra y venta."});

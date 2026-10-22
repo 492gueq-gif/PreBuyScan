@@ -41,9 +41,14 @@
   const readWord = (h, i) => BigInt("0x" + strip(h).slice(i * 64, i * 64 + 64));
 
   // ---------- RPC with gentle retry (public endpoint rate limits) ----------
-  let rpcId = 0;
+  let rpcId = 0, lastCall = 0;
+  const pause = ms => new Promise(s => setTimeout(s, ms));
   async function rpc(method, params, opt = {}) {
-    for (let attempt = 0; attempt < 4; attempt++) {
+    let lastErr;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      // Space calls out: the public RPC rate-limits bursts, and in a browser a 429 without
+      // CORS headers surfaces as a generic network error ("Failed to fetch").
+      const wait = 250 - (Date.now() - lastCall); if (wait > 0) await pause(wait); lastCall = Date.now();
       const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
       const t = ctl ? setTimeout(() => ctl.abort(), opt.timeout || 15000) : null;
       try {
@@ -54,9 +59,12 @@
         const j = await r.json();
         if (j.error) { const e = new Error(j.error.message || "rpc error"); e.rpc = j.error; throw e; }
         return j.result;
+      } catch (e) {
+        if (e.rpc) throw e;                         // a real JSON-RPC answer: do not retry
+        lastErr = e; await pause(1000 * (attempt + 1));
       } finally { if (t) clearTimeout(t); }
     }
-    throw new Error("rate limited");
+    throw lastErr || new Error("rate limited");
   }
   const call = (to, data, o) => rpc("eth_call", [{ to, data }, "latest"], o);
 
@@ -177,7 +185,14 @@
       };
       const first = await sim(calls);
       for (const k of ["wrap", "wapprove", "wpermit"]) if (k in idx && first[idx[k]].status !== "0x1") { out.status = "unknown"; out.detail = "Preparación de WETH simulada fallida."; return out; }
-      if (first[idx.buy].status !== "0x1") { out.status = "buy_failed"; out.detail = "La compra simulada falló."; return out; }
+      if (first[idx.buy].status !== "0x1") {
+        const b = first[idx.buy]; out.revert = (b.error && (b.error.data || b.error.message)) || b.returnData || null;
+        if (out.hooks && !/^0x0+$/.test(out.hooks) && (!out.revert || out.revert === "0x")) {
+          out.status = "hook_restricted";
+          out.detail = "El hook del pool rechazó la compra desde los routers estándar de Uniswap: solo permite operar desde su propio router.";
+        } else { out.status = "buy_failed"; out.detail = "La compra simulada falló."; }
+        return out;
+      }
       const got = uint(decodeOrNull(first[idx.tokAfter])) - uint(decodeOrNull(first[idx.tokBefore]));
       if (got <= 0n) { out.status = "buy_failed"; out.detail = "La compra simulada no entregó tokens."; return out; }
       out.boughtRaw = got.toString();
@@ -191,6 +206,7 @@
         if (!r[i] || r[i].status !== "0x1") { out.status = "unknown"; out.detail = "La aprobación simulada falló."; return out; }
       }
       out.sellGas = r[si] && r[si].gasUsed ? Number(BigInt(r[si].gasUsed)) : null;
+      if (r[si] && r[si].status !== "0x1") out.revert = (r[si].error && (r[si].error.data || r[si].error.message)) || r[si].returnData || null;
       if (r[si].status !== "0x1") { out.status = "sell_failed"; out.detail = "La compra funcionó pero la venta falló: posible honeypot."; return out; }
       if (r[mi].status !== "0x1" || r[ma].status !== "0x1") { out.status = "unknown"; out.detail = "No se pudo medir lo recibido."; return out; }
       const received = uint(r[ma].returnData) - uint(r[mi].returnData);
