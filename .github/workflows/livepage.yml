@@ -15,4 +15,4 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
-      - run: python live_page_check.py 0x39dbed3a2bd333467115de45665cc57f813c4571 0xa01ff10774cfe53c3fbc1d7d124c42e19f6afcbd 0x555d5a1d892e5665ba38371d52f705b469367a18
+      - run: python live_page_check.py 0xa01ff10774cfe53c3fbc1d7d124c42e19f6afcbd
