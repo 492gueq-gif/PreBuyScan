@@ -1,6 +1,6 @@
 import json
 from playwright.sync_api import sync_playwright
-JS = r"""async()=>{const out={};const B='https://robinhoodchain.blockscout.com/api';const RPC='https://rpc.mainnet.chain.robinhood.com';
+JS = r"""async()=>{const out={};try{const B='https://robinhoodchain.blockscout.com/api';const RPC='https://rpc.mainnet.chain.robinhood.com';
 const q=async(k,u,n=1500)=>{try{const r=await fetch(u);const j=await r.json();out[k]=JSON.stringify(j).slice(0,n);return j;}catch(e){out[k]='ERR '+e;return null}};
 const rpc=async(m,p)=>{const r=await fetch(RPC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:m,params:p})});return (await r.json());};
 const creator='0xb187ea7defc99a5d2b089047b866697390b6fd19';
@@ -22,10 +22,13 @@ const r4=await rpc('eth_getLogs',[{address:'0x8366a39cc670b4001a1121b8f6a443a643
 out.v4_modliq=JSON.stringify(r4.result?r4.result.slice(0,4).map(l=>[l.topics[2],l.data,l.transactionHash]):r4).slice(0,2500);
 await q('gt_new',`https://api.geckoterminal.com/api/v2/networks/robinhood/new_pools?page=1`,2500);
 await q('gt_new_inc',`https://api.geckoterminal.com/api/v2/networks/robinhood/new_pools?page=1&include=base_token`,600);
-return out;}"""
+}catch(e){out.FATAL=String(e)+' '+(e.stack||'')}return out;}"""
 with sync_playwright() as p:
     b=p.chromium.launch();pg=b.new_page()
     pg.goto("https://492gueq-gif.github.io/PreBuyScan/")
-    r=pg.evaluate(JS)
+    try:
+        r=pg.evaluate(JS)
+    except Exception as e:
+        r={'pyerr':str(e)[:3000]}
     for i,(k,v) in enumerate(r.items()):print("::notice title=lp_%02d::"%i+json.dumps({k:v}).replace("%","%25")[:3800])
     b.close()
