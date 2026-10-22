@@ -19,6 +19,6 @@ jobs:
       - name: Push screenshots to research/shots
         if: always()
         run: |
-          mkdir -p /tmp/s && cp *.png /tmp/s/ || true
+          mkdir -p /tmp/s && cp *.png notes.txt /tmp/s/ || true
           git config user.name ci && git config user.email ci@users.noreply.github.com
-          git checkout --orphan shots && git rm -rfq . && cp /tmp/s/*.png . && git add *.png && git commit -qm "screenshots ${GITHUB_SHA}" && git push -f origin HEAD:research/shots
+          git checkout --orphan shots && git rm -rfq . && cp /tmp/s/* . && git add -A && git commit -qm "screenshots ${GITHUB_SHA}" && git push -f origin HEAD:research/shots

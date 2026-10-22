@@ -199,20 +199,21 @@ async function traders(pool){
   const byBlock={};for(const x of list)for(const b of x.buys){(byBlock[b.b]=byBlock[b.b]||new Set()).add(x.addr);}
   const sameBlock=Math.max(0,...Object.values(byBlock).map(s=>s.size));
   const sells=list.reduce((t,x)=>t+x.sold,0),topSeller=list.reduce((m,x)=>x.sold>m.sold?x:m,{sold:0});
-  return {n:rows.length,wallets:list,top,clone:clone.length>=3?clone:[],sameBlock,sellShare:sells>0?topSeller.sold/sells:null,topSeller};
+  const bigSells=rows.filter(a=>a.kind==="sell").map(a=>({addr:a.tx_from_address.toLowerCase(),v:Number(a.volume_in_usd)||0,ts:Date.parse(a.block_timestamp)})).sort((x,y)=>y.v-x.v).slice(0,5);
+  return {n:rows.length,bigSells,wallets:list,top,clone:clone.length>=3?clone:[],sameBlock,sellShare:sells>0?topSeller.sold/sells:null,topSeller};
 }
 const share=(part,total)=>total>0n?Number(part*10000n/total)/100:null;
 
 async function inspect(token){
   const checks=[];const facts={};const notChecked=[];let cat="Mercado";const add=o=>checks.push({c:cat,...o});
   // Market data
-  let pair=null,pairsFound=0,allPairs=[];
+  let pair=null,pairsFound=0,allPairs=[],liqUsd=null;
   try{
     const pairs=await timed(DEX+token);
     if(Array.isArray(pairs)&&pairs.length){pairsFound=pairs.length;allPairs=pairs;pair=pairs.slice().sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];}
   }catch(e){add({s:"unk",t:"Datos de mercado no disponibles",d:"No se pudo consultar DexScreener desde este navegador."});}
   if(pair){
-    const liq=pair.liquidity?.usd, fdv=pair.fdv??pair.marketCap, ageH=pair.pairCreatedAt?(Date.now()-pair.pairCreatedAt)/3.6e6:null;
+    const liq=pair.liquidity?.usd;liqUsd=liq||null;const fdv=pair.fdv??pair.marketCap,ageH=pair.pairCreatedAt?(Date.now()-pair.pairCreatedAt)/3.6e6:null;
     const h24=pair.txns?.h24||{}, h1=pair.txns?.h1||{};
     facts.name=(pair.baseToken?.name||"")+(pair.baseToken?.symbol?" ("+pair.baseToken.symbol+")":"");
     const pc=pair.priceChange||{}, vol=pair.volume||{};
@@ -314,7 +315,7 @@ async function inspect(token){
   }catch(e){add({s:"unk",t:"Contrato no revisado",d:"No se pudo consultar la cadena desde este navegador. Prueba de nuevo más tarde."});}
   if(!simDone)notChecked.push("si se puede vender (simulación no disponible para este par)");
   // Creator, liquidity control and holders (explorer data)
-  let cr=null;step("Revisando creador, liquidez y holders…");
+  let cr=null;step("Revisando creador, liquidez, snipers y holders (hasta 35 s)…");
   if(window.PBCreator){
     try{cr=await window.PBCreator.analyze(token,pair,allPairs);}catch(e){cr=null;}
   }
@@ -350,6 +351,18 @@ async function inspect(token){
     else if(cr.creatorPct>5)add({s:"warn",t:"El creador guarda una parte importante",d:cr.creatorPct+" % del suministro está en su wallet."});
     if(tr&&tr.wallets){const me=tr.wallets.find(w=>w.addr===D);if(me&&me.sold>100)add({s:"warn",t:"El creador ya vendió",d:"Vendió "+usd(Math.round(me.sold))+" en las operaciones recientes del par."});}
   }
+  cat="Lanzamiento";
+  const S=cr&&cr.snipers;
+  if(!S){if(cr&&cr.creator)add({s:"unk",t:"Snipers no revisados",d:"No se pudo consultar quién compró en el lanzamiento."});}
+  else if(S.n===0)add({s:"ok",t:"Sin snipers detectados",d:"Nadie más compró en el primer minuto de operaciones."});
+  else{
+    if(S.held>=20)add({s:"high",t:"Los snipers aún tienen "+S.held+" %",d:S.n+" wallets compraron en el primer minuto y siguen con "+S.held+" % del suministro: pueden vender de golpe."});
+    else if(S.held>=8)add({s:"warn",t:"Los snipers tienen "+S.held+" %",d:S.n+" wallets compraron en el primer minuto; todavía guardan "+S.held+" % del suministro."});
+    else add({s:"ok",t:"Los snipers ya casi no tienen tokens",d:S.n+" wallets compraron en el primer minuto; hoy tienen "+S.held+" % del suministro."});
+    if(S.linked>=1)add({s:"high",t:S.linked===1?"Un comprador del lanzamiento lo fondeó el creador":S.linked+" compradores del lanzamiento los fondeó el creador",d:"Recibieron su ETH del creador o de quien fondeó al creador: es el propio equipo comprando barato (bundle) para vender después."});
+    else if(S.shared>=2)add({s:"warn",t:S.shared+" snipers fondeados por la misma wallet",d:"Recibieron su primer ETH del mismo origen: probablemente son de una sola persona."});
+  }
+  if(tr&&tr.bigSells&&liqUsd){const b=tr.bigSells[0];if(b&&b.v>=0.1*liqUsd&&Date.now()-b.ts<6*3.6e6)add({s:"warn",t:"Venta grande reciente",d:short(b.addr)+" vendió "+usd(Math.round(b.v))+" ("+Math.round(b.v/liqUsd*100)+" % de la liquidez) en las últimas horas."});}
   cat="Holders";
   const H=cr&&cr.holders;
   if(!H||H.top10==null)add({s:"unk",t:"Holders no revisados",d:"No se pudo consultar la lista de holders."});
@@ -364,7 +377,7 @@ async function inspect(token){
   return {checks,facts,notChecked,tr,cr};
 }
 
-const CATS=["Venta","Contrato","Creador y liquidez","Holders","Mercado"];
+const CATS=["Venta","Contrato","Creador y liquidez","Lanzamiento","Holders","Mercado"];
 const lbl={high:"Riesgo alto",warn:"Precaución",ok:"Bien",unk:"Sin datos"};
 const order={high:0,warn:1,unk:2,ok:3};
 // Honest score: anything we could not check costs points; it never counts as passed.
@@ -392,6 +405,10 @@ function render(token,res){
     return `<section><h3>${esc(c)} <span class="cnt">${ok} de ${g.length} bien</span></h3><ol class="checks">${g.map(x=>`<li><span class="pill ${x.s}">${lbl[x.s]}</span><div class="ck"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></div></li>`).join("")}</ol></section>`;}).join("");
   const rep=cr&&cr.rep;
   const launches=rep&&rep.launches&&rep.launches.length?`<section><h3>Otros tokens del creador</h3><div class="tw"><table class="tt"><thead><tr><th>Token</th><th>Liquidez hoy</th><th>Estado</th></tr></thead><tbody>${rep.launches.map(l=>`<tr><td class="w">${l.addr?`<a href="?t=${esc(l.addr)}">${esc(short(l.addr))}</a>`:"—"}</td><td>${l.liq==null?"—":usd(Math.round(l.liq))}</td><td class="${l.liq==null?"":l.liq<1000?"neg":"pos"}">${l.liq==null?"sin datos":l.liq<1000?"muerto":"activo"}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Creados por ${esc(short(cr.creator.deployer))}${rep.truncated?" (últimas "+rep.txCount+" transacciones)":""}. «Muerto» = menos de $1,000 de liquidez hoy en DexScreener.${rep.others>rep.launches.length?" Mostramos "+rep.launches.length+" de "+rep.others+".":""}</div></section>`:"";
+  const S=cr&&cr.snipers;
+  const ago=ts=>{const m=(Date.now()-ts)/6e4;return isNaN(m)?"—":m<60?Math.round(m)+" min":m<2880?(m/60).toFixed(1)+" h":Math.round(m/1440)+" d";};
+  const snip=S&&S.wallets&&S.wallets.length?`<section><h3>Compradores del primer minuto</h3><div class="tw"><table class="tt"><thead><tr><th>Wallet</th><th>Compró</th><th>Tiene hoy</th><th>Fondeo</th></tr></thead><tbody>${S.wallets.map(w=>`<tr><td class="w" title="${esc(w.addr)}">${esc(short(w.addr))}${w.creator?" ★":""}</td><td>${w.boughtPct==null?"—":w.boughtPct.toLocaleString("es-MX",{maximumFractionDigits:2})+" %"}</td><td class="${w.sold?"pos":""}">${w.pct==null?"—":w.pct.toLocaleString("es-MX",{maximumFractionDigits:2})+" %"}${w.sold?" (vendió)":""}</td><td class="${w.linked?"neg":""}">${w.creator?"creador":w.linked?"del creador":w.funder?(w.shared?"compartido ":"")+esc(short(w.funder)):"—"}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Wallets que sacaron tokens del pool en el primer minuto de operaciones, en % del suministro total. «Fondeo» = de dónde recibieron su primer ETH. ★ = creador.</div></section>`:"";
+  const bigs=tr&&tr.bigSells&&tr.bigSells.length?`<section><h3>Ventas más grandes recientes</h3><div class="tw"><table class="tt"><thead><tr><th>Wallet</th><th>Vendió</th><th>Hace</th></tr></thead><tbody>${tr.bigSells.map(b=>`<tr><td class="w" title="${esc(b.addr)}">${esc(short(b.addr))}${cr&&cr.creator&&b.addr===cr.creator.deployer?" ★":""}</td><td>${usd(Math.round(b.v))}</td><td>${ago(b.ts)}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Entre las últimas ${tr.n} operaciones del par principal (GeckoTerminal).</div></section>`:"";
   const H=cr&&cr.holders;
   const holders=H&&H.top&&H.top.length?`<section><h3>Mayores holders</h3><div class="tw"><table class="tt"><thead><tr><th>Wallet</th><th>Tipo</th><th>% del total</th></tr></thead><tbody>${H.top.map(x=>`<tr><td class="w" title="${esc(x.addr)}">${esc(short(x.addr))}${cr.creator&&x.addr===cr.creator.deployer?" ★":""}</td><td>${x.contract?esc(x.name||"contrato"):"wallet"}</td><td>${x.pct.toLocaleString("es-MX",{maximumFractionDigits:2})} %</td></tr>`).join("")}</tbody></table></div><div class="tnote">Sin contar pools de liquidez${H.pools?" ("+H.pools.toFixed(1)+" %)":""} ni direcciones de quemado${H.burned?" ("+H.burned.toFixed(1)+" %)":""}. Datos del explorador Blockscout.${cr.creator?" ★ = creador.":""}</div></section>`:"";
   $("#out").innerHTML=`
@@ -401,7 +418,7 @@ function render(token,res){
      <div class="sharebar"><button class="btn2 sm" type="button" data-act="copy">Copiar enlace</button><button class="btn2 sm" type="button" data-act="share">Compartir</button><button class="btn2 sm" type="button" data-act="img">Descargar imagen</button><span class="shmsg" role="status"></span></div></div></div>
    <p class="scorenote">Puntuación: empieza en 100 y resta por cada alerta; lo que no pudimos revisar también resta, nunca cuenta como aprobado.</p>
    ${groups}
-   ${launches}${holders}
+   ${launches}${snip}${holders}${bigs}
    ${factHtml?`<section><h3>Datos</h3><dl class="facts">${factHtml}</dl></section>`:""}
    ${tr&&tr.top.length?`<section><h3>Mayores ganadores al vender</h3><div class="tw"><table class="tt"><thead><tr><th>Wallet</th><th>Compró</th><th>Vendió</th><th>Resultado</th></tr></thead><tbody>${tr.top.map(x=>`<tr><td class="w" title="${esc(x.addr)}">${esc(short(x.addr))}${tr.clone.some(c=>c.addr===x.addr)?" ⚑":""}${cr&&cr.creator&&x.addr===cr.creator.deployer?" ★":""}</td><td>${usd(Math.round(x.bought))} <small>(${x.nb})</small></td><td>${usd(Math.round(x.sold))} <small>(${x.ns})</small></td><td class="${x.pnl>=0?"pos":"neg"}">${x.pnl>=0?"+":"−"}${usd(Math.round(Math.abs(x.pnl)))}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Según las últimas ${tr.n} operaciones del par principal (GeckoTerminal), no el historial completo. Solo wallets que compraron y vendieron dentro de ese periodo. Entre paréntesis, número de operaciones.${tr.clone.length?" ⚑ = compró el mismo monto que otras wallets.":""}</div></section>`:""}
    <div class="note">${notChecked.length?"No revisado: "+esc(notChecked.join("; "))+". ":""}Liquidez bloqueada en contratos de terceros: no verificada.${facts.url?` Ver el par en <a href="${esc(facts.url)}" target="_blank" rel="noopener">DexScreener</a>.`:""}</div>`;

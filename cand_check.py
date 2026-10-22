@@ -4,6 +4,7 @@ srv=subprocess.Popen([sys.executable,"-m","http.server","8765","-d","candidate"]
 TOKENS=["0x1b282927b9c5d39d7161f51af3203b44b1a56213","0xa01ff10774cfe53c3fbc1d7d124c42e19f6afcbd"]
 def note(tag,obj):
     s=json.dumps(obj,ensure_ascii=False)
+    open("notes.txt","a").write(tag+" "+s+"\n")
     for i in range(0,len(s),3500):print("::notice title=%s_%d::"%(tag,i//3500)+s[i:i+3500].replace("%","%25"))
 with sync_playwright() as p:
     b=p.chromium.launch()

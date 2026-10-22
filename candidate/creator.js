@@ -217,6 +217,60 @@
     return res;
   }
 
+  // ---------- launch snipers ----------
+  // Wallets that took tokens out of the pool in the first minute of trading: how much they still
+  // hold, and whether they were funded by the creator (or by one shared wallet).
+  const ROUTERS = new Set(["0x89e5db8b5aa49aa85ac63f691524311aeb649eba", "0xcaf681a66d020601342297493863e78c959e5cb2",
+    "0x8876789976decbfcbbbe364623c63652db8c0904", "0x204faca1764b154221e35c0d20abb3c525710498"]);
+  const SNIPE_WINDOW_S = 60;
+  async function snipers(token, pair, pairs, cr, repP) {
+    if (!pair || !pair.pairCreatedAt) return null;
+    const pools = new Set([V4_PM, ...(pairs || []).map(p => lc(p.pairAddress)).filter(a => /^0x[0-9a-f]{40}$/.test(a))]);
+    const j = await getJSON(BS + "?module=account&action=tokentx&contractaddress=" + token + "&sort=asc&page=1&offset=200", 15000);
+    const tx = Array.isArray(j.result) ? j.result : [];
+    const buys = tx.filter(t => pools.has(lc(t.from)) && !pools.has(lc(t.to)) && !BURN.has(lc(t.to)) && !ROUTERS.has(lc(t.to)) && lc(t.to) !== lc(token));
+    if (!buys.length) return { n: 0, wallets: [] };
+    const start = Math.min(Number(buys[0].timeStamp), Math.floor(pair.pairCreatedAt / 1000));
+    const got = {};
+    for (const t of buys) {
+      if (Number(t.timeStamp) > start + SNIPE_WINDOW_S) break;
+      const a = lc(t.to); got[a] = (got[a] || 0n) + BigInt(t.value || "0");
+    }
+    const deployer = cr && cr.deployer;
+    let list = Object.entries(got).map(([addr, amt]) => ({ addr, amt })).sort((a, b) => (b.amt > a.amt ? 1 : -1)).slice(0, 15);
+    const supply = words(await call(token, "0x18160ddd"))[0] || 0n;
+    for (const w of list) {
+      try {
+        const bal = words(await call(token, "0x70a08231" + addrW(w.addr)))[0];
+        w.pct = supply > 0n ? Number(bal * 10000n / supply) / 100 : null;
+        w.boughtPct = supply > 0n ? Number(w.amt * 10000n / supply) / 100 : null;
+        w.sold = bal * 2n < w.amt;
+      } catch (e) { w.pct = null; }
+      w.creator = w.addr === deployer;
+    }
+    // Who funded each sniper (first incoming ETH)
+    let rep = null; try { rep = await repP; } catch (e) { rep = null; }
+    const funderOfCreator = rep && rep.funder;
+    for (const w of list.filter(x => !x.creator).slice(0, 8)) {
+      try {
+        const a = await getJSON(BS + "?module=account&action=txlist&address=" + w.addr + "&sort=asc&page=1&offset=5", 8000);
+        const f = (a.result || []).find(t => lc(t.to) === w.addr && BigInt(t.value || "0") > 0n);
+        if (f) w.funder = lc(f.from);
+      } catch (e) { /* unknown */ }
+    }
+    const others = list.filter(x => !x.creator);
+    const byFunder = {};
+    for (const w of others) if (w.funder) (byFunder[w.funder] = byFunder[w.funder] || []).push(w);
+    for (const w of others) {
+      w.linked = !!w.funder && (w.funder === deployer || (funderOfCreator && w.funder === funderOfCreator));
+      w.shared = !!w.funder && byFunder[w.funder].length >= 2;
+    }
+    const held = others.reduce((t, w) => t + (w.pct || 0), 0);
+    return { n: others.length, wallets: list, held: Math.round(held * 100) / 100,
+      linked: others.filter(w => w.linked).length, shared: Math.max(0, ...Object.values(byFunder).map(v => v.length)),
+      creatorBought: list.find(w => w.creator) || null, windowS: SNIPE_WINDOW_S, truncated: tx.length >= 200 && Number(tx[tx.length - 1].timeStamp) <= start + SNIPE_WINDOW_S };
+  }
+
   // ---------- holder concentration ----------
   async function holders(token, exclude) {
     const info = await getJSON(BS + "/v2/tokens/" + token);
@@ -236,9 +290,9 @@
 
   const within = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("time budget")), ms))]);
   async function analyze(token, pair, pairs, opts = {}) {
-    const budget = opts.budgetMs || 30000;
+    const budget = opts.budgetMs || 35000;
     const t0 = Date.now(); deadline = t0 + budget;
-    const out = { creator: null, rep: null, lp: null, holders: null, errors: [] };
+    const out = { creator: null, rep: null, lp: null, holders: null, snipers: null, errors: [] };
     const exclude = new Set([V4_PM, ...(pairs || []).map(p => lc(p.pairAddress)).filter(a => /^0x[0-9a-f]{40}$/.test(a))]);
     const left = () => Math.max(500, deadline - Date.now());
     // Holders and creator lookups run in parallel; each part fails on its own.
@@ -246,7 +300,9 @@
     try { out.creator = await within(findCreator(token), left()); } catch (e) { out.errors.push("creator"); }
     const jobs = [hP];
     if (out.creator) {
-      jobs.push(within(reputation(token, out.creator), left()).then(v => { out.rep = v; }, e => out.errors.push("reputation: " + (e && e.message))));
+      const repP = reputation(token, out.creator);
+      jobs.push(within(repP, left()).then(v => { out.rep = v; }, e => out.errors.push("reputation: " + (e && e.message))));
+      jobs.push(within(snipers(token, pair, pairs, out.creator, within(repP, left())), left()).then(v => { out.snipers = v; }, e => out.errors.push("snipers: " + (e && e.message))));
       if (pair) jobs.push(within(liquidityControl(pair, out.creator.deployer), left()).then(v => { out.lp = v; }, () => out.errors.push("lp")));
     }
     await Promise.all(jobs);
@@ -258,7 +314,7 @@
     return out;
   }
 
-  const api = { analyze, keccak, findCreator, reputation, liquidityControl, holders };
+  const api = { analyze, keccak, findCreator, reputation, liquidityControl, holders, snipers };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PBCreator = api;
 })(typeof window !== "undefined" ? window : globalThis);
