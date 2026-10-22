@@ -96,7 +96,7 @@
         createdAt = tx.timestamp ? Date.parse(tx.timestamp) : null;
       } catch (e) { /* keep creator_address_hash */ }
     }
-    return deployer ? { deployer, factory, method, txh: lc(txh), createdAt } : null;
+    return deployer ? { deployer, factory, method, txh: lc(txh), createdAt, verified: !!a.is_verified, tokenName: a.name || null } : null;
   }
 
   async function reputation(token, cr) {
