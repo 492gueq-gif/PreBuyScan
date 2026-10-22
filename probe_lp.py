@@ -11,5 +11,6 @@ return out;}"""
 with sync_playwright() as p:
     b=p.chromium.launch();pg=b.new_page();pg.goto("https://492gueq-gif.github.io/PreBuyScan/")
     r=pg.evaluate(JS)
+    json.dump(r,open("probe_out.json","w"))
     for i,(k,v) in enumerate(r.items()):print("::notice title=lp_%02d::"%i+json.dumps({k:v}).replace("%","%25")[:3900])
     b.close()

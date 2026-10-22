@@ -4,7 +4,7 @@ on:
     branches: [research/probes]
     paths: [probe_lp.py, probe_blockscout.py, probe_blockscout_browser.py, .github/workflows/blockscout.yml]
 permissions:
-  contents: read
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -15,3 +15,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium && python probe_lp.py
+      - name: Push probe output
+        if: always()
+        run: |
+          cp probe_out.json /tmp/ || true
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git checkout --orphan out && git rm -rfq . && cp /tmp/probe_out.json . && git add probe_out.json && git commit -qm "probe ${GITHUB_SHA}" && git push -f origin HEAD:research/probe-out
