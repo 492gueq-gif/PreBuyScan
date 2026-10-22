@@ -225,6 +225,7 @@ function dbCreatorCheck(K,DBC){
   if(kk>=3&&kd/kk>=0.7)return {s:"high",t:"Creador serial: lanzó "+K[0]+" tokens y "+kd+" murieron",d:src+"de "+kk+" tokens con resultado, "+kd+" quedaron sin liquidez a las 24–72 h."};
   if(kd>0)return {s:"warn",t:kd===1?"El creador tiene 1 token muerto":"El creador tiene "+kd+" tokens muertos",d:src+"lanzó "+K[0]+" tokens; "+kd+" de "+kk+" con resultado murieron."};
   if(kk>0)return {s:"ok",t:"Los otros tokens del creador siguen vivos",d:src+"lanzó "+K[0]+" tokens; los "+kk+" con resultado siguen con liquidez."};
+  if(K[0]>=3){const h=Math.max(1,(K[5]-K[4])/3600);return {s:"warn",t:"Lanza tokens en serie: "+K[0]+" en "+(h<48?Math.round(h)+" h":Math.round(h/24)+" días"),d:src+"esta wallet creó "+K[0]+" tokens; aún no tienen resultado (se revisa a las 24 h). Quien lanza muchos tokens seguidos suele abandonarlos."};}
   return {s:"unk",t:"Creador con tokens recientes",d:src+"lanzó "+K[0]+" tokens; ninguno tiene resultado todavía (se revisa a las 24 h)."};
 }
 let dbPromise=null;
@@ -357,7 +358,9 @@ async function inspect(token){
       const others=rep.others,dead=rep.dead,known=rep.dead+rep.alive;
       const K=DBC&&DBC.creators&&DBC.creators[D];
       const kd=K?K[1]:0,ka=K?K[2]:0,kk=kd+ka;
-      if(K&&kk>known){
+      if(K&&K[7]===1){
+        add({s:"unk",t:"Lanzado desde una plataforma",d:short(D)+" es la wallet de una plataforma de lanzamiento (miles de transacciones), no de una persona: su historial no dice nada de este token en particular."});
+      }else if(K&&(kk>known||K[0]-1>others)){
         add(dbCreatorCheck(K,DBC));
       }else{
         if(others===0&&rep.truncated)add({s:"unk",t:"Historial del creador incompleto",d:short(D)+" tiene muchas transacciones; en las últimas "+rep.txCount+" no encontramos otros tokens, pero no revisamos las anteriores."});
@@ -372,7 +375,8 @@ async function inspect(token){
       if(rep.funder)facts["Fondeado por"]=short(rep.funder)+(rep.fundEth!=null?" ("+rep.fundEth+" ETH)":"");
     }else{
       const K=DBC&&DBC.creators&&DBC.creators[D];
-      if(K){add(dbCreatorCheck(K,DBC));facts["Creador"]=short(D);facts["En la base de PreBuyScan"]=K[0]+" tokens · "+K[1]+" muertos";}
+      if(K&&K[7]===1)add({s:"unk",t:"Lanzado desde una plataforma",d:short(D)+" es la wallet de una plataforma de lanzamiento, no de una persona."});
+      else if(K){add(dbCreatorCheck(K,DBC));facts["Creador"]=short(D);facts["En la base de PreBuyScan"]=K[0]+" tokens · "+K[1]+" muertos";}
       else add({s:"unk",t:"Historial del creador no disponible",d:"No se pudo consultar el historial de "+short(D)+"."});
     }
     const lp=cr.lp;
