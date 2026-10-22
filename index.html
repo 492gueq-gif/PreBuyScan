@@ -307,6 +307,16 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
   .stat dd{font-size:.98rem}
   .a-stats{order:1}.a-chart,.a-sec{order:2}.a-sim,.a-info{order:3}.a-wide{order:4}.a-half{order:5}.mapsec{order:6}
 }
+
+.pastebtn{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;border:1px solid var(--line2);background:var(--sheet);color:var(--ink);font-weight:700;font-size:.85rem;padding:9px 12px;border-radius:10px;cursor:pointer}
+.pastebtn:hover{border-color:var(--accent);color:var(--accent)}
+.pastebtn svg{color:var(--accent)}
+.pastehint{font-size:.8rem;color:var(--warn);min-height:0}
+.pastehint:empty{display:none}
+.search{flex-direction:column;gap:4px;min-width:0}
+.hero form{grid-template-columns:minmax(0,1fr)}
+.field{min-width:0}
+@media (max-width:420px){.pastebtn{padding:8px 10px}.field{padding-left:10px}}
 </style></head><body data-view="home">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -330,8 +340,9 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
       <div class="field"><svg width="20" height="20" aria-hidden="true"><use href="#i-search"/></svg>
         <label for="addr" class="sr">Dirección de un token o de una wallet</label>
         <input id="addr" class="addr-in" spellcheck="false" placeholder="Pega la dirección del contrato o de una wallet (0x…)">
-        <button type="button" class="iconbtn paste" aria-label="Pegar"><svg width="20" height="20"><use href="#i-paste"/></svg></button>
+        <button type="button" class="pastebtn paste" aria-label="Pegar dirección del portapapeles"><svg width="18" height="18" aria-hidden="true"><use href="#i-paste"/></svg>Pegar</button>
         <button type="submit" class="cta go">Analizar →</button></div>
+      <div class="pastehint" role="status"></div>
     </form>
     <div class="chainpill" title="Robinhood Chain (chain 4663)"><i class="dot" id="chaindot"></i>Robinhood Chain</div>
   </header>
@@ -362,8 +373,9 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
           <div class="field"><svg width="20" height="20" aria-hidden="true"><use href="#i-link"/></svg>
             <label for="addr2" class="sr">Dirección de un token o de una wallet</label>
             <input id="addr2" class="addr-in" spellcheck="false" placeholder="Pega la dirección del contrato">
-            <button type="button" class="iconbtn paste" aria-label="Pegar"><svg width="20" height="20"><use href="#i-paste"/></svg></button></div>
+            <button type="button" class="pastebtn paste" aria-label="Pegar dirección del portapapeles"><svg width="18" height="18" aria-hidden="true"><use href="#i-paste"/></svg>Pegar</button></div>
           <button type="submit" class="cta go">Analizar token →</button>
+          <div class="pastehint" role="status"></div>
         </form>
         <div class="trust"><span>Sin wallet</span><span>Sin firmas</span><span>Solo análisis</span></div>
         <div class="feats"><div class="feat"><b>Venta simulada</b>Compra y venta reales en simulación, sin firmar nada</div><div class="feat"><b>Creador y liquidez</b>Quién puede retirar la liquidez y qué lanzó antes</div><div class="feat"><b>Precisión publicada</b>Medimos cuánto aciertan las señales</div></div>
@@ -1136,11 +1148,30 @@ async function analyze(raw){
   finally{running=false;document.querySelectorAll(".go").forEach(b=>b.disabled=false);}
 }
 for(const id of ["#f","#f2"])$(id).addEventListener("submit",e=>{e.preventDefault();analyze(e.target.querySelector(".addr-in").value);});
+const ADDR_RE=/^0x[0-9a-fA-F]{40}$/;
+function hint(form,m){const h=form.querySelector(".pastehint");if(h){h.textContent=m;if(m)setTimeout(()=>{if(h.textContent===m)h.textContent="";},6000);}}
 document.querySelectorAll(".paste").forEach(btn=>btn.addEventListener("click",async()=>{
-  const inp=btn.closest("form").querySelector(".addr-in");
-  try{const t=(await navigator.clipboard.readText()).trim();inp.value=t;if(/^0x[0-9a-fA-F]{40}$/.test(t))analyze(t);else inp.focus();}
-  catch(e){inp.focus();flashGlobal("Tu navegador no dejó leer el portapapeles: mantén presionado el campo y elige «Pegar».");}
+  const form=btn.closest("form"),inp=form.querySelector(".addr-in");
+  try{
+    const t=((await navigator.clipboard.readText())||"").trim();
+    const m=t.match(/0x[0-9a-fA-F]{40}/);
+    if(m){inp.value=m[0];hint(form,"");analyze(m[0]);}
+    else{inp.focus();hint(form,t?"Lo que copiaste no es una dirección (0x + 40 caracteres).":"No hay nada copiado. Copia la dirección del contrato y vuelve a tocar «Pegar».");}
+  }catch(e){inp.focus();hint(form,"Tu navegador no dejó leer el portapapeles: mantén presionado el campo y elige «Pegar»; la búsqueda empieza sola.");}
 }));
+// Auto-search: as soon as a complete address is in the field (pasted or typed), analyze it.
+document.querySelectorAll(".addr-in").forEach(inp=>{
+  let timer=null;
+  const tryAuto=()=>{clearTimeout(timer);timer=setTimeout(()=>{
+    const raw=inp.value.trim();const m=raw.match(/0x[0-9a-fA-F]{40}/);
+    if(!m)return;const t=m[0].toLowerCase();
+    if(raw!==m[0])inp.value=m[0];
+    if(running||(last&&last.token===t&&document.body.dataset.view==="result"))return;
+    hint(inp.closest("form"),"");analyze(t);
+  },250);};
+  inp.addEventListener("paste",()=>setTimeout(tryAuto,0));
+  inp.addEventListener("input",tryAuto);
+});
 function flashGlobal(m){const o=$("#out");setView("result");o.innerHTML=`<section class="card"><div class="empty">${esc(m)}</div></section>`;}
 
 // ---------- start ----------
