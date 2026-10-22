@@ -1,0 +1,37 @@
+name: Creator DB (read-only research)
+on:
+  schedule:
+    - cron: "41 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [creator_db.py, test_creator_db.py, .github/workflows/creator-db.yml]
+permissions:
+  contents: write
+concurrency:
+  group: creator-db
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest test_creator_db -q
+      - name: Get database branch
+        run: |
+          if git ls-remote --exit-code origin creator-db >/dev/null; then
+            git fetch -q origin creator-db && git worktree add -q db origin/creator-db && git -C db checkout -q -B creator-db origin/creator-db
+          else
+            git worktree add -q --detach db && git -C db checkout -q --orphan creator-db && git -C db rm -rfq . || true
+          fi
+      - run: python creator_db.py
+      - name: Save database
+        run: |
+          cd db
+          git config user.name creator-db && git config user.email ci@users.noreply.github.com
+          git add -A && (git diff --cached --quiet || git commit -qm "creator db $(date -u +%Y-%m-%dT%H:%MZ)")
+          git push -q origin HEAD:creator-db
