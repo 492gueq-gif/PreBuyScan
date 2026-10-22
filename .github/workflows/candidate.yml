@@ -2,7 +2,7 @@ name: Candidate page check (read-only)
 on:
   push:
     branches: [research/probes]
-    paths: [cand_check.py, candidate/**, .github/workflows/candidate.yml]
+    paths: [cand_check.py, cand_map.py, candidate/**, .github/workflows/candidate.yml]
 permissions:
   contents: write
 jobs:
@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
-      - run: python cand_check.py
+      - run: python cand_map.py
       - name: Push screenshots to research/shots
         if: always()
         run: |

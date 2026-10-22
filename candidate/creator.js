@@ -369,7 +369,8 @@
     return out;
   }
 
-  const api = { analyze, keccak, findCreator, reputation, liquidityControl, holders, snipers };
+  const api = { analyze, keccak, findCreator, reputation, liquidityControl, holders, snipers,
+    _get: getJSON, _call: call, _rpc: rpc, _words: words, _budget: ms => { deadline = Date.now() + ms; } };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PBCreator = api;
 })(typeof window !== "undefined" ? window : globalThis);

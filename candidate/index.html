@@ -103,6 +103,17 @@ footer{font-size:.82rem;color:var(--muted);max-width:70ch}
 .tabs{display:flex;gap:6px}
 table.tt a{color:var(--accent)}
 table.radar td{vertical-align:middle}
+.mapsec .mapintro{padding:0 20px 14px;display:grid;gap:10px;justify-items:start}
+.mapsec .mapintro p{margin:0;color:var(--muted);font-size:.9rem;max-width:70ch}
+.mapsvg{border-top:1px solid var(--line);background:var(--bg)}
+.mapsvg svg{display:block}
+.maplegend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 20px;font-size:.8rem;color:var(--muted);border-top:1px solid var(--line)}
+.lg{display:inline-block;width:18px;border-top:2px solid var(--muted);vertical-align:middle;margin-right:4px}
+.lg.dash{border-top-style:dashed}
+.lg.ring{width:10px;height:10px;border:1.5px dashed var(--muted);border-radius:50%}
+.mapinfo{padding:10px 20px;font-size:.86rem;border-top:1px solid var(--line);overflow-wrap:anywhere}
+.mapinfo .w{font-family:var(--mono);font-weight:500}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;margin-right:4px}
 @media (max-width:520px){.rhead{padding-left:0}table.radar th:nth-child(4),table.radar td:nth-child(4){display:none}table.tt th,table.tt td{padding:8px 4px;font-size:.74rem}table.tt th{font-size:.62rem;letter-spacing:.03em}table.tt th:first-child,table.tt td:first-child{padding-left:12px}table.tt th:last-child,table.tt td:last-child{padding-right:12px}table.tt td small{display:none}.verdict{grid-template-columns:1fr}.stamp{justify-self:start}ol.checks li{grid-template-columns:1fr;gap:6px}}
 @media (prefers-reduced-motion:reduce){.stamp{transform:none}}
 </style></head><body>
@@ -147,6 +158,7 @@ table.radar td{vertical-align:middle}
 
 <script src="sellsim.js"></script>
 <script src="creator.js"></script>
+<script src="bubblemap.js"></script>
 <script>
 const RPC="https://rpc.mainnet.chain.robinhood.com";
 const DEX="https://api.dexscreener.com/tokens/v1/robinhood/";
@@ -325,7 +337,8 @@ async function inspect(token){
     const D=cr.creator.deployer,rep=cr.rep;
     if(rep){
       const others=rep.others,dead=rep.dead,known=rep.dead+rep.alive;
-      if(others===0)add({s:"ok",t:"No lanzó otros tokens",d:"No encontramos otros tokens creados por "+short(D)+" (revisamos sus últimas "+rep.txCount+" transacciones)."});
+      if(others===0&&rep.truncated)add({s:"unk",t:"Historial del creador incompleto",d:short(D)+" tiene muchas transacciones; en las últimas "+rep.txCount+" no encontramos otros tokens, pero no revisamos las anteriores."});
+      else if(others===0)add({s:"ok",t:"No lanzó otros tokens",d:"No encontramos otros tokens creados por "+short(D)+" en todo su historial ("+rep.txCount+" transacciones)."});
       else if(known>=3&&dead/known>=0.7)add({s:"high",t:"El creador lanzó "+others+" tokens y "+dead+" murieron",d:"De los que pudimos revisar, "+dead+" de "+known+" ya no tienen liquidez (menos de $1,000). Patrón típico de quien lanza tokens en serie y los abandona."});
       else if(dead>0)add({s:"warn",t:dead===1?"El creador tiene 1 token muerto":"El creador tiene "+dead+" tokens muertos",d:"Lanzó "+others+(others===1?" token":" tokens")+" además de este; "+dead+" de "+known+(known===1?" revisado ya no tiene":" revisados ya no tienen")+" liquidez."});
       else add({s:"ok",t:"Los otros tokens del creador siguen vivos",d:"Lanzó "+others+(others===1?" token":" tokens")+" más; ninguno de los revisados está abandonado."});
@@ -383,7 +396,7 @@ async function inspect(token){
     else add({s:"ok",t:"Holders repartidos",d:"Las 10 wallets más grandes tienen "+H.top10+" % (sin pools ni quemado)."});
     if(big&&big.pct>15&&!(cr.creator&&big.addr===cr.creator.deployer))add({s:"warn",t:"Una wallet tiene "+big.pct+" %",d:short(big.addr)+(big.contract?" (contrato"+(big.name?": "+big.name:"")+")":"")+" guarda una parte grande del suministro."});
   }
-  return {checks,facts,notChecked,tr,cr};
+  return {checks,facts,notChecked,tr,cr,pairs:allPairs};
 }
 
 const CATS=["Venta","Contrato","Creador y liquidez","Lanzamiento","Holders","Mercado"];
@@ -403,8 +416,9 @@ function verdictOf(checks){
          ["unk","Sin datos suficientes","No se pudieron completar las revisiones."];
 }
 let last=null;
+let lastRes=null;
 function render(token,res){
-  const {checks,facts,notChecked,tr,cr}=res;
+  const {checks,facts,notChecked,tr,cr}=res;lastRes={token,res};
   const n=k=>checks.filter(c=>c.s===k).length;
   const v=verdictOf(checks),score=scoreOf(checks);
   last={token,name:facts.name||token,v,score,checks:checks.slice().sort((a,b)=>order[a.s]-order[b.s])};
@@ -427,6 +441,10 @@ function render(token,res){
      <div class="sharebar"><button class="btn2 sm" type="button" data-act="copy">Copiar enlace</button><button class="btn2 sm" type="button" data-act="share">Compartir</button><button class="btn2 sm" type="button" data-act="img">Descargar imagen</button><span class="shmsg" role="status"></span></div></div></div>
    <p class="scorenote">Puntuación: empieza en 100 y resta por cada alerta; lo que no pudimos revisar también resta, nunca cuenta como aprobado.</p>
    ${groups}
+   <section class="mapsec"><h3>Mapa de wallets</h3>
+    <div class="mapintro"><p>Burbujas = mayores holders. Las une quién les dio su primer ETH o si se pasaron el token entre ellas. Un grupo de color suele ser una sola persona con varias wallets.</p>
+    <button class="btn2" type="button" data-act="map">Ver mapa de wallets</button></div>
+    <div id="mapout"></div></section>
    ${launches}${snip}${holders}${bigs}
    ${factHtml?`<section><h3>Datos</h3><dl class="facts">${factHtml}</dl></section>`:""}
    ${tr&&tr.top.length?`<section><h3>Mayores ganadores al vender</h3><div class="tw"><table class="tt"><thead><tr><th>Wallet</th><th>Compró</th><th>Vendió</th><th>Resultado</th></tr></thead><tbody>${tr.top.map(x=>`<tr><td class="w" title="${esc(x.addr)}">${esc(short(x.addr))}${tr.clone.some(c=>c.addr===x.addr)?" ⚑":""}${cr&&cr.creator&&x.addr===cr.creator.deployer?" ★":""}</td><td>${usd(Math.round(x.bought))} <small>(${x.nb})</small></td><td>${usd(Math.round(x.sold))} <small>(${x.ns})</small></td><td class="${x.pnl>=0?"pos":"neg"}">${x.pnl>=0?"+":"−"}${usd(Math.round(Math.abs(x.pnl)))}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Según las últimas ${tr.n} operaciones del par principal (GeckoTerminal), no el historial completo. Solo wallets que compraron y vendieron dentro de ese periodo. Entre paréntesis, número de operaciones.${tr.clone.length?" ⚑ = compró el mismo monto que otras wallets.":""}</div></section>`:""}
@@ -472,7 +490,42 @@ async function shareIt(){
     else{await navigator.clipboard.writeText(text+" "+linkFor(last.token));flash("Texto y enlace copiados");}
   }catch(e){if(e&&e.name!=="AbortError")copyLink();}
 }
-$("#out").addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(!b||!last)return;({copy:copyLink,share:shareIt,img:downloadCard})[b.dataset.act]();});
+$("#out").addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(!b||!last)return;({copy:copyLink,share:shareIt,img:downloadCard,map:loadMap})[b.dataset.act](b);});
+
+// ---------- wallet map ----------
+function loadScript(src){return new Promise((ok,ko)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=ko;document.head.appendChild(s);});}
+async function loadMap(btn){
+  if(!lastRes)return;const {token,res}=lastRes;const cr=res.cr||{};const box=$("#mapout");
+  btn.disabled=true;box.innerHTML=`<div class="busy" id="mapmsg">Preparando el mapa (hasta 75 s)…</div>`;
+  try{
+    if(!window.d3)await loadScript("https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js");
+    const g=await window.PBMap.build(token,{pairs:res.pairs,creator:cr.creator&&cr.creator.deployer,creatorFunder:cr.rep&&cr.rep.funder,snipers:cr.snipers},
+      {progress:m=>{const e=$("#mapmsg");if(e)e.textContent=m;}});
+    if(lastRes.token!==token)return;
+    renderMap(g,cr);btn.closest(".mapintro").querySelector("button").remove();
+  }catch(e){box.innerHTML=`<div class="busy">No se pudo armar el mapa: el explorador no respondió. Prueba de nuevo en un minuto.</div>`;btn.disabled=false;}
+}
+function renderMap(g,cr){
+  const box=$("#mapout");const P=window.PBMap.PALETTE;const hasCreator=!!(cr&&cr.creator);
+  const cg=g.groups.find(x=>x.creator);const other=g.groups.filter(x=>!x.creator&&x.holders>=2).sort((a,b)=>b.pct-a.pct)[0];
+  const lines=[];
+  if(!hasCreator)lines.push(["unk","Creador no identificado","No podemos ubicar al creador en el mapa."]);
+  else if(cg&&cg.holders>=2&&cg.pct>=20)lines.push(["high","El grupo del creador controla "+cg.pct+" %",cg.holders+" wallets ligadas al creador (por fondeo o transferencias) tienen "+cg.pct+" % del suministro: pueden vender juntas."]);
+  else if(g.creatorPct>=8)lines.push(["warn","El grupo del creador tiene "+g.creatorPct+" %",(cg?cg.holders+" wallets ligadas al creador":"La wallet del creador")+" con "+g.creatorPct+" % del suministro."]);
+  else lines.push(["ok","El grupo del creador tiene "+g.creatorPct+" %",cg?cg.holders+" wallet(s) ligadas al creador entre los holders revisados.":"No encontramos wallets ligadas al creador entre los mayores holders."]);
+  if(other&&other.pct>=20)lines.push(["warn","Otro grupo controla "+other.pct+" %",other.holders+" wallets conectadas entre sí (sin el creador) tienen "+other.pct+" %."]);
+  const part=(g.partial.funders?" No pudimos revisar el fondeo de "+g.partial.funders+" wallet(s).":"")+(g.partial.transfers?" Faltaron transferencias del token.":"");
+  box.innerHTML=`<ol class="checks">${lines.map(l=>`<li><span class="pill ${l[0]}">${lbl[l[0]]}</span><div class="ck"><b>${esc(l[1])}</b><span>${esc(l[2])}</span></div></li>`).join("")}</ol>
+   <div id="mapsvg" class="mapsvg"></div>
+   <div class="maplegend"><span>★ creador</span><span>S sniper del primer minuto</span><span><i class="lg dash"></i> fondeó</span><span><i class="lg"></i> transfirió el token</span><span><i class="lg ring"></i> no es holder (solo conecta)</span></div>
+   <div id="mapinfo" class="mapinfo" aria-live="polite">Toca una burbuja para ver la wallet.</div>
+   ${g.groups.length?`<div class="tw"><table class="tt"><thead><tr><th>Grupo</th><th>Wallets</th><th>% del total</th></tr></thead><tbody>${g.groups.slice(0,8).map(x=>`<tr><td><i class="dot" style="background:${P[(x.n-1)%P.length]}"></i> ${x.creator?"Del creador ★":"Grupo "+x.n}</td><td>${x.holders}</td><td>${x.pct.toLocaleString("es-MX",{maximumFractionDigits:2})} %</td></tr>`).join("")}</tbody></table></div>`:""}
+   <div class="tnote">Revisamos ${g.checked} wallets (los mayores holders, sin pools ni quemado). Exchanges y puentes con miles de transacciones no cuentan como «mismo dueño».${part} Este grupo no cambia la puntuación de arriba.</div>`;
+  window.PBMap.draw($("#mapsvg"),g,{onPick:n=>{
+    const f=g.nodes.find(m=>m.id===n.id);
+    $("#mapinfo").innerHTML=`<b class="w">${esc(n.id)}</b> · ${n.creator?"creador · ":""}${n.sniper?"sniper · ":""}${n.kind==="magic"?"no es holder":(n.pct||0).toLocaleString("es-MX",{maximumFractionDigits:2})+" % del total"}${n.contract?" · contrato"+(n.name?" ("+esc(n.name)+")":""):""}${n.group?" · grupo "+n.group:""}`;
+  }});
+}
 
 // ---------- new and trending tokens with a quick market verdict ----------
 // Same market rules whose accuracy is published below (PRECISION_V1).
