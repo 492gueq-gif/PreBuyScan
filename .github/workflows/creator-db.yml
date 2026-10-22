@@ -28,6 +28,7 @@ jobs:
           else
             git worktree add -q --detach db && git -C db checkout -q --orphan creator-db && git -C db rm -rfq . || true
           fi
+      - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
       - run: python creator_db.py
       - name: Save database
         run: |

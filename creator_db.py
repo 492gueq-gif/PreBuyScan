@@ -141,6 +141,37 @@ def liquidity(tokens):
     return out
 
 
+BROWSER_JS = """async tokens=>{
+  const B='https://robinhoodchain.blockscout.com/api/v2/';const out={};const errs=[];
+  const get=async u=>{for(let i=0;i<3;i++){try{const r=await fetch(u);if(r.status===429||r.status>=500){await new Promise(s=>setTimeout(s,1500*(i+1)));continue;}
+    if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}catch(e){if(i===2)throw e;await new Promise(s=>setTimeout(s,1000*(i+1)));}}throw new Error('unavailable');};
+  const one=async t=>{try{const a=await get(B+'addresses/'+t);const h=a.creation_transaction_hash||a.creation_tx_hash;
+      if(!h){out[t]=(a.creator_address_hash||'').toLowerCase()||null;return;}
+      const tx=await get(B+'transactions/'+h);out[t]=((tx.from&&tx.from.hash)||a.creator_address_hash||'').toLowerCase()||null;}
+    catch(e){out[t]=null;errs.push(String(e).slice(0,100));}};
+  const q=tokens.slice();await Promise.all([0,1,2,3].map(async()=>{while(q.length)await one(q.shift());}));
+  return {out,errs:[...new Set(errs)].slice(0,5)};
+}"""
+
+
+def lookup_creators(tokens, errors):
+    """Blockscout refuses plain scripts (HTTP 403) but serves browsers: run the lookups in Chromium."""
+    if not tokens:
+        return {}
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        pg = b.new_page()
+        pg.goto("about:blank")
+        pg.set_content("<html><body>creator-db</body></html>")
+        res = {}
+        for i in range(0, len(tokens), 60):
+            r = pg.evaluate(BROWSER_JS, tokens[i:i + 60])
+            res.update(r["out"]); errors.extend(r["errs"])
+        b.close()
+    return res
+
+
 def run(now=None):
     now = int(now or time.time())
     tokens = load("tokens.json", {})
@@ -158,18 +189,10 @@ def run(now=None):
         tokens[t] = v
 
     errors = []
-
-    def look(t):
-        try:
-            return t, creator_of(t)
-        except Exception as e:
-            errors.append("%s %s" % (type(e).__name__, str(e)[:120]))
-            return t, None
-    with ThreadPoolExecutor(4) as ex:
-        for t, c in ex.map(look, todo):
-            tokens[t]["tries"] = tokens[t].get("tries", 0) + 1
-            if c:
-                tokens[t]["creator"] = c
+    for t, c in lookup_creators(todo, errors).items():
+        tokens[t]["tries"] = tokens[t].get("tries", 0) + 1
+        if c:
+            tokens[t]["creator"] = c
     found = sum(1 for t in todo if tokens[t].get("creator"))
     # Death checks
     d = due(tokens, now)
