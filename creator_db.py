@@ -22,6 +22,7 @@ BS = "https://robinhoodchain.blockscout.com/api/v2/"
 DEX = "https://api.dexscreener.com/tokens/v1/robinhood/"
 WETH_ID = "robinhood_0x0bd7d308f8e1639fab988df18a8011f41eacad73"
 DEAD_LIQ = 1000.0
+PLATFORM_NONCE = 500      # a "creator" with more transactions than this is a launch platform or relayer, not a person
 MAX_LOOKUPS = 160          # per hourly run; the rest waits for the next run
 H24, H72 = 86400, 3 * 86400
 KEEP_TOKENS_DAYS = 30
@@ -103,17 +104,31 @@ def aggregate(tokens):
     return creators
 
 
-def publish(creators, now, tracked):
-    # Compact: [launched, dead, alive, pending, first, last, [up to 5 latest tokens]] for creators with 2+ launches.
+def publish(creators, now, tracked, nonces=None):
+    # Compact: [launched, dead, alive, pending, first, last, [up to 5 latest tokens], platform]
+    # for creators with 2+ launches. platform=1 when the creator wallet has more than PLATFORM_NONCE txs.
+    nonces = nonces or {}
     out = {c: [x["launched"], x["dead"], x["alive"], x["pending"], x["first"], x["last"],
-               [t for _, t in sorted(x["tokens"], reverse=True)[:5]]]
+               [t for _, t in sorted(x["tokens"], reverse=True)[:5]], 1 if (nonces.get(c) or 0) > PLATFORM_NONCE else 0]
            for c, x in creators.items() if x["launched"] >= 2}
     return dict(updated=now, since=min((x["first"] for x in creators.values()), default=now), tracked=tracked,
-                dead_liquidity_usd=DEAD_LIQ, fields=["launched", "dead", "alive", "pending", "first", "last", "latest_tokens"],
+                dead_liquidity_usd=DEAD_LIQ, fields=["launched", "dead", "alive", "pending", "first", "last", "latest_tokens", "platform"],
                 creators=out)
 
 
 # ---------- network steps ----------
+def rpc(method, params):
+    body = json.dumps(dict(jsonrpc="2.0", id=1, method=method, params=params)).encode()
+    req = urllib.request.Request("https://rpc.mainnet.chain.robinhood.com", data=body,
+                                 headers={"Content-Type": "application/json", "User-Agent": "PreBuyScan-research"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        j = json.load(r)
+    if "error" in j:
+        raise RuntimeError(j["error"])
+    time.sleep(0.3)
+    return j["result"]
+
+
 def creator_of(token):
     a = get_json(BS + "addresses/" + token)
     txh = a.get("creation_transaction_hash") or a.get("creation_tx_hash")
@@ -221,7 +236,16 @@ def run(now=None):
         save("history.json", hist)
         creators = aggregate({**hist, **tokens})
     save("tokens.json", tokens)
-    pub = publish(creators, now, len(tokens))
+    nonces = load("nonces.json", {})
+    for c, x in creators.items():
+        if x["launched"] >= 2 and (c not in nonces or x["last"] > nonces[c].get("at", 0)):
+            try:
+                n = int(rpc("eth_getTransactionCount", [c, "latest"]), 16)
+                nonces[c] = dict(n=n, at=now)
+            except Exception:
+                pass
+    save("nonces.json", nonces)
+    pub = publish(creators, now, len(tokens), {c: v["n"] for c, v in nonces.items()})
     save("creators.json", pub)
     runs = load("runs.json", [])
     runs.append(dict(at=now, new=len(fresh), creator_found=found, retried=len(retry), checked=len(d),

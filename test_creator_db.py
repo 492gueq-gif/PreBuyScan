@@ -32,6 +32,8 @@ class T(unittest.TestCase):
         pub = D.publish(agg, now, 5)
         self.assertIn("c", pub["creators"]); self.assertNotIn("d", pub["creators"])   # 2+ launches only
         self.assertEqual(pub["creators"]["c"][:4], [3, 1, 0, 2])
+        self.assertEqual(pub["creators"]["c"][7], 0)
+        self.assertEqual(D.publish(agg, now, 5, {"c": 9000})["creators"]["c"][7], 1)
 
 
 if __name__ == "__main__":
