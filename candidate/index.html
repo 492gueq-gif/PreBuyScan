@@ -123,11 +123,11 @@ table.radar td{vertical-align:middle}
 <div class="wrap">
   <header>
     <div class="brand">PreBuy<span>Scan</span></div>
-    <div class="sub"><b>Scan before the scam.</b> Pega la dirección de un token de Robinhood Chain y detecta en segundos las señales de estafa más comunes.</div>
+    <div class="sub"><b>Scan before the scam.</b> Pega la dirección de un token de Robinhood Chain y detecta en segundos las señales de estafa más comunes. Si pegas una wallet, ves su perfil: quién la fondeó, qué tokens creó y cómo terminaron.</div>
   </header>
 
   <form id="f" autocomplete="off">
-    <label for="addr">Dirección del token (Robinhood Chain)</label>
+    <label for="addr">Dirección de un token o de una wallet (Robinhood Chain)</label>
     <div class="row">
       <input id="addr" name="addr" spellcheck="false" placeholder="0x…" value="0x39dbed3a2bd333467115de45665cc57f813c4571">
       <button id="paste" class="btn2" type="button">Pegar</button>
@@ -161,6 +161,7 @@ table.radar td{vertical-align:middle}
 <script src="sellsim.js"></script>
 <script src="creator.js"></script>
 <script src="bubblemap.js"></script>
+<script src="profile.js"></script>
 <script>
 const RPC="https://rpc.mainnet.chain.robinhood.com";
 const DEX="https://api.dexscreener.com/tokens/v1/robinhood/";
@@ -484,6 +485,32 @@ function render(token,res){
    <div class="note">${notChecked.length?"No revisado: "+esc(notChecked.join("; "))+". ":""}Liquidez bloqueada en contratos de terceros: no verificada.${facts.url?` Ver el par en <a href="${esc(facts.url)}" target="_blank" rel="noopener">DexScreener</a>.`:""}</div>`;
 }
 
+// ---------- wallet profile ----------
+function renderProfile(addr,p){
+  const checks=p.checks.map(c=>({...c,c:"Perfil"}));
+  const n=k=>checks.filter(c=>c.s===k).length;
+  const v=verdictOf(checks),score=scoreOf(checks);
+  const title=v[0]==="high"?"Wallet de alto riesgo":v[0]==="warn"?"Wallet con señales a revisar":v[0]==="ok"?"Sin señales de estafa":"Sin datos suficientes";
+  last={token:addr,name:"Wallet "+short(addr),v:[v[0],title],score,checks:checks.slice().sort((a,b)=>order[a.s]-order[b.s])};lastRes=null;
+  const age=d=>d==null?"—":d<1?Math.round(d*24)+" h":d<60?Math.round(d)+" días":Math.round(d/30)+" meses";
+  const facts={"Transacciones":p.nonce==null?"—":num(p.nonce),"Edad":age(p.ageDays),"Fondeada por":p.funder?short(p.funder):p.established?"wallet antigua (no revisado)":"—",
+    "Tokens creados":num(p.created.length),"Wallets que fondeó":p.funded.length?(p.funded.length+(p.fundedMore?"+":"")):"0"};
+  if(p.db)facts["En la base de PreBuyScan"]=p.db.launched+" tokens · "+p.db.dead+" muertos"+(p.db.pending?" · "+p.db.pending+" pendientes":"");
+  const st=l=>l==null?["","sin datos"]:l<1000?["neg","muerto"]:["pos","activo"];
+  const link=a=>`<a href="?t=${esc(a)}">${esc(short(a))}</a>`;
+  $("#out").innerHTML=`
+   <div class="verdict"><div class="stamp ${v[0]}">${v[0]==="high"?"Riesgo alto":v[0]==="warn"?"Precaución":v[0]==="ok"?"Sin alertas":"Sin datos"}<span class="sc">${score}<small>/100</small></span></div>
+    <div class="vtext"><h2>Perfil de wallet</h2><p class="w" style="font-family:var(--mono);overflow-wrap:anywhere">${esc(addr)}</p>
+     <div class="counts">${["high","warn","ok","unk"].filter(k=>n(k)).map(k=>`<span class="pill ${k}">${n(k)} ${lbl[k].toLowerCase()}</span>`).join("")}</div>
+     <div class="sharebar"><button class="btn2 sm" type="button" data-act="copy">Copiar enlace</button><button class="btn2 sm" type="button" data-act="share">Compartir</button><button class="btn2 sm" type="button" data-act="img">Descargar imagen</button><span class="shmsg" role="status"></span></div></div></div>
+   <section><h3>Hallazgos</h3><ol class="checks">${last.checks.map(x=>`<li><span class="pill ${x.s}">${lbl[x.s]}</span><div class="ck"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></div></li>`).join("")}</ol></section>
+   <section><h3>Datos</h3><dl class="facts">${Object.entries(facts).map(([k,val])=>`<div class="fact"><dt>${esc(k)}</dt><dd>${k==="Fondeada por"&&p.funder?link(p.funder):esc(val)}</dd></div>`).join("")}</dl></section>
+   ${p.created.length?`<section><h3>Tokens que creó</h3><div class="tw"><table class="tt"><thead><tr><th>Token</th><th>Liquidez hoy</th><th>Estado</th></tr></thead><tbody>${p.created.map(t=>{const x=st(t.liq);return `<tr><td class="w">${link(t.token)}${t.name?" "+esc(t.name):""}</td><td>${t.liq==null?"—":usd(Math.round(t.liq))}</td><td class="${x[0]}">${x[1]}</td></tr>`;}).join("")}</tbody></table></div><div class="tnote">«Muerto» = menos de $1,000 de liquidez hoy en DexScreener. Toca un token para revisarlo.</div></section>`:""}
+   ${p.funded.length?`<section><h3>Wallets que fondeó</h3><div class="tnote" style="padding-top:0">${p.funded.slice(0,20).map(link).join(" · ")}${p.funded.length>20||p.fundedMore?" …":""}<br>De ${p.fundedSample} revisadas, ${p.fundedFresh} recibieron de esta wallet su primer ETH (wallets nuevas).</div></section>`:""}
+   ${p.traded.length?`<section><h3>Tokens con los que operó hace poco</h3><div class="tw"><table class="tt"><thead><tr><th>Token</th><th>Último movimiento</th><th>Estado</th></tr></thead><tbody>${p.traded.map(t=>{const x=st(t.liq);return `<tr><td class="w">${link(t.token)}${t.symbol?" "+esc(t.symbol):""}</td><td>${t.dir}${t.ts?" · "+new Date(t.ts).toLocaleDateString("es-MX",{day:"numeric",month:"short"}):""}</td><td class="${x[0]}">${x[1]}</td></tr>`;}).join("")}</tbody></table></div></section>`:""}
+   <div class="note">${p.partial.length?"No revisado: "+esc(p.partial.join(", "))+". ":""}Datos públicos del explorador de Robinhood Chain, la RPC pública y DexScreener. Un perfil limpio no garantiza nada.</div>`;
+}
+
 // ---------- sharing ----------
 const linkFor=t=>location.origin+location.pathname+"?t="+t;
 function flash(m){const e=$("#out .shmsg");if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent="";},3000);}}
@@ -598,7 +625,11 @@ async function run(){
   if(!/^0x[0-9a-f]{40}$/.test(token)){$("#out").innerHTML=`<div class="busy">Esa dirección no es válida. Debe empezar con 0x y tener 40 caracteres hexadecimales después.</div>`;return;}
   $("#go").disabled=true;$("#out").innerHTML=`<div class="busy">Revisando ${esc(token)}…</div>`;
   try{
-    render(token,await inspect(token));
+    let code=null;try{code=await rpc("eth_getCode",[token,"latest"]);}catch(e){}
+    if(code==="0x"||(code&&code.toLowerCase().startsWith("0xef0100"))){
+      step("Es una wallet: armando su perfil…");
+      renderProfile(token,await window.PBProfile.build(token,{db:await creatorDB(),progress:step}));
+    }else render(token,await inspect(token));
     try{const q=new URLSearchParams(location.search);if(q.get("t")!==token){q.set("t",token);history.replaceState(null,"","?"+q.toString());}}catch(e){}
   }
   catch(e){$("#out").innerHTML=`<div class="busy">No se pudo completar la revisión. Comprueba tu conexión y vuelve a intentarlo.</div>`;}

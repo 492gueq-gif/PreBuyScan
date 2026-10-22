@@ -1,7 +1,7 @@
 import json,sys,subprocess,time
 from playwright.sync_api import sync_playwright
 srv=subprocess.Popen([sys.executable,"-m","http.server","8765","-d","candidate"]);time.sleep(1)
-TOKENS=["0x31575318204378b3c8d9ea431d2d8afa574f76ea","0xca58f6987088160c572ad55faa9b021c9ad23967"]
+TOKENS=["0xc5d22a7d5b203164bfa6479d72de9297cff19bf5","0xb187ea7defc99a5d2b089047b866697390b6fd19","0x06cb3a6841c92525e7a1998328e7c9d37e98d937"]
 def note(tag,obj):
     s=json.dumps(obj,ensure_ascii=False)
     open("notes.txt","a").write(tag+" "+s+"\n")
