@@ -1,3 +1,4 @@
 {"at": 1792684547, "chosen": 2, "eligible": 136, "pages_failed": 0, "pools": 200, "smoke": true}
 {"at": 1792698132, "chosen": 8, "eligible": 128, "pages_failed": 0, "pools": 200, "smoke": false}
 {"at": 1792702253, "chosen": 8, "eligible": 150, "pages_failed": 0, "pools": 200, "smoke": false}
+{"at": 1792705717, "chosen": 8, "eligible": 164, "pages_failed": 0, "pools": 200, "smoke": false}
