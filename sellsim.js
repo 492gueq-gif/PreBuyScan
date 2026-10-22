@@ -224,6 +224,6 @@
     }
   }
 
-  const api = { simulate, v4Key, _abi: { abi, encBytes, encBytesArray, word, addr, v4Execute }, BUY_WEI };
+  const api = { simulate, v4Key, _rpc: rpc, _abi: { abi, encBytes, encBytesArray, word, addr, v4Execute }, BUY_WEI };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.PBSellSim = api;
 })(typeof window !== "undefined" ? window : globalThis);
