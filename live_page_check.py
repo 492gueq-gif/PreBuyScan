@@ -1,6 +1,6 @@
 import json,sys
 from playwright.sync_api import sync_playwright
-TOKENS=sys.argv[1:] or ["0x39dbed3a2bd333467115de45665cc57f813c4571"]
+TOKENS=sys.argv[1:] or ["0x1b282927b9c5d39d7161f51af3203b44b1a56213"]
 with sync_playwright() as p:
     b=p.chromium.launch()
     for t in TOKENS:
@@ -11,6 +11,6 @@ with sync_playwright() as p:
         out={"token":t,"stamp":pg.inner_text(".stamp"),"checks":items,"facts":facts,"note":pg.inner_text(".note"),
              "rpc_statuses":sorted(set(str(x[0]) for x in rpcs)),"rpc_n":len(rpcs),"rpc_non200":[x for x in rpcs if x[0]!=200][:5],"tables":pg.locator("#out table.tt").all_inner_texts()}
         out["og"]=pg.evaluate("document.querySelector('meta[property=\"og:image\"]').content");out["creatorjs"]=pg.evaluate("!!window.PBCreator");pg.wait_for_selector("#radar table.tt",timeout=60000);out["radar"]=pg.locator("#radar tbody tr").count()
-        s=json.dumps(out,ensure_ascii=False);print(s)
+        s=json.dumps(out,ensure_ascii=False);print(s);open("notes.txt","a").write(s+"\n")
         for i in range(0,len(s),3000):print("::notice title=page_%d::"%(i//3000)+s[i:i+3000].replace("%","%25"))
     b.close()

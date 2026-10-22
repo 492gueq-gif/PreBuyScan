@@ -4,7 +4,7 @@ on:
     branches: [research/probes]
     paths: [live_page_check.py, .github/workflows/livepage.yml]
 permissions:
-  contents: read
+  contents: write
 jobs:
   page:
     runs-on: ubuntu-latest
@@ -16,3 +16,9 @@ jobs:
           python-version: '3.12'
       - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
       - run: python live_page_check.py
+      - name: Push notes
+        if: always()
+        run: |
+          cp notes.txt /tmp/notes.txt || true
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git checkout --orphan live && git rm -rfq . && cp /tmp/notes.txt . && git add notes.txt && git commit -qm "live ${GITHUB_SHA}" && git push -f origin HEAD:research/live-out
