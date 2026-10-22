@@ -863,7 +863,9 @@ async function exploreRows(kind){
     rows.forEach(x=>{x.img=img[x.t]||null;});}catch(e){}
   exploreCache[kind]={at:Date.now(),rows};return rows;
 }
-const fmtPrice=p=>p==null||isNaN(p)?"—":"$"+(p>=1?p.toLocaleString("es-MX",{maximumFractionDigits:2}):p.toPrecision(3));
+const SUB="₀₁₂₃₄₅₆₇₈₉";
+const fmtPrice=p=>{if(p==null||isNaN(p))return "—";if(p>=1)return "$"+p.toLocaleString("es-MX",{maximumFractionDigits:2});if(p>=0.001)return "$"+p.toPrecision(3);
+  if(p<=0)return "$0";const z=Math.floor(-Math.log10(p));const digits=Math.round(p*Math.pow(10,z+3));return "$0.0"+String(z).split("").map(d=>SUB[d]).join("")+String(digits).slice(0,4).replace(/0+$/,"");};
 function exploreRow(x,i){return `<li data-scan="${esc(x.t)}"><span class="num" style="width:1.4rem;color:var(--muted)">${i+1}</span>${avatar(x.img,x.nm)}<div class="grow"><b>${esc(x.nm.slice(0,18))}</b><small>${usd(x.liq==null?null:Math.round(x.liq))} liq. · ${ageTxt(x.ageH)}</small></div><div class="num">${fmtPrice(x.price)}<br>${x.ch==null?"":`<span class="${x.ch>=0?"pos":"neg"}">${x.ch>=0?"+":""}${x.ch.toFixed(1)} %</span>`}</div><span class="pill ${x.q}">${lbl[x.q]}</span></li>`;}
 async function loadExplore(kind){
   kind=kind||"new";document.querySelectorAll("#v-explore [data-k]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===kind));
