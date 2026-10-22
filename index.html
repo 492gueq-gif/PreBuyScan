@@ -74,11 +74,19 @@ ol.checks li .pill{justify-self:start;margin-top:2px}
 .bar b{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
 .score p{margin:0;font-size:.86rem;color:var(--muted);max-width:70ch}
 .score a{color:var(--accent)}
+.tw{overflow-x:auto;border-top:1px solid var(--line)}
+table.tt{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+table.tt th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:right;padding:8px 20px}
+table.tt th:first-child,table.tt td:first-child{text-align:left}
+table.tt td{padding:8px 20px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+table.tt td.w{font-family:var(--mono)}
+.pos{color:var(--ok)}.neg{color:var(--high)}
+.tnote{font-size:.8rem;color:var(--muted);padding:8px 20px 14px}
 .note{font-size:.86rem;color:var(--muted);padding:14px 20px;border-top:1px solid var(--line)}
 .note a{color:var(--accent)}
 .busy{padding:28px 20px;color:var(--muted)}
 footer{font-size:.82rem;color:var(--muted);max-width:70ch}
-@media (max-width:520px){.verdict{grid-template-columns:1fr}.stamp{justify-self:start}ol.checks li{grid-template-columns:1fr;gap:6px}}
+@media (max-width:520px){table.tt th,table.tt td{padding:8px 4px;font-size:.74rem}table.tt th{font-size:.62rem;letter-spacing:.03em}table.tt th:first-child,table.tt td:first-child{padding-left:12px}table.tt th:last-child,table.tt td:last-child{padding-right:12px}table.tt td small{display:none}.verdict{grid-template-columns:1fr}.stamp{justify-self:start}ol.checks li{grid-template-columns:1fr;gap:6px}}
 @media (prefers-reduced-motion:reduce){.stamp{transform:none}}
 </style></head><body>
 
@@ -144,6 +152,28 @@ const hasSel=(code,sels)=>sels.some(s=>code.includes("63"+s));
 const pct=v=>v==null||isNaN(v)?"—":(v>0?"+":"")+Number(v).toLocaleString("es-MX",{maximumFractionDigits:1})+" %";
 const word=a=>a.toLowerCase().replace(/^0x/,"").padStart(64,"0");
 async function uintCall(to,data){const r=await rpc("eth_call",[{to,data},"latest"]);if(!r||r==="0x")throw new Error("empty");return BigInt(r.slice(0,66));}
+const GT="https://api.geckoterminal.com/api/v2/networks/robinhood/pools/";
+const short=a=>a.slice(0,6)+"…"+a.slice(-4);
+async function traders(pool){
+  const j=await timed(GT+pool+"/trades");
+  const rows=(j.data||[]).map(d=>d.attributes).filter(a=>a&&a.tx_from_address&&!a.is_anomalous);
+  const w={};
+  for(const a of rows){
+    const k=a.tx_from_address.toLowerCase(),v=Number(a.volume_in_usd)||0;
+    const x=w[k]||(w[k]={addr:k,bought:0,sold:0,nb:0,ns:0,buys:[]});
+    if(a.kind==="buy"){x.bought+=v;x.nb++;x.buys.push({v,b:a.block_number});}else if(a.kind==="sell"){x.sold+=v;x.ns++;}
+  }
+  const list=Object.values(w);
+  const top=list.filter(x=>x.ns>0).map(x=>({...x,pnl:x.sold-x.bought})).sort((a,b)=>b.pnl-a.pnl).slice(0,5);
+  // Identical buys: 3+ different wallets whose buy sizes match within 0.5 % (> $50).
+  const big=list.flatMap(x=>x.buys.filter(b=>b.v>50).map(b=>({...b,addr:x.addr}))).sort((a,b)=>a.v-b.v);
+  let clone=[];
+  for(let i=0;i<big.length;i++){const grp=big.filter(b=>Math.abs(b.v-big[i].v)<=big[i].v*0.005);const ws=new Set(grp.map(g=>g.addr));if(ws.size>clone.length)clone=[...ws].map(a=>({addr:a,v:big[i].v}));}
+  const byBlock={};for(const x of list)for(const b of x.buys){(byBlock[b.b]=byBlock[b.b]||new Set()).add(x.addr);}
+  const sameBlock=Math.max(0,...Object.values(byBlock).map(s=>s.size));
+  const sells=list.reduce((t,x)=>t+x.sold,0),topSeller=list.reduce((m,x)=>x.sold>m.sold?x:m,{sold:0});
+  return {n:rows.length,top,clone:clone.length>=3?clone:[],sameBlock,sellShare:sells>0?topSeller.sold/sells:null,topSeller};
+}
 const share=(part,total)=>total>0n?Number(part*10000n/total)/100:null;
 
 async function inspect(token){
@@ -184,6 +214,16 @@ async function inspect(token){
     else if((h24.sells||0)>0)checks.push({s:"ok",t:"Hay ventas de otros usuarios",d:num(h24.sells)+" ventas en 24 h. Que otros vendan no garantiza que tú puedas."});
   }else if(!checks.length){checks.push({s:"high",t:"Sin mercado en DexScreener",d:"No hay pares de este token en Robinhood Chain: no se puede comprar ni vender de forma normal."});}
 
+  // Recent trades: top winners and coordinated buying
+  let tr=null;
+  if(pair&&pair.pairAddress){
+    try{
+      tr=await traders(pair.pairAddress);
+      if(tr.clone.length)checks.push({s:"high",t:"Varias wallets compraron exactamente lo mismo",d:tr.clone.length+" wallets distintas compraron ~"+usd(tr.clone[0].v)+" cada una: típico de un grupo coordinado o del propio creador (bundle) que luego vende a la gente."});
+      if(tr.sameBlock>=3)checks.push({s:"warn",t:"Compras de varias wallets en el mismo bloque",d:tr.sameBlock+" wallets compraron en el mismo bloque: posibles bots o compras coordinadas."});
+      if(tr.sellShare!=null&&tr.sellShare>0.5&&tr.topSeller.sold>500)checks.push({s:"warn",t:"Una sola wallet domina las ventas",d:short(tr.topSeller.addr)+" hizo "+Math.round(tr.sellShare*100)+" % del volumen vendido reciente ("+usd(tr.topSeller.sold)+")."});
+    }catch(e){notChecked.push("mayores ganadores (historial de operaciones no disponible)");}
+  }
   // On-chain contract checks
   try{
     const code=await rpc("eth_getCode",[token,"latest"]);
@@ -226,10 +266,10 @@ async function inspect(token){
     }
   }catch(e){checks.push({s:"unk",t:"Contrato no revisado",d:"No se pudo consultar la cadena desde este navegador. Prueba de nuevo más tarde."});}
   notChecked.push("si tú en particular podrías vender (requiere simulación)","concentración del resto de holders","bloqueo de la liquidez");
-  return {checks,facts,notChecked};
+  return {checks,facts,notChecked,tr};
 }
 
-function render(token,{checks,facts,notChecked}){
+function render(token,{checks,facts,notChecked,tr}){
   const n=k=>checks.filter(c=>c.s===k).length;
   const v=n("high")?["high","Riesgo alto","Se detectaron señales graves. No compres sin investigar mucho más."]:
           n("warn")?["warn","Precaución","Hay señales que conviene entender antes de comprar."]:
@@ -245,6 +285,7 @@ function render(token,{checks,facts,notChecked}){
      <div class="counts">${["high","warn","ok","unk"].filter(k=>n(k)).map(k=>`<span class="pill ${k}">${n(k)} ${lbl[k].toLowerCase()}</span>`).join("")}</div></div></div>
    <section><h3>Hallazgos</h3><ol class="checks">${checks.map(c=>`<li><span class="pill ${c.s}">${lbl[c.s]}</span><div class="ck"><b>${esc(c.t)}</b><span>${esc(c.d)}</span></div></li>`).join("")}</ol></section>
    ${factHtml?`<section><h3>Mercado</h3><dl class="facts">${factHtml}</dl></section>`:""}
+   ${tr&&tr.top.length?`<section><h3>Mayores ganadores al vender</h3><div class="tw"><table class="tt"><thead><tr><th>Wallet</th><th>Compró</th><th>Vendió</th><th>Resultado</th></tr></thead><tbody>${tr.top.map(x=>`<tr><td class="w" title="${esc(x.addr)}">${esc(short(x.addr))}${tr.clone.some(c=>c.addr===x.addr)?" ⚑":""}</td><td>${usd(Math.round(x.bought))} <small>(${x.nb})</small></td><td>${usd(Math.round(x.sold))} <small>(${x.ns})</small></td><td class="${x.pnl>=0?"pos":"neg"}">${x.pnl>=0?"+":"−"}${usd(Math.round(Math.abs(x.pnl)))}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Según las últimas ${tr.n} operaciones del par principal (GeckoTerminal), no el historial completo. Entre paréntesis, número de operaciones.${tr.clone.length?" ⚑ = compró el mismo monto que otras wallets.":""}</div></section>`:""}
    <div class="note">No revisado todavía: ${esc(notChecked.join("; "))}.${facts.url?` Ver el par en <a href="${esc(facts.url)}" target="_blank" rel="noopener">DexScreener</a>.`:""}</div>`;
 }
 
