@@ -328,7 +328,7 @@ async function inspect(token){
       else if(known>=3&&dead/known>=0.7)add({s:"high",t:"El creador lanzó "+others+" tokens y "+dead+" murieron",d:"De los que pudimos revisar, "+dead+" de "+known+" ya no tienen liquidez (menos de $1,000). Patrón típico de quien lanza tokens en serie y los abandona."});
       else if(dead>0)add({s:"warn",t:"El creador tiene "+dead+" token(s) muerto(s)",d:"Lanzó "+others+" token(s) además de este; "+dead+" de "+known+" revisados ya no tienen liquidez."});
       else add({s:"ok",t:"Los otros tokens del creador siguen vivos",d:"Lanzó "+others+" token(s) más; ninguno de los revisados está abandonado."});
-      if(rep.firstSeen&&cr.creator.createdAt&&cr.creator.createdAt-rep.firstSeen<24*3.6e6)add({s:"warn",t:"Wallet del creador recién creada",d:"Su primera transacción fue menos de 24 h antes de crear el token: típico de wallets desechables."});
+      if(pair&&pair.pairCreatedAt&&Date.now()-pair.pairCreatedAt<72*3.6e6&&rep.firstSeen&&cr.creator.createdAt&&cr.creator.createdAt-rep.firstSeen<24*3.6e6)add({s:"warn",t:"Wallet del creador recién creada",d:"Su primera transacción fue menos de 24 h antes de crear el token: típico de wallets desechables."});
       facts["Creador"]=short(D);
       if(rep.funder)facts["Fondeado por"]=short(rep.funder)+(rep.fundEth!=null?" ("+rep.fundEth+" ETH)":"");
     }else add({s:"unk",t:"Historial del creador no disponible",d:"No se pudo consultar el historial de "+short(D)+"."});

@@ -4,7 +4,7 @@ on:
     branches: [research/probes]
     paths: [cand_check.py, candidate/**, .github/workflows/candidate.yml]
 permissions:
-  contents: read
+  contents: write
 jobs:
   page:
     runs-on: ubuntu-latest
@@ -16,8 +16,9 @@ jobs:
           python-version: '3.12'
       - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
       - run: python cand_check.py
-      - uses: actions/upload-artifact@v4
+      - name: Push screenshots to research/shots
         if: always()
-        with:
-          name: shots
-          path: "*.png"
+        run: |
+          mkdir -p /tmp/s && cp *.png /tmp/s/ || true
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git checkout --orphan shots && git rm -rfq . && cp /tmp/s/*.png . && git add *.png && git commit -qm "screenshots ${GITHUB_SHA}" && git push -f origin HEAD:research/shots

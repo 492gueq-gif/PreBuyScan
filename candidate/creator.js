@@ -52,13 +52,13 @@
   // ---------- network helpers ----------
   let last = 0;
   async function getJSON(url, ms = 12000) {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const wait = 200 - (Date.now() - last); if (wait > 0) await pause(wait); last = Date.now();
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const wait = 250 - (Date.now() - last); if (wait > 0) await pause(wait); last = Date.now();
       const c = typeof AbortController !== "undefined" ? new AbortController() : null;
       const t = c ? setTimeout(() => c.abort(), ms) : null;
       try {
         const r = await fetch(url, { signal: c ? c.signal : undefined });
-        if (r.status === 429 || r.status >= 500) { await pause(900 * (attempt + 1)); continue; }
+        if (r.status === 429 || r.status >= 500) { await pause(1200 * (attempt + 1)); continue; }
         if (!r.ok) throw Object.assign(new Error("HTTP " + r.status), { final: true });
         return await r.json();
       } catch (e) { if (e.final) throw e; await pause(700 * (attempt + 1)); }
@@ -159,7 +159,7 @@
         res.holders.push({ addr: a, pct: p, contract: !!(it.address && it.address.is_contract), name: it.address && it.address.name });
         if (BURN.has(a)) res.burned += p;
         else if (a === deployer) res.creatorShare += p;
-        else if (it.address && it.address.is_contract) res.contractShare += p;
+        else if (it.address && it.address.is_contract && it.address.proxy_type !== "eip7702") res.contractShare += p;
         else res.eoaTop = Math.max(res.eoaTop, p);
       }
       return res;
@@ -217,7 +217,7 @@
     const pct = v => Number(BigInt(v) * 10000n / total) / 100;
     const ex = new Set([...exclude].map(lc));
     const all = (h.items || []).map(it => ({ addr: lc(it.address && it.address.hash), pct: pct(it.value || "0"),
-      contract: !!(it.address && it.address.is_contract), name: (it.address && it.address.name) || null }));
+      contract: !!(it.address && it.address.is_contract && it.address.proxy_type !== "eip7702"), name: (it.address && it.address.name) || null }));
     const burned = all.filter(x => BURN.has(x.addr)).reduce((t, x) => t + x.pct, 0);
     const pools = all.filter(x => ex.has(x.addr) || x.addr === lc(token)).reduce((t, x) => t + x.pct, 0);
     const top = all.filter(x => !ex.has(x.addr) && !BURN.has(x.addr) && x.addr !== lc(token)).slice(0, 10);
