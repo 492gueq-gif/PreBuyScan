@@ -62,8 +62,8 @@ ol.checks li .pill{justify-self:start;margin-top:2px}
 .ck{min-width:0}
 .ck b{display:block;font-weight:600}
 .ck span{color:var(--muted);font-size:.9rem;overflow-wrap:anywhere}
-.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--line);border-top:1px solid var(--line)}
-.fact{background:var(--sheet);padding:12px 20px;min-width:0}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0;margin:0;border-top:1px solid var(--line)}
+.fact{background:var(--sheet);padding:12px 20px;min-width:0;box-shadow:inset -1px -1px 0 var(--line)}
 .fact dt{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .fact dd{margin:2px 0 0;font-family:var(--mono);font-size:.98rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .btn2{font-family:var(--body);font-weight:600;font-size:.9rem;padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--sheet);color:var(--ink);cursor:pointer}
@@ -326,8 +326,8 @@ async function inspect(token){
       const others=rep.others,dead=rep.dead,known=rep.dead+rep.alive;
       if(others===0)add({s:"ok",t:"No lanzó otros tokens",d:"No encontramos otros tokens creados por "+short(D)+" (revisamos sus últimas "+rep.txCount+" transacciones)."});
       else if(known>=3&&dead/known>=0.7)add({s:"high",t:"El creador lanzó "+others+" tokens y "+dead+" murieron",d:"De los que pudimos revisar, "+dead+" de "+known+" ya no tienen liquidez (menos de $1,000). Patrón típico de quien lanza tokens en serie y los abandona."});
-      else if(dead>0)add({s:"warn",t:"El creador tiene "+dead+" token(s) muerto(s)",d:"Lanzó "+others+" token(s) además de este; "+dead+" de "+known+" revisados ya no tienen liquidez."});
-      else add({s:"ok",t:"Los otros tokens del creador siguen vivos",d:"Lanzó "+others+" token(s) más; ninguno de los revisados está abandonado."});
+      else if(dead>0)add({s:"warn",t:dead===1?"El creador tiene 1 token muerto":"El creador tiene "+dead+" tokens muertos",d:"Lanzó "+others+(others===1?" token":" tokens")+" además de este; "+dead+" de "+known+(known===1?" revisado ya no tiene":" revisados ya no tienen")+" liquidez."});
+      else add({s:"ok",t:"Los otros tokens del creador siguen vivos",d:"Lanzó "+others+(others===1?" token":" tokens")+" más; ninguno de los revisados está abandonado."});
       if(pair&&pair.pairCreatedAt&&Date.now()-pair.pairCreatedAt<72*3.6e6&&rep.firstSeen&&cr.creator.createdAt&&cr.creator.createdAt-rep.firstSeen<24*3.6e6)add({s:"warn",t:"Wallet del creador recién creada",d:"Su primera transacción fue menos de 24 h antes de crear el token: típico de wallets desechables."});
       facts["Creador"]=short(D);
       if(rep.funder)facts["Fondeado por"]=short(rep.funder)+(rep.fundEth!=null?" ("+rep.fundEth+" ETH)":"");
