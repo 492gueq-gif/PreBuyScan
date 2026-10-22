@@ -325,7 +325,8 @@ async function inspect(token){
     const D=cr.creator.deployer,rep=cr.rep;
     if(rep){
       const others=rep.others,dead=rep.dead,known=rep.dead+rep.alive;
-      if(others===0)add({s:"ok",t:"No lanzó otros tokens",d:"No encontramos otros tokens creados por "+short(D)+" (revisamos sus últimas "+rep.txCount+" transacciones)."});
+      if(others===0&&rep.truncated)add({s:"unk",t:"Historial del creador incompleto",d:short(D)+" tiene muchas transacciones; en las últimas "+rep.txCount+" no encontramos otros tokens, pero no revisamos las anteriores."});
+      else if(others===0)add({s:"ok",t:"No lanzó otros tokens",d:"No encontramos otros tokens creados por "+short(D)+" en todo su historial ("+rep.txCount+" transacciones)."});
       else if(known>=3&&dead/known>=0.7)add({s:"high",t:"El creador lanzó "+others+" tokens y "+dead+" murieron",d:"De los que pudimos revisar, "+dead+" de "+known+" ya no tienen liquidez (menos de $1,000). Patrón típico de quien lanza tokens en serie y los abandona."});
       else if(dead>0)add({s:"warn",t:dead===1?"El creador tiene 1 token muerto":"El creador tiene "+dead+" tokens muertos",d:"Lanzó "+others+(others===1?" token":" tokens")+" además de este; "+dead+" de "+known+(known===1?" revisado ya no tiene":" revisados ya no tienen")+" liquidez."});
       else add({s:"ok",t:"Los otros tokens del creador siguen vivos",d:"Lanzó "+others+(others===1?" token":" tokens")+" más; ninguno de los revisados está abandonado."});
