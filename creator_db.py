@@ -22,6 +22,7 @@ BS = "https://robinhoodchain.blockscout.com/api/v2/"
 DEX = "https://api.dexscreener.com/tokens/v1/robinhood/"
 WETH_ID = "robinhood_0x0bd7d308f8e1639fab988df18a8011f41eacad73"
 DEAD_LIQ = 1000.0
+MAX_LOOKUPS = 160          # per hourly run; the rest waits for the next run
 H24, H72 = 86400, 3 * 86400
 KEEP_TOKENS_DAYS = 30
 DB = os.environ.get("CREATOR_DB_DIR", "db")
@@ -143,8 +144,8 @@ def liquidity(tokens):
 
 BROWSER_JS = """async tokens=>{
   const B='https://robinhoodchain.blockscout.com/api/v2/';const out={};const errs=[];
-  const get=async u=>{for(let i=0;i<3;i++){try{const r=await fetch(u);if(r.status===429||r.status>=500){await new Promise(s=>setTimeout(s,1500*(i+1)));continue;}
-    if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}catch(e){if(i===2)throw e;await new Promise(s=>setTimeout(s,1000*(i+1)));}}throw new Error('unavailable');};
+  const get=async u=>{for(let i=0;i<3;i++){const c=new AbortController();const tm=setTimeout(()=>c.abort(),12000);try{const r=await fetch(u,{signal:c.signal});if(r.status===429||r.status>=500){await new Promise(s=>setTimeout(s,1500*(i+1)));continue;}
+    if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}catch(e){if(i===2)throw e;await new Promise(s=>setTimeout(s,1000*(i+1)));}finally{clearTimeout(tm);}}throw new Error('unavailable');};
   const one=async t=>{try{const a=await get(B+'addresses/'+t);const h=a.creation_transaction_hash||a.creation_tx_hash;
       if(!h){out[t]=(a.creator_address_hash||'').toLowerCase()||null;return;}
       const tx=await get(B+'transactions/'+h);out[t]=((tx.from&&tx.from.hash)||a.creator_address_hash||'').toLowerCase()||null;}
@@ -166,7 +167,10 @@ def lookup_creators(tokens, errors):
         pg.set_content("<html><body>creator-db</body></html>")
         res = {}
         for i in range(0, len(tokens), 60):
-            r = pg.evaluate(BROWSER_JS, tokens[i:i + 60])
+            try:
+                r = pg.evaluate(BROWSER_JS, tokens[i:i + 60])
+            except Exception as e:
+                errors.append(type(e).__name__); continue
             res.update(r["out"]); errors.extend(r["errs"])
         b.close()
     return res
@@ -183,8 +187,8 @@ def run(now=None):
             print("new_pools page", p, type(e).__name__)
     fresh = new_tokens(pages, tokens)
     # Retry tokens whose creator lookup failed before (at most 2 extra tries).
-    retry = [t for t, v in tokens.items() if not v.get("creator") and v.get("tries", 0) < 3]
-    todo = list(fresh) + retry
+    retry = [t for t, v in tokens.items() if not v.get("creator") and v.get("tries", 0) < 5]
+    todo = (list(fresh) + retry)[:MAX_LOOKUPS]
     for t, v in fresh.items():
         tokens[t] = v
 
