@@ -424,7 +424,7 @@ function cardCanvas(){
   g.fillStyle="#93a3ae";g.font="400 24px 'JetBrains Mono', monospace";g.fillText(last.token,60,265);
   g.save();g.translate(1010,200);g.rotate(-0.05);g.strokeStyle=col;g.lineWidth=6;g.strokeRect(-150,-95,300,190);
   g.fillStyle=col;g.textAlign="center";g.font="800 34px Archivo, Arial, sans-serif";g.fillText(last.v[1].toUpperCase(),0,-35);
-  g.font="800 84px Archivo, Arial, sans-serif";g.fillText(String(last.score),0,60);g.font="600 24px Archivo, Arial, sans-serif";g.fillText("/100",0,88);g.restore();
+  g.font="800 84px Archivo, Arial, sans-serif";g.fillText(String(last.score),0,40);g.font="600 24px Archivo, Arial, sans-serif";g.fillText("/100",0,80);g.restore();
   g.textAlign="left";let y=345;
   for(const ck of last.checks.filter(x=>x.s!=="ok").slice(0,4)){
     const cc={high:"#ff8a7a",warn:"#f2b54b",unk:"#a5b3bc"}[ck.s];g.fillStyle=cc;g.beginPath();g.arc(72,y-9,9,0,7);g.fill();
