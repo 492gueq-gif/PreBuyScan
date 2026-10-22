@@ -1,0 +1,71 @@
+name: BASE_RATES_V1 + PRECISION_V1 (paper research)
+
+# Runs when this research branch is pushed. Results go to a new research/base-rates-<run> branch.
+on:
+  push:
+    branches: [research/base-rates-v1]
+
+permissions:
+  contents: write   # only to publish results to a new research/base-rates-<run> branch
+
+jobs:
+  shard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 170
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Unit tests for the study
+        run: python -m unittest test_research_base_rates test_precision_study
+      - name: Process one slice of the frozen sample (crash-safe, rate-limited)
+        run: |
+          set -o pipefail
+          mkdir -p out
+          sha256sum research_data/*.csv
+          timeout 160m python research_base_rates.py shard out ${{ matrix.shard }} 6 || echo "::warning title=base_rates_v1::shard ${{ matrix.shard }} stopped early; partial rows kept"
+          wc -l out/*.jsonl
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shard-${{ matrix.shard }}
+          path: out/tokens_shard_${{ matrix.shard }}.jsonl
+
+  merge:
+    needs: shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+      - name: Merge slices and compute the frozen report
+        run: |
+          set -o pipefail
+          mkdir -p out
+          python research_base_rates.py merge out $(ls shards/*/*.jsonl) | tee out/stdout.json
+          cp shards/*/*.jsonl out/
+          python precision_study.py out/base_rates_v1_tokens.json | tee out/precision_v1.json
+          echo "::notice title=precision_v1::$(python -c "import json;d=json.load(open('out/precision_v1.json'));print(json.dumps({k:d[k] for k in ('separation_points','useful_signal','excluded_unknown_outcome')}))")"
+          echo "::notice title=base_rates_v1::$(cat out/stdout.json)"
+      - name: Publish results to a new branch per run (never the deploy branch, no force push)
+        run: |
+          SRC=$(git rev-parse HEAD)
+          cp docs/BASE_RATES_V1.md docs/PRECISION_V1.md out/
+          cd out
+          git init -q -b research/base-rates-${{ github.run_id }}
+          git config user.name "vigia-research-bot"
+          git config user.email "noreply@github.com"
+          git add -A
+          git commit -q -m "BASE_RATES_V1 results from $SRC run ${{ github.run_id }} [skip render]"
+          git push "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" research/base-rates-${{ github.run_id }}
