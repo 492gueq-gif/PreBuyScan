@@ -280,10 +280,12 @@
     const j = await getJSON(BS + "/v2/addresses/" + a + "/transactions?filter=to", 10000);
     if (j.next_page_params) return { funder: null, established: true };
     const inc = (j.items || []).filter(t => t.from && t.from.hash && lc(t.from.hash) !== a && BigInt(t.value || "0") > 0n);
-    if (inc.length) return { funder: lc(inc[inc.length - 1].from.hash) };
+    const ts = t => (t && t.timestamp ? Date.parse(t.timestamp) : null);
+    if (inc.length) { const t = inc[inc.length - 1]; return { funder: lc(t.from.hash), ts: ts(t) }; }
     const it = await getJSON(BS + "/v2/addresses/" + a + "/internal-transactions?filter=to", 10000);
     const ii = (it.items || []).filter(t => t.from && t.from.hash && BigInt(t.value || "0") > 0n);
-    return { funder: ii.length ? lc(ii[ii.length - 1].from.hash) : null, viaContract: ii.length > 0 };
+    const t = ii[ii.length - 1];
+    return { funder: t ? lc(t.from.hash) : null, ts: ts(t), viaContract: !!t };
   }
 
   // ---------- launch snipers ----------
