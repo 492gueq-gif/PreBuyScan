@@ -283,6 +283,30 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
   .a-wide{grid-column:1 / -1}
   .a-half{grid-column:auto}
 }
+
+/* refinements after the first visual review */
+.chip{white-space:nowrap}
+.rtop{grid-template-columns:auto minmax(0,1fr);align-items:center}
+.rtop>div:first-child{grid-column:1 / -1}
+.hl{min-width:0;gap:6px}
+.hl li{font-size:.84rem}
+.list li .grow small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list li .num{white-space:nowrap}
+.rail .list li{gap:8px;padding:9px 14px}
+.rail .list li .pill{display:none}
+.rail .list li .av{width:30px;height:30px}
+.rail .filters .chip{padding:6px 10px;font-size:.78rem}
+.stat dd{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chart{position:relative}
+.chart::before{content:"Cargando gráfico…";position:absolute;top:50%;left:0;right:0;text-align:center;color:var(--dim);font-size:.85rem;pointer-events:none}
+.chart iframe{position:relative}
+@media (max-width:520px){.ring{width:104px;height:104px}.ring .v b{font-size:1.8rem}.list li{padding:10px 12px;gap:10px}.list li .pill{font-size:.68rem;padding:3px 7px}}
+@media (min-width:1100px){
+  .rtop{grid-template-columns:minmax(0,1.1fr) auto minmax(0,1fr)}
+  .rtop>div:first-child{grid-column:auto}
+  .stat dd{font-size:.98rem}
+  .a-stats{order:1}.a-chart,.a-sec{order:2}.a-sim,.a-info{order:3}.a-wide{order:4}.a-half{order:5}.mapsec{order:6}
+}
 </style></head><body data-view="home">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
