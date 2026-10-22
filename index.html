@@ -344,6 +344,15 @@ async function inspect(token){
     }else{
       if(lp.creatorShare!=null&&lp.creatorShare>=50||lp.creatorHasPosition)add({s:"high",t:"El creador puede retirar la liquidez",d:"Su wallet tiene la posición de liquidez del pool"+(lp.creatorShare!=null?" ("+lp.creatorShare.toFixed(0)+" % de la liquidez activa)":"")+", sin bloqueo: puede sacarla cuando quiera (rug pull)."});
       else if(lp.creatorShare>=10)add({s:"warn",t:"El creador controla parte de la liquidez",d:"Su wallet tiene "+lp.creatorShare.toFixed(1)+" % de la liquidez activa del pool."});
+      else if(lp.top&&lp.top.length){
+        const o=lp.top[0],nm=o.name?" ("+o.name+")":"";
+        if(o.kind==="burn")add({s:"ok",t:"Liquidez quemada",d:o.pct+" % de la liquidez del pool está en una dirección de quemado."});
+        else if(o.creator&&o.pct>=50)add({s:"high",t:"El creador puede retirar la liquidez",d:"Aportó "+o.pct+" % de la liquidez del pool y la controla desde su wallet."});
+        else if(o.kind==="wallet"&&o.pct>=50)add({s:"high",t:"Una wallet controla la liquidez",d:short(o.addr)+" controla "+o.pct+" % de la liquidez del pool, sin bloqueo: puede retirarla cuando quiera."});
+        else if(o.kind==="locker"&&o.pct>=50)add({s:"ok",t:"Liquidez en un contrato de bloqueo",d:o.pct+" % de la liquidez está en "+short(o.addr)+nm+". No verificamos hasta cuándo."});
+        else if(o.kind==="contract"&&o.pct>=50)add({s:"unk",t:"Liquidez en un contrato",d:o.pct+" % de la liquidez está en "+short(o.addr)+nm+". No sabemos si está bloqueada ni quién lo controla."});
+        else add({s:"warn",t:"Liquidez repartida",d:"El mayor proveedor ("+short(o.addr)+nm+", "+(o.kind==="wallet"?"wallet":"contrato")+") tiene "+o.pct+" %. Parte puede retirarse."});
+      }
       else add({s:"unk",t:"No sabemos quién tiene la liquidez",d:"El creador no tiene posiciones en este pool ("+lp.kind.toUpperCase()+"), pero no pudimos verificar si el resto está bloqueado."});
     }
     if(owner===D){}
