@@ -1,7 +1,7 @@
 import json,sys,subprocess,time
 from playwright.sync_api import sync_playwright
 srv=subprocess.Popen([sys.executable,"-m","http.server","8765","-d","candidate"]);time.sleep(1)
-TOKENS=["0xc5d22a7d5b203164bfa6479d72de9297cff19bf5","0xb187ea7defc99a5d2b089047b866697390b6fd19","0x06cb3a6841c92525e7a1998328e7c9d37e98d937"]
+TOKENS=["0xa01ff10774cfe53c3fbc1d7d124c42e19f6afcbd","0x39dbed3a2bd333467115de45665cc57f813c4571"]
 def note(tag,obj):
     s=json.dumps(obj,ensure_ascii=False)
     open("notes.txt","a").write(tag+" "+s+"\n")
@@ -21,7 +21,9 @@ with sync_playwright() as p:
           "tables":pg.locator("#out table.tt").all_inner_texts(),"note":pg.inner_text(".note"),"errs":errs}
         out["cr"]=pg.evaluate("""async t=>{const d=await (await fetch('https://api.dexscreener.com/tokens/v1/robinhood/'+t)).json();const pr=d.sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];const r=await window.PBCreator.analyze(t,pr,d);return JSON.stringify({creator:r.creator,rep:r.rep&&{...r.rep,launches:r.rep.launches.slice(0,5)},lp:r.lp,h:r.holders&&{count:r.holders.count,top10:r.holders.top10,burned:r.holders.burned,pools:r.holders.pools},errors:r.errors,cp:r.creatorPct}).slice(0,3000);}""",t)
         note("t%d"%k,out)
-        pg.screenshot(path="shot_%d.png"%k,full_page=True)
+        pg.wait_for_timeout(6000)
+        note("hdr%d"%k,{"links":pg.locator(".tlinks a").all_inner_texts(),"icon":pg.locator(".ticon").count(),"banner":pg.locator(".thead .banner").count(),"chart_frames":pg.locator(".chart iframe").count(),"frame_src":pg.get_attribute(".chart iframe","src") if pg.locator(".chart iframe").count() else None})
+        pg.screenshot(path="shot_%d.png"%k,full_page=False)
         if k==9:
             pg.wait_for_selector("#radar table.tt",timeout=60000)
             note("radar",{"rows":pg.locator("#radar tbody tr").count(),"first":pg.locator("#radar tbody tr").first.inner_text()})

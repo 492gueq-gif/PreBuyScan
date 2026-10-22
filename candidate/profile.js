@@ -18,10 +18,12 @@
         const ps = await C._get(DEX + chunk.join(","), 10000);
         chunk.forEach(t => { out[t] = { liq: 0, name: null }; });
         for (const p of ps || []) {
-          const b = lc(p.baseToken && p.baseToken.address);
-          if (!out[b]) continue;
-          out[b].liq = Math.max(out[b].liq, (p.liquidity && p.liquidity.usd) || 0);
-          out[b].name = out[b].name || (p.baseToken && p.baseToken.symbol) || null;
+          for (const side of [p.baseToken, p.quoteToken]) {
+            const b = lc(side && side.address);
+            if (!out[b]) continue;
+            out[b].liq = Math.max(out[b].liq, (p.liquidity && p.liquidity.usd) || 0);
+            out[b].name = out[b].name || (side && side.symbol) || null;
+          }
         }
       } catch (e) { chunk.forEach(t => { out[t] = null; }); }
     }
@@ -35,11 +37,12 @@
     if (p.platform) add("unk", "Wallet de plataforma o servicio", "Tiene " + p.nonce.toLocaleString("es-MX") + " transacciones: es un servicio (plataforma de lanzamiento, exchange o bot), no una persona. Sus tokens no hablan de un solo creador.");
     const known = p.created.filter(t => t.liq != null);
     const dead = known.filter(t => t.liq < 1000).length;
+    const nCreated = Math.max(p.created.length, (p.db && p.db.launched) || 0);
     if (!p.platform) {
-      if (known.length >= 3 && dead / known.length >= 0.7) add("high", "Creador serial: " + p.created.length + " tokens, " + dead + " muertos", dead + " de " + known.length + " tokens que creó ya no tienen liquidez (menos de $1,000).");
-      else if (dead > 0) add("warn", dead === 1 ? "Creó 1 token que ya murió" : "Creó " + dead + " tokens que ya murieron", "De " + known.length + " tokens revisados que creó, " + dead + " ya no tienen liquidez.");
-      else if (p.created.length >= 3) add("warn", "Lanza tokens en serie: " + p.created.length, "Creó " + p.created.length + " tokens; los revisados siguen con liquidez por ahora.");
-      else if (p.created.length > 0) add("ok", "Sus tokens siguen vivos", "Creó " + p.created.length + " token(s) y siguen con liquidez.");
+      if (known.length >= 3 && dead / known.length >= 0.7) add("high", "Creador serial: " + nCreated + " tokens, " + dead + " muertos", dead + " de " + known.length + " tokens que creó ya no tienen liquidez (menos de $1,000).");
+      else if (dead > 0) add("warn", dead === 1 ? "Creó 1 token que ya murió" : "Creó " + dead + " tokens que ya murieron", "De " + known.length + " tokens revisados que creó, " + dead + (dead === 1 ? " ya no tiene" : " ya no tienen") + " liquidez.");
+      else if (nCreated >= 3) add("warn", "Lanza tokens en serie: " + nCreated, "Creó " + nCreated + " tokens; los revisados siguen con liquidez por ahora.");
+      else if (nCreated > 0) add("ok", "Sus tokens siguen vivos", "Creó " + nCreated + (nCreated === 1 ? " token y sigue" : " tokens y siguen") + " con liquidez.");
       else if (p.createdKnown) add("ok", "No ha creado tokens", "No encontramos tokens creados por esta wallet" + (p.historyPartial ? " en sus transacciones recientes." : "."));
       else add("unk", "Tokens creados no revisados", "No se pudo consultar su historial completo.");
     }
