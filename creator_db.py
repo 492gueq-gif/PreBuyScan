@@ -157,10 +157,13 @@ def run(now=None):
     for t, v in fresh.items():
         tokens[t] = v
 
+    errors = []
+
     def look(t):
         try:
             return t, creator_of(t)
-        except Exception:
+        except Exception as e:
+            errors.append("%s %s" % (type(e).__name__, str(e)[:120]))
             return t, None
     with ThreadPoolExecutor(4) as ex:
         for t, c in ex.map(look, todo):
@@ -195,7 +198,7 @@ def run(now=None):
     save("creators.json", pub)
     runs = load("runs.json", [])
     runs.append(dict(at=now, new=len(fresh), creator_found=found, retried=len(retry), checked=len(d),
-                     tracked=len(tokens), serial_creators=len(pub["creators"])))
+                     tracked=len(tokens), serial_creators=len(pub["creators"]), errors=sorted(set(errors))[:5]))
     save("runs.json", runs[-500:])
     print(json.dumps(runs[-1]))
 
