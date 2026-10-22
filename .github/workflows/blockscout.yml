@@ -2,16 +2,16 @@ name: Blockscout probe (read-only)
 on:
   push:
     branches: [research/probes]
-    paths: [probe_blockscout.py, .github/workflows/blockscout.yml]
+    paths: [probe_blockscout.py, probe_blockscout_browser.py, .github/workflows/blockscout.yml]
 permissions:
   contents: read
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python probe_blockscout.py
+      - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium && python probe_blockscout_browser.py
