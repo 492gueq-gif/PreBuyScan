@@ -313,7 +313,10 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 .pastebtn svg{color:var(--accent)}
 .pastehint{font-size:.8rem;color:var(--warn);min-height:0}
 .pastehint:empty{display:none}
-.search{flex-direction:column;gap:4px}
+.search{flex-direction:column;gap:4px;min-width:0}
+.hero form{grid-template-columns:minmax(0,1fr)}
+.field{min-width:0}
+@media (max-width:420px){.pastebtn{padding:8px 10px}.field{padding-left:10px}}
 </style></head><body data-view="home">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
