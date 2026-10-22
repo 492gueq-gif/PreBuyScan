@@ -1,0 +1,204 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PreBuyScan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single inspection sheet — input strip, verdict stamp, then itemized findings like a vehicle inspection report. */
+:root{
+  --bg:#eef1f3; --sheet:#fbfcfc; --ink:#14212b; --muted:#5b6a75; --line:#d3dade;
+  --accent:#0f5f66; --accent-ink:#ffffff;
+  --high:#b42318; --high-bg:#fdecea; --warn:#9a5b00; --warn-bg:#fff4e0;
+  --ok:#1f7a45; --ok-bg:#e7f5ec; --unk:#5b6a75; --unk-bg:#eceff1;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161b; --sheet:#151f26; --ink:#e3e9ed; --muted:#93a3ae; --line:#2a3842;
+  --accent:#4fb3bb; --accent-ink:#06191b;
+  --high:#ff8a7a; --high-bg:#3a1a17; --warn:#f2b54b; --warn-bg:#352812; --ok:#6fd39a; --ok-bg:#15301f; --unk:#a5b3bc; --unk-bg:#22303a;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161b; --sheet:#151f26; --ink:#e3e9ed; --muted:#93a3ae; --line:#2a3842;
+  --accent:#4fb3bb; --accent-ink:#06191b;
+  --high:#ff8a7a; --high-bg:#3a1a17; --warn:#f2b54b; --warn-bg:#352812; --ok:#6fd39a; --ok-bg:#15301f; --unk:#a5b3bc; --unk-bg:#22303a;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:860px;margin:0 auto;display:grid;gap:20px}
+header{display:grid;gap:6px}
+.brand{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,4vw,2.2rem);letter-spacing:-.01em;text-wrap:balance}
+.brand span{color:var(--accent)}
+.sub{color:var(--muted);max-width:62ch}
+form{display:flex;flex-wrap:wrap;gap:10px;background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:14px}
+label{flex-basis:100%;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+input{flex:1 1 320px;min-width:0;font-family:var(--mono);font-size:.92rem;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button{font-family:var(--display);font-weight:700;font-size:1rem;padding:11px 20px;border:0;border-radius:8px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+button:disabled{opacity:.6;cursor:progress}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.verdict{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;padding:20px;border-bottom:1px solid var(--line)}
+.stamp{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:1rem;line-height:1.1;
+  border:3px solid currentColor;border-radius:6px;padding:10px 12px;transform:rotate(-3deg);text-align:center;min-width:9.5rem}
+.stamp.high{color:var(--high)}.stamp.warn{color:var(--warn)}.stamp.ok{color:var(--ok)}.stamp.unk{color:var(--unk)}
+.vtext{min-width:0}
+.vtext h2{font-family:var(--display);font-size:1.25rem;margin:0 0 4px;text-wrap:balance;overflow-wrap:anywhere}
+.vtext p{margin:0;color:var(--muted)}
+.counts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pill{font-size:.78rem;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill.high{background:var(--high-bg);color:var(--high)}.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.unk{background:var(--unk-bg);color:var(--unk)}
+section h3{font-family:var(--display);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0;padding:14px 20px 6px}
+ol.checks{list-style:none;margin:0;padding:0}
+ol.checks li{display:grid;grid-template-columns:7.5rem 1fr;gap:14px;padding:12px 20px;border-top:1px solid var(--line);align-items:start}
+ol.checks li .pill{justify-self:start;margin-top:2px}
+.ck{min-width:0}
+.ck b{display:block;font-weight:600}
+.ck span{color:var(--muted);font-size:.9rem;overflow-wrap:anywhere}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.fact{background:var(--sheet);padding:12px 20px;min-width:0}
+.fact dt{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.fact dd{margin:2px 0 0;font-family:var(--mono);font-size:.98rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.note{font-size:.86rem;color:var(--muted);padding:14px 20px;border-top:1px solid var(--line)}
+.note a{color:var(--accent)}
+.busy{padding:28px 20px;color:var(--muted)}
+footer{font-size:.82rem;color:var(--muted);max-width:70ch}
+@media (max-width:520px){.verdict{grid-template-columns:1fr}.stamp{justify-self:start}ol.checks li{grid-template-columns:1fr;gap:6px}}
+@media (prefers-reduced-motion:reduce){.stamp{transform:none}}
+</style></head><body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">PreBuy<span>Scan</span></div>
+    <div class="sub"><b>Scan before the scam.</b> Pega la dirección de un token de Robinhood Chain y detecta en segundos las señales de estafa más comunes.</div>
+  </header>
+
+  <form id="f" autocomplete="off">
+    <label for="addr">Dirección del token (Robinhood Chain)</label>
+    <input id="addr" name="addr" spellcheck="false" placeholder="0x…" value="0x39dbed3a2bd333467115de45665cc57f813c4571">
+    <button id="go" type="submit">Revisar token</button>
+  </form>
+
+  <div id="out" class="sheet" aria-live="polite"><div class="busy">Revisando el ejemplo (PONS)…</div></div>
+
+  <footer>PreBuyScan, por VIGIA. Herramienta informativa. Revisa datos públicos de mercado (DexScreener) y el contrato en la cadena (RPC pública de Robinhood Chain) desde tu navegador. No es asesoría financiera ni una auditoría: «sin alertas» no significa «seguro», y ninguna revisión garantiza que puedas vender.</footer>
+</div>
+
+<script>
+const RPC="https://rpc.mainnet.chain.robinhood.com";
+const DEX="https://api.dexscreener.com/tokens/v1/robinhood/";
+const IMPL_SLOT="0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+const RISKY={
+  mint:{label:"Puede crear tokens nuevos (mint)",sel:["40c10f19","a0712d68"]},
+  blacklist:{label:"Puede bloquear wallets (lista negra)",sel:["153b0d1e","f9f92be4","44337ea1","455a4396","9c0db5f3","d34628cc"]},
+  fees:{label:"Puede cambiar las comisiones de compra/venta",sel:["69fe0e2d","0b78f9c0","c4081a4c","0cc835a3","8b4cee08","6db79437"]},
+  trading:{label:"Puede pausar o activar el trading",sel:["8456cb59","8a8c523c","c9567bf9","c2e5ec04"]},
+  limits:{label:"Puede limitar cuánto se compra o vende",sel:["ec28438a","ea1644d5"]}
+};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const usd=v=>v==null||isNaN(v)?"—":"$"+Number(v).toLocaleString("es-MX",{maximumFractionDigits:v<1?8:0});
+const num=v=>v==null||isNaN(v)?"—":Number(v).toLocaleString("es-MX");
+
+async function timed(url,opts={},ms=9000){
+  const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);
+  try{const r=await fetch(url,{...opts,signal:c.signal});if(!r.ok)throw new Error("HTTP "+r.status);return await r.json();}
+  finally{clearTimeout(t)}
+}
+let rpcId=0;
+async function rpc(method,params){
+  const j=await timed(RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:++rpcId,method,params})});
+  if(j.error)throw new Error("rpc");return j.result;
+}
+const hasSel=(code,sels)=>sels.some(s=>code.includes("63"+s));
+
+async function inspect(token){
+  const checks=[];const facts={};const notChecked=[];
+  // Market data
+  let pair=null;
+  try{
+    const pairs=await timed(DEX+token);
+    if(Array.isArray(pairs)&&pairs.length){pair=pairs.slice().sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];}
+  }catch(e){checks.push({s:"unk",t:"Datos de mercado no disponibles",d:"No se pudo consultar DexScreener desde este navegador."});}
+  if(pair){
+    const liq=pair.liquidity?.usd, fdv=pair.fdv??pair.marketCap, ageH=pair.pairCreatedAt?(Date.now()-pair.pairCreatedAt)/3.6e6:null;
+    const h24=pair.txns?.h24||{}, h1=pair.txns?.h1||{};
+    facts.name=(pair.baseToken?.name||"")+(pair.baseToken?.symbol?" ("+pair.baseToken.symbol+")":"");
+    Object.assign(facts,{Precio:usd(Number(pair.priceUsd)),Liquidez:usd(liq),"Valor total (FDV)":usd(fdv),
+      "Edad del par":ageH==null?"—":ageH<48?ageH.toFixed(1)+" h":(ageH/24).toFixed(1)+" días",
+      "Compras / ventas 24 h":num(h24.buys)+" / "+num(h24.sells),"Cambio 24 h":pair.priceChange?.h24==null?"—":pair.priceChange.h24+" %",
+      DEX:(pair.dexId||"—")+(pair.labels?.length?" "+pair.labels.join(","):"")});
+    facts.url=pair.url;
+    if(liq==null)checks.push({s:"unk",t:"Liquidez desconocida",d:"El par no reporta liquidez."});
+    else if(liq<5000)checks.push({s:"high",t:"Liquidez muy baja",d:usd(liq)+": una venta pequeña mueve mucho el precio y es fácil de manipular."});
+    else if(liq<25000)checks.push({s:"warn",t:"Liquidez baja",d:usd(liq)+": el deslizamiento puede ser alto."});
+    else checks.push({s:"ok",t:"Liquidez aceptable",d:usd(liq)+" en el par principal."});
+    if(liq&&fdv&&fdv/liq>50)checks.push({s:"warn",t:"Valoración muy alta frente a la liquidez",d:"El FDV es "+Math.round(fdv/liq)+" veces la liquidez: el precio de pantalla no se puede realizar en tamaño."});
+    if(ageH!=null&&ageH<1)checks.push({s:"warn",t:"Token recién creado",d:"Menos de 1 hora de vida: la mayoría de estafas ocurren en las primeras horas."});
+    if((h24.buys||0)>=20&&(h24.sells||0)===0)checks.push({s:"high",t:"Nadie ha vendido",d:num(h24.buys)+" compras y 0 ventas en 24 h: señal clásica de token que no deja vender (honeypot)."});
+    else if((h24.buys||0)>0&&(h24.sells||0)/(h24.buys||1)<0.15)checks.push({s:"warn",t:"Muy pocas ventas",d:"Solo "+num(h24.sells)+" ventas frente a "+num(h24.buys)+" compras en 24 h."});
+    else if((h24.sells||0)>0)checks.push({s:"ok",t:"Hay ventas de otros usuarios",d:num(h24.sells)+" ventas en 24 h. Que otros vendan no garantiza que tú puedas."});
+  }else if(!checks.length){checks.push({s:"high",t:"Sin mercado en DexScreener",d:"No hay pares de este token en Robinhood Chain: no se puede comprar ni vender de forma normal."});}
+
+  // On-chain contract checks
+  try{
+    const code=await rpc("eth_getCode",[token,"latest"]);
+    if(!code||code==="0x"){checks.push({s:"high",t:"No hay contrato en esa dirección",d:"La dirección no tiene código en Robinhood Chain."});}
+    else{
+      let scan=code.toLowerCase();
+      facts["Tamaño del contrato"]=num((code.length-2)/2)+" bytes";
+      try{
+        const slot=await rpc("eth_getStorageAt",[token,IMPL_SLOT,"latest"]);
+        if(slot&&BigInt(slot)!==0n){
+          const impl="0x"+slot.slice(-40);
+          checks.push({s:"warn",t:"Contrato actualizable (proxy)",d:"Quien controla el proxy puede cambiar las reglas del token. Implementación: "+impl});
+          try{const ic=await rpc("eth_getCode",[impl,"latest"]);if(ic&&ic!=="0x")scan+=ic.toLowerCase();}catch(e){}
+        }
+      }catch(e){notChecked.push("si el contrato es actualizable");}
+      let owner=null;
+      try{const o=await rpc("eth_call",[{to:token,data:"0x8da5cb5b"},"latest"]);if(o&&o.length===66)owner="0x"+o.slice(-40);}catch(e){}
+      const renounced=owner!==null&&/^0x0+$/.test(owner);
+      const found=Object.entries(RISKY).filter(([,v])=>hasSel(scan,v.sel)).map(([,v])=>v.label);
+      if(owner===null)checks.push({s:"unk",t:"Dueño del contrato no identificado",d:"El contrato no expone owner(); puede tener otros roles de control."});
+      else if(renounced)checks.push({s:"ok",t:"Propiedad renunciada",d:"owner() es la dirección cero. Ojo: otros roles pueden seguir activos."});
+      else checks.push({s:found.length?"high":"warn",t:"El contrato tiene dueño activo",d:"Dueño: "+owner+(found.length?". Combinado con las funciones de abajo, puede cambiar las reglas.":".")});
+      if(found.length)found.forEach(f=>checks.push({s:renounced?"warn":"high",t:f,d:renounced?"La función existe en el código, aunque la propiedad está renunciada.":"Función detectada en el código del contrato (búsqueda por huella; puede haber falsos positivos)."}));
+      else checks.push({s:"ok",t:"Sin funciones peligrosas comunes",d:"No se encontraron mint, lista negra, cambio de comisiones ni pausa entre las variantes conocidas."});
+    }
+  }catch(e){checks.push({s:"unk",t:"Contrato no revisado",d:"No se pudo consultar la cadena desde este navegador. Prueba de nuevo más tarde."});}
+  notChecked.push("si tú en particular podrías vender (requiere simulación)","concentración de holders","bloqueo de la liquidez");
+  return {checks,facts,notChecked};
+}
+
+function render(token,{checks,facts,notChecked}){
+  const n=k=>checks.filter(c=>c.s===k).length;
+  const v=n("high")?["high","Riesgo alto","Se detectaron señales graves. No compres sin investigar mucho más."]:
+          n("warn")?["warn","Precaución","Hay señales que conviene entender antes de comprar."]:
+          n("ok")?["ok","Sin alertas detectadas","No se encontraron las señales comunes. Esto no garantiza que sea seguro."]:
+          ["unk","Sin datos suficientes","No se pudieron completar las revisiones."];
+  const order={high:0,warn:1,unk:2,ok:3};
+  const lbl={high:"Riesgo alto",warn:"Precaución",ok:"Bien",unk:"Sin datos"};
+  checks.sort((a,b)=>order[a.s]-order[b.s]);
+  const factHtml=Object.entries(facts).filter(([k])=>k!=="name"&&k!=="url").map(([k,val])=>`<div class="fact"><dt>${esc(k)}</dt><dd>${esc(val)}</dd></div>`).join("");
+  $("#out").innerHTML=`
+   <div class="verdict"><div class="stamp ${v[0]}">${v[1]}</div>
+    <div class="vtext"><h2>${esc(facts.name||token)}</h2><p>${v[2]}</p>
+     <div class="counts">${["high","warn","ok","unk"].filter(k=>n(k)).map(k=>`<span class="pill ${k}">${n(k)} ${lbl[k].toLowerCase()}</span>`).join("")}</div></div></div>
+   <section><h3>Hallazgos</h3><ol class="checks">${checks.map(c=>`<li><span class="pill ${c.s}">${lbl[c.s]}</span><div class="ck"><b>${esc(c.t)}</b><span>${esc(c.d)}</span></div></li>`).join("")}</ol></section>
+   ${factHtml?`<section><h3>Mercado</h3><dl class="facts">${factHtml}</dl></section>`:""}
+   <div class="note">No revisado todavía: ${esc(notChecked.join("; "))}.${facts.url?` Ver el par en <a href="${esc(facts.url)}" target="_blank" rel="noopener">DexScreener</a>.`:""}</div>`;
+}
+
+async function run(){
+  const token=$("#addr").value.trim().toLowerCase();
+  if(!/^0x[0-9a-f]{40}$/.test(token)){$("#out").innerHTML=`<div class="busy">Esa dirección no es válida. Debe empezar con 0x y tener 40 caracteres hexadecimales después.</div>`;return;}
+  $("#go").disabled=true;$("#out").innerHTML=`<div class="busy">Revisando ${esc(token)}…</div>`;
+  try{render(token,await inspect(token));}
+  catch(e){$("#out").innerHTML=`<div class="busy">No se pudo completar la revisión. Comprueba tu conexión y vuelve a intentarlo.</div>`;}
+  finally{$("#go").disabled=false;}
+}
+$("#f").addEventListener("submit",e=>{e.preventDefault();run();});
+run();
+</script>
+</body></html>
