@@ -187,7 +187,11 @@
       for (const k of ["wrap", "wapprove", "wpermit"]) if (k in idx && first[idx[k]].status !== "0x1") { out.status = "unknown"; out.detail = "Preparación de WETH simulada fallida."; return out; }
       if (first[idx.buy].status !== "0x1") {
         const b = first[idx.buy]; out.revert = (b.error && (b.error.data || b.error.message)) || b.returnData || null;
-        out.status = "buy_failed"; out.detail = "La compra simulada falló."; return out;
+        if (out.hooks && !/^0x0+$/.test(out.hooks) && (!out.revert || out.revert === "0x")) {
+          out.status = "hook_restricted";
+          out.detail = "El hook del pool rechazó la compra desde los routers estándar de Uniswap: solo permite operar desde su propio router.";
+        } else { out.status = "buy_failed"; out.detail = "La compra simulada falló."; }
+        return out;
       }
       const got = uint(decodeOrNull(first[idx.tokAfter])) - uint(decodeOrNull(first[idx.tokBefore]));
       if (got <= 0n) { out.status = "buy_failed"; out.detail = "La compra simulada no entregó tokens."; return out; }
