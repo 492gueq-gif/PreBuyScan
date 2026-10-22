@@ -1,6 +1,6 @@
 import json,sys
 from playwright.sync_api import sync_playwright
-TOKENS=sys.argv[1:] or ["0x1b282927b9c5d39d7161f51af3203b44b1a56213"]
+TOKENS=sys.argv[1:] or ["0xa01ff10774cfe53c3fbc1d7d124c42e19f6afcbd"]
 with sync_playwright() as p:
     b=p.chromium.launch()
     for t in TOKENS:
