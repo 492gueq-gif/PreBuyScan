@@ -1,0 +1,43 @@
+name: PRECISION_V2 (read-only research)
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "collect | smoke"
+        default: collect
+  push:
+    branches: [research/precision-v2]
+    paths: [precision_v2.py, test_precision_v2.py, .github/workflows/precision-v2.yml]
+permissions:
+  contents: write
+concurrency:
+  group: precision-v2
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/precision-v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest test_precision_v2 -q
+      - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
+      - name: Scan new tokens
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] || [ "${{ inputs.mode }}" = "smoke" ]; then python precision_v2.py smoke; else python precision_v2.py collect; fi
+      - name: Measure 24 h outcomes
+        run: python precision_v2.py outcome
+      - name: Save data
+        if: always()
+        run: |
+          git config user.name precision-v2 && git config user.email ci@users.noreply.github.com
+          git add data/ || true
+          git diff --cached --quiet && exit 0
+          git commit -qm "PRECISION_V2 data $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+          for i in 1 2 3; do git pull -q --rebase origin research/precision-v2 && git push -q origin HEAD:research/precision-v2 && break; sleep 5; done
