@@ -494,7 +494,7 @@ function renderProfile(addr,p){
   last={token:addr,name:"Wallet "+short(addr),v:[v[0],title],score,checks:checks.slice().sort((a,b)=>order[a.s]-order[b.s])};lastRes=null;
   const age=d=>d==null?"—":d<1?Math.round(d*24)+" h":d<60?Math.round(d)+" días":Math.round(d/30)+" meses";
   const facts={"Transacciones":p.nonce==null?"—":num(p.nonce),"Edad":age(p.ageDays),"Fondeada por":p.funder?short(p.funder):p.established?"wallet antigua (no revisado)":"—",
-    "Tokens creados":num(p.created.length),"Wallets que fondeó":p.funded.length?(p.funded.length+(p.fundedMore?"+":"")):"0"};
+    "Tokens creados":num(Math.max(p.created.length,p.db?p.db.launched:0)),"Wallets que fondeó":p.funded.length?(p.funded.length+(p.fundedMore?"+":"")):"0"};
   if(p.db)facts["En la base de PreBuyScan"]=p.db.launched+" tokens · "+p.db.dead+" muertos"+(p.db.pending?" · "+p.db.pending+" pendientes":"");
   const st=l=>l==null?["","sin datos"]:l<1000?["neg","muerto"]:["pos","activo"];
   const link=a=>`<a href="?t=${esc(a)}">${esc(short(a))}</a>`;
