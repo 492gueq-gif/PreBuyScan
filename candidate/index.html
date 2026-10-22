@@ -107,6 +107,8 @@ table.radar td{vertical-align:middle}
 .mapsec .mapintro p{margin:0;color:var(--muted);font-size:.9rem;max-width:70ch}
 .mapsvg{border-top:1px solid var(--line);background:var(--bg)}
 .mapsvg svg{display:block}
+.mapsvg g[role=button]:focus{outline:none}
+.mapsvg g[role=button]:focus-visible circle{stroke-width:3.5}
 .maplegend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 20px;font-size:.8rem;color:var(--muted);border-top:1px solid var(--line)}
 .lg{display:inline-block;width:18px;border-top:2px solid var(--muted);vertical-align:middle;margin-right:4px}
 .lg.dash{border-top-style:dashed}
@@ -496,7 +498,7 @@ $("#out").addEventListener("click",e=>{const b=e.target.closest("[data-act]");if
 function loadScript(src){return new Promise((ok,ko)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=ko;document.head.appendChild(s);});}
 async function loadMap(btn){
   if(!lastRes)return;const {token,res}=lastRes;const cr=res.cr||{};const box=$("#mapout");
-  btn.disabled=true;box.innerHTML=`<div class="busy" id="mapmsg">Preparando el mapa (hasta 75 s)…</div>`;
+  btn.disabled=true;box.innerHTML=`<div class="busy" id="mapmsg">Preparando el mapa (hasta 90 s)…</div>`;
   try{
     if(!window.d3)await loadScript("https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js");
     const g=await window.PBMap.build(token,{pairs:res.pairs,creator:cr.creator&&cr.creator.deployer,creatorFunder:cr.rep&&cr.rep.funder,snipers:cr.snipers},
@@ -511,6 +513,7 @@ function renderMap(g,cr){
   const lines=[];
   if(!hasCreator)lines.push(["unk","Creador no identificado","No podemos ubicar al creador en el mapa."]);
   else if(cg&&cg.holders>=2&&cg.pct>=20)lines.push(["high","El grupo del creador controla "+cg.pct+" %",cg.holders+" wallets ligadas al creador (por fondeo o transferencias) tienen "+cg.pct+" % del suministro: pueden vender juntas."]);
+  else if(g.creatorPct>=20)lines.push(["high","El creador controla "+g.creatorPct+" %","Su wallet tiene "+g.creatorPct+" % del suministro: puede vender de golpe."]);
   else if(g.creatorPct>=8)lines.push(["warn","El grupo del creador tiene "+g.creatorPct+" %",(cg?cg.holders+" wallets ligadas al creador":"La wallet del creador")+" con "+g.creatorPct+" % del suministro."]);
   else lines.push(["ok","El grupo del creador tiene "+g.creatorPct+" %",cg?cg.holders+" wallet(s) ligadas al creador entre los holders revisados.":"No encontramos wallets ligadas al creador entre los mayores holders."]);
   if(other&&other.pct>=20)lines.push(["warn","Otro grupo controla "+other.pct+" %",other.holders+" wallets conectadas entre sí (sin el creador) tienen "+other.pct+" %."]);
@@ -520,7 +523,7 @@ function renderMap(g,cr){
    <div class="maplegend"><span>★ creador</span><span>S sniper del primer minuto</span><span><i class="lg dash"></i> fondeó</span><span><i class="lg"></i> transfirió el token</span><span><i class="lg ring"></i> no es holder (solo conecta)</span></div>
    <div id="mapinfo" class="mapinfo" aria-live="polite">Toca una burbuja para ver la wallet.</div>
    ${g.groups.length?`<div class="tw"><table class="tt"><thead><tr><th>Grupo</th><th>Wallets</th><th>% del total</th></tr></thead><tbody>${g.groups.slice(0,8).map(x=>`<tr><td><i class="dot" style="background:${P[(x.n-1)%P.length]}"></i> ${x.creator?"Del creador ★":"Grupo "+x.n}</td><td>${x.holders}</td><td>${x.pct.toLocaleString("es-MX",{maximumFractionDigits:2})} %</td></tr>`).join("")}</tbody></table></div>`:""}
-   <div class="tnote">Revisamos ${g.checked} wallets (los mayores holders, sin pools ni quemado). Exchanges y puentes con miles de transacciones no cuentan como «mismo dueño».${part} Este grupo no cambia la puntuación de arriba.</div>`;
+   <div class="tnote">Mostramos ${g.holdersShown} holders (los mayores, sin pools ni quemado, más los snipers que aún tienen tokens). Exchanges y puentes con miles de transacciones no cuentan como «mismo dueño».${part} Este grupo no cambia la puntuación de arriba.</div>`;
   window.PBMap.draw($("#mapsvg"),g,{onPick:n=>{
     const f=g.nodes.find(m=>m.id===n.id);
     $("#mapinfo").innerHTML=`<b class="w">${esc(n.id)}</b> · ${n.creator?"creador · ":""}${n.sniper?"sniper · ":""}${n.kind==="magic"?"no es holder":(n.pct||0).toLocaleString("es-MX",{maximumFractionDigits:2})+" % del total"}${n.contract?" · contrato"+(n.name?" ("+esc(n.name)+")":""):""}${n.group?" · grupo "+n.group:""}`;

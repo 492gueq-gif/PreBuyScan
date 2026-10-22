@@ -343,7 +343,7 @@
     return { count, top, top10: Math.round(top.reduce((t, x) => t + x.pct, 0) * 100) / 100, burned, pools };
   }
 
-  const within = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("time budget")), ms))]);
+  const within = (p, ms) => { p.catch(() => {}); return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("time budget")), ms))]); };
   async function analyze(token, pair, pairs, opts = {}) {
     const budget = opts.budgetMs || 35000;
     const t0 = Date.now(); deadline = t0 + budget;

@@ -69,7 +69,7 @@
   async function build(token, ctx, opts = {}) {
     const C = root.PBCreator; if (!C) throw new Error("PBCreator missing");
     const progress = opts.progress || (() => {});
-    C._budget(opts.budgetMs || 75000);
+    C._budget(opts.budgetMs || 90000);
     token = lc(token);
     const pools = new Set([V4_PM, ...(ctx.pairs || []).map(p => lc(p.pairAddress)).filter(a => /^0x[0-9a-f]{40}$/.test(a))]);
     progress("Leyendo holders…");
@@ -79,30 +79,14 @@
     const pct = v => total > 0n ? Number(BigInt(v) * 10000n / total) / 100 : 0;
     const holders = (h.items || []).map(it => ({ addr: lc(it.address && it.address.hash), pct: pct(it.value || "0"),
       contract: !!(it.address && it.address.is_contract && it.address.proxy_type !== "eip7702"), name: (it.address && it.address.name) || null }))
-      .filter(x => x.addr && !pools.has(x.addr) && !BURN.has(x.addr) && x.addr !== token).slice(0, opts.max || 40);
-    // Who funded each wallet (first incoming ETH). Contracts are skipped.
-    const funders = {}; const partial = { funders: 0, transfers: false };
-    const wallets = holders.filter(x => !x.contract).map(x => x.addr);
-    if (ctx.creator && !wallets.includes(lc(ctx.creator))) wallets.push(lc(ctx.creator));
-    let i = 0;
-    for (const w of wallets) {
-      progress("Buscando quién fondeó cada wallet… " + (++i) + "/" + wallets.length);
-      try {
-        const a = await C._get(BS + "?module=account&action=txlist&address=" + w + "&sort=asc&page=1&offset=5", 8000);
-        const f = (a.result || []).find(t => lc(t.to) === w && BigInt(t.value || "0") > 0n);
-        funders[w] = f ? lc(f.from) : null;
-      } catch (e) { partial.funders++; if (String(e.message).includes("time budget")) break; }
+      .filter(x => x.addr && !pools.has(x.addr) && !BURN.has(x.addr) && x.addr !== token).slice(0, opts.max || 30);
+    // Launch snipers that still hold tokens join the map even if they are not top holders.
+    const known = new Set(holders.map(x => x.addr));
+    for (const w of ((ctx.snipers && ctx.snipers.wallets) || [])) {
+      if (!known.has(w.addr) && (w.pct || 0) > 0 && !pools.has(w.addr)) { holders.push({ addr: w.addr, pct: w.pct, contract: false, name: null }); known.add(w.addr); }
     }
-    const creator = ctx.creator ? lc(ctx.creator) : null;
-    const creatorFunder = creator ? funders[creator] || ctx.creatorFunder || null : null;
-    if (creator) delete funders[creator];
-    // Busy funders (exchanges, bridges) are not evidence of a shared owner.
-    const busy = new Set(); const fset = [...new Set([...Object.values(funders), creatorFunder].filter(Boolean))];
-    const fc = {}; Object.values(funders).forEach(f => { if (f) fc[f] = (fc[f] || 0) + 1; });
-    for (const f of fset.filter(f => (fc[f] || 0) >= 2 || f === creatorFunder)) {
-      try { const n = Number(BigInt(await C._rpc("eth_getTransactionCount", [f, "latest"]))); if (n > SUPERNODE_NONCE) busy.add(f); }
-      catch (e) { /* unknown: keep */ }
-    }
+    const partial = { funders: 0, transfers: false };
+    // Token transfers first: two calls, the most direct evidence.
     progress("Leyendo transferencias del token…");
     let transfers = [];
     for (const sort of ["asc", "desc"]) {
@@ -111,9 +95,39 @@
         transfers = transfers.concat((j.result || []).map(t => ({ from: t.from, to: t.to })));
       } catch (e) { partial.transfers = true; }
     }
+    // Who funded each wallet (first incoming ETH). Reuse what the scan already found; contracts are skipped.
+    const funders = {};
+    for (const w of ((ctx.snipers && ctx.snipers.wallets) || [])) if (w.funder) funders[w.addr] = w.funder;
+    const creator = ctx.creator ? lc(ctx.creator) : null;
+    const wallets = holders.filter(x => !x.contract).map(x => x.addr);
+    if (creator && !wallets.includes(creator)) wallets.push(creator);
+    const todo = wallets.filter(w => !(w in funders) && !(w === creator && ctx.creatorFunder));
+    let done = 0, stop = false;
+    async function worker() {
+      while (todo.length && !stop) {
+        const w = todo.shift();
+        try {
+          const a = await C._get(BS + "?module=account&action=txlist&address=" + w + "&sort=asc&page=1&offset=5", 10000);
+          const f = (a.result || []).find(t => lc(t.to) === w && BigInt(t.value || "0") > 0n);
+          funders[w] = f ? lc(f.from) : null;
+        } catch (e) { partial.funders++; if (String(e.message).includes("time budget")) stop = true; }
+        progress("Buscando quién fondeó cada wallet… " + (++done) + "/" + (done + todo.length));
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    partial.funders += todo.length;
+    const creatorFunder = creator ? (ctx.creatorFunder || funders[creator] || null) : null;
+    if (creator) delete funders[creator];
+    // Busy funders (exchanges, bridges) are not evidence of a shared owner.
+    const busy = new Set(); const fc = {};
+    Object.values(funders).forEach(f => { if (f) fc[f] = (fc[f] || 0) + 1; });
+    for (const f of [...new Set([...Object.keys(fc).filter(f => fc[f] >= 2), creatorFunder].filter(Boolean))]) {
+      try { const n = Number(BigInt(await C._rpc("eth_getTransactionCount", [f, "latest"]))); if (n > SUPERNODE_NONCE) busy.add(f); }
+      catch (e) { /* unknown: keep */ }
+    }
     const g = graph(holders, funders, transfers, busy, { creator, creatorFunder, pools,
       snipers: new Set(((ctx.snipers && ctx.snipers.wallets) || []).map(w => w.addr)) });
-    g.partial = partial; g.checked = wallets.length; g.busy = [...busy];
+    g.partial = partial; g.checked = wallets.length; g.holdersShown = holders.length; g.busy = [...busy];
     return g;
   }
 
