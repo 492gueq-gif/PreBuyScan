@@ -4,10 +4,10 @@ srv=subprocess.Popen([sys.executable,"-m","http.server","8766","-d","candidate"]
 out={}
 with sync_playwright() as p:
     b=p.chromium.launch();pg=b.new_page(viewport={"width":390,"height":844},user_agent="Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36")
-    pg.goto("http://127.0.0.1:8766/?t=0xa01ff10774cfe53c3fbc1d7d124c42e19f6afcbd");pg.wait_for_selector(".stamp",timeout=180000)
+    pg.goto("http://127.0.0.1:8766/?t=0xa01ff10774cfe53c3fbc1d7d124c42e19f6afcbd");pg.evaluate("document.documentElement.dataset.theme='dark'");pg.wait_for_selector(".stamp",timeout=180000)
     pg.locator(".chart").scroll_into_view_if_needed();pg.wait_for_timeout(12000)
-    pg.locator(".chart").screenshot(path="chart_ds.png")
-    fr=[f for f in pg.frames if "dexscreener" in f.url]
+    pg.locator(".chart").screenshot(path="chart_ds.png");pg.screenshot(path="chart_page.png",full_page=False)
+    fr=[f for f in pg.frames if "geckoterminal" in f.url]
     out["ds_frames"]=[f.url[:120] for f in fr]
     try: out["ds_title"]=fr[0].title() if fr else None; out["ds_text"]=fr[0].inner_text("body")[:300] if fr else None
     except Exception as e: out["ds_err"]=str(e)[:200]

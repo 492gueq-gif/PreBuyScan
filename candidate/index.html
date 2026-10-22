@@ -481,11 +481,13 @@ function tokenHeader(pair){
   </div>`;
 }
 function chartSection(pair){
-  if(!pair||!pair.url)return "";
+  if(!pair||!pair.pairAddress)return "";
   const dark=document.documentElement.dataset.theme==="dark"||(!document.documentElement.dataset.theme&&matchMedia("(prefers-color-scheme: dark)").matches);
-  const u=pair.url.split("?")[0]+"?embed=1&loadChartSettings=0&trades=0&tabs=0&info=0&chartLeftToolbar=0&chartDefaultOnMobile=1&chartTheme="+(dark?"dark":"light")+"&theme="+(dark?"dark":"light")+"&chartStyle=1&chartType=usd&interval=15";
-  return `<section><h3>Gráfico</h3><div class="chart"><iframe src="${esc(u)}" title="Gráfico de precio en DexScreener" loading="lazy" referrerpolicy="no-referrer" allow="clipboard-write"></iframe></div>
-    <div class="tnote">Gráfico en vivo de DexScreener del par principal. <a href="${esc(pair.url)}" target="_blank" rel="noopener">Abrir en DexScreener</a>.</div></section>`;
+  const pool=String(pair.pairAddress).toLowerCase();
+  if(!/^0x[0-9a-f]{40}([0-9a-f]{24})?$/.test(pool))return "";
+  const u="https://www.geckoterminal.com/robinhood/pools/"+pool+"?embed=1&info=0&swaps=0&grayscale=0&light_chart="+(dark?"0":"1");
+  return `<section><h3>Gráfico</h3><div class="chart"><iframe src="${esc(u)}" title="Gráfico de precio en GeckoTerminal" referrerpolicy="no-referrer" allow="clipboard-write"></iframe></div>
+    <div class="tnote">Gráfico en vivo de GeckoTerminal del par principal. <a href="https://www.geckoterminal.com/robinhood/pools/${esc(pool)}" target="_blank" rel="noopener">Abrir en GeckoTerminal</a>${pair.url?` · <a href="${esc(pair.url)}" target="_blank" rel="noopener">DexScreener</a>`:""}.</div></section>`;
 }
 
 let lastRes=null;
