@@ -35,5 +35,14 @@ with sync_playwright() as p:
             mob.goto("http://localhost:8765/?t="+t);mob.wait_for_selector(".stamp",timeout=180000);mob.wait_for_timeout(800)
             note("mobile",{"scrollW":mob.evaluate("document.documentElement.scrollWidth"),"w":390})
             mob.screenshot(path="shot_mobile.png",full_page=True)
+    # Explorer that never answers (like the phone case): the report must still render.
+    hp=b.new_page(viewport={"width":390,"height":844})
+    hp.route("**/robinhoodchain.blockscout.com/**",lambda route: None)
+    t0=time.time();hp.goto("http://localhost:8765/?t="+TOKENS[0])
+    try:
+        hp.wait_for_selector(".stamp",timeout=120000)
+        note("hang",{"secs":round(time.time()-t0),"stamp":hp.inner_text(".stamp"),"unk":[x for x in hp.locator("ol.checks li b").all_inner_texts() if "no" in x.lower()][:6]})
+    except Exception as e:
+        note("hang_fail",{"secs":round(time.time()-t0),"busy":hp.inner_text("#out")})
     b.close()
 srv.terminate()
