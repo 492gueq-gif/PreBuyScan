@@ -52,7 +52,7 @@
   // ---------- network helpers ----------
   let last = 0;
   async function getJSON(url, ms = 12000) {
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < 4; attempt++) {
       const wait = 250 - (Date.now() - last); if (wait > 0) await pause(wait); last = Date.now();
       const c = typeof AbortController !== "undefined" ? new AbortController() : null;
       const t = c ? setTimeout(() => c.abort(), ms) : null;
@@ -96,9 +96,14 @@
 
   async function reputation(token, cr) {
     const out = { launches: [], others: 0, dead: 0, alive: 0, unknown: 0, funder: null, fundEth: null, firstSeen: null, truncated: false };
-    const desc = await getJSON(BS + "?module=account&action=txlist&address=" + cr.deployer + "&sort=desc&page=1&offset=300");
+    // Busy wallets make the explorer slow: try a big page, then fall back to a smaller one.
+    let desc = null, size = 0;
+    for (const n of [200, 50]) {
+      try { desc = await getJSON(BS + "?module=account&action=txlist&address=" + cr.deployer + "&sort=desc&page=1&offset=" + n, 20000); size = n; break; }
+      catch (e) { if (n === 50) throw e; }
+    }
     const txs = Array.isArray(desc.result) ? desc.result : [];
-    out.txCount = txs.length; out.truncated = txs.length >= 300;
+    out.txCount = txs.length; out.truncated = txs.length >= size;
     const direct = txs.filter(t => t.contractAddress && lc(t.contractAddress) !== lc(token) && t.isError !== "1").map(t => ({ addr: lc(t.contractAddress), hash: lc(t.hash) }));
     let viaFactory = [];
     if (cr.factory && cr.method) {
