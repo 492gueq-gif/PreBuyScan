@@ -2,7 +2,7 @@ name: Sell simulation live check (read-only)
 on:
   push:
     branches: [research/probes]
-    paths: [sellsim.js, test_sellsim_live.js, .github/workflows/sellsim.yml]
+    paths: [sellsim.js, test_sellsim_live.js, test_sellsim_debug.js, .github/workflows/sellsim.yml]
 permissions:
   contents: read
 jobs:
@@ -14,4 +14,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: node --check sellsim.js && node test_sellsim_live.js
+      - run: node --check sellsim.js && node test_sellsim_debug.js
