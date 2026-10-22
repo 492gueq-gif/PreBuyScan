@@ -14,7 +14,7 @@ for(const it of (h.items||[]).slice(0,8)){const a=it.address.hash.toLowerCase();
 }
 return out;}"""
 with sync_playwright() as p:
-    b=p.chromium.launch();pg=b.new_page();pg.goto("http://127.0.0.1:8766/?t=x")
+    b=p.chromium.launch();pg=b.new_page();pg.goto("http://127.0.0.1:8766/?t=x");pg.wait_for_selector(".stamp",timeout=180000);pg.wait_for_timeout(1000)
     try:r=pg.evaluate(JS)
     except Exception as e:r={"err":str(e)[:500]}
     json.dump(r,open("probe_out.json","w"))
