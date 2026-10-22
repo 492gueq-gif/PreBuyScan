@@ -272,6 +272,20 @@
     return out;
   }
 
+  // First wallet that sent ETH to an address, via the v2 explorer API (the legacy API rate-limits
+  // after a handful of calls). Wallets with 50+ incoming transactions are established, not fresh:
+  // their first funder is not looked up. Falls back to internal transfers (disperse contracts).
+  async function firstFunder(a) {
+    a = lc(a);
+    const j = await getJSON(BS + "/v2/addresses/" + a + "/transactions?filter=to", 10000);
+    if (j.next_page_params) return { funder: null, established: true };
+    const inc = (j.items || []).filter(t => t.from && t.from.hash && lc(t.from.hash) !== a && BigInt(t.value || "0") > 0n);
+    if (inc.length) return { funder: lc(inc[inc.length - 1].from.hash) };
+    const it = await getJSON(BS + "/v2/addresses/" + a + "/internal-transactions?filter=to", 10000);
+    const ii = (it.items || []).filter(t => t.from && t.from.hash && BigInt(t.value || "0") > 0n);
+    return { funder: ii.length ? lc(ii[ii.length - 1].from.hash) : null, viaContract: ii.length > 0 };
+  }
+
   // ---------- launch snipers ----------
   // Wallets that took tokens out of the pool in the first minute of trading: how much they still
   // hold, and whether they were funded by the creator (or by one shared wallet).
@@ -306,13 +320,9 @@
     // Who funded each sniper (first incoming ETH)
     let rep = null; try { rep = await repP; } catch (e) { rep = null; }
     const funderOfCreator = rep && rep.funder;
-    for (const w of list.filter(x => !x.creator).slice(0, 8)) {
-      try {
-        const a = await getJSON(BS + "?module=account&action=txlist&address=" + w.addr + "&sort=asc&page=1&offset=5", 8000);
-        const f = (a.result || []).find(t => lc(t.to) === w.addr && BigInt(t.value || "0") > 0n);
-        if (f) w.funder = lc(f.from);
-      } catch (e) { /* unknown */ }
-    }
+    await Promise.all(list.filter(x => !x.creator).slice(0, 10).map(async w => {
+      try { const f = await firstFunder(w.addr); if (f.funder) w.funder = f.funder; } catch (e) { /* unknown */ }
+    }));
     const others = list.filter(x => !x.creator);
     const byFunder = {};
     for (const w of others) if (w.funder) (byFunder[w.funder] = byFunder[w.funder] || []).push(w);
@@ -370,7 +380,7 @@
   }
 
   const api = { analyze, keccak, findCreator, reputation, liquidityControl, holders, snipers,
-    _get: getJSON, _call: call, _rpc: rpc, _words: words, _budget: ms => { deadline = Date.now() + ms; } };
+    _get: getJSON, _firstFunder: firstFunder, _call: call, _rpc: rpc, _words: words, _budget: ms => { deadline = Date.now() + ms; } };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PBCreator = api;
 })(typeof window !== "undefined" ? window : globalThis);
