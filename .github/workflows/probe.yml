@@ -2,6 +2,7 @@ name: PreBuyScan capability probe (read-only)
 on:
   push:
     branches: [research/probes]
+    paths: [probe.py, .github/workflows/probe.yml]
 permissions:
   contents: read
 jobs:

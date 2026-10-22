@@ -1,0 +1,17 @@
+name: Sell simulation live check (read-only)
+on:
+  push:
+    branches: [research/probes]
+    paths: [sellsim.js, test_sellsim_live.js, .github/workflows/sellsim.yml]
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --check sellsim.js && node test_sellsim_live.js
