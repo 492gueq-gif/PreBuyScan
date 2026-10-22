@@ -230,7 +230,7 @@
     const exclude = new Set([V4_PM, ...(pairs || []).map(p => lc(p.pairAddress)).filter(a => /^0x[0-9a-f]{40}$/.test(a))]);
     try { out.holders = await holders(token, exclude); } catch (e) { out.errors.push("holders"); }
     if (out.creator) {
-      try { out.rep = await reputation(token, out.creator); } catch (e) { out.errors.push("reputation"); }
+      try { out.rep = await reputation(token, out.creator); } catch (e) { out.errors.push("reputation: " + (e && e.message) + " " + String(e && e.stack).slice(0, 300)); }
       if (pair) { try { out.lp = await liquidityControl(pair, out.creator.deployer); } catch (e) { out.errors.push("lp"); } }
       if (out.holders) {
         const mine = (out.holders.top || []).find(x => x.addr === out.creator.deployer);
