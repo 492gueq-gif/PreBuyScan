@@ -51,17 +51,22 @@
 
   // ---------- network helpers ----------
   let last = 0;
-  async function getJSON(url, ms = 12000) {
-    for (let attempt = 0; attempt < 4; attempt++) {
+  // Hard time budget for the whole explorer section: a slow or rate-limited explorer must never
+  // freeze the report. Past the deadline every request fails fast and the check shows "Sin datos".
+  let deadline = Infinity;
+  async function getJSON(url, ms = 10000) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (Date.now() > deadline) throw new Error("time budget");
       const wait = 250 - (Date.now() - last); if (wait > 0) await pause(wait); last = Date.now();
+      ms = Math.max(1000, Math.min(ms, deadline - Date.now()));
       const c = typeof AbortController !== "undefined" ? new AbortController() : null;
       const t = c ? setTimeout(() => c.abort(), ms) : null;
       try {
         const r = await fetch(url, { signal: c ? c.signal : undefined });
-        if (r.status === 429 || r.status >= 500) { await pause(1200 * (attempt + 1)); continue; }
+        if (r.status === 429 || r.status >= 500) { await pause(1000 * (attempt + 1)); continue; }
         if (!r.ok) throw Object.assign(new Error("HTTP " + r.status), { final: true });
         return await r.json();
-      } catch (e) { if (e.final) throw e; await pause(700 * (attempt + 1)); }
+      } catch (e) { if (e.final) throw e; await pause(600 * (attempt + 1)); }
       finally { if (t) clearTimeout(t); }
     }
     throw new Error("unavailable");
@@ -229,19 +234,27 @@
     return { count, top, top10: Math.round(top.reduce((t, x) => t + x.pct, 0) * 100) / 100, burned, pools };
   }
 
+  const within = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("time budget")), ms))]);
   async function analyze(token, pair, pairs, opts = {}) {
+    const budget = opts.budgetMs || 30000;
+    const t0 = Date.now(); deadline = t0 + budget;
     const out = { creator: null, rep: null, lp: null, holders: null, errors: [] };
-    try { out.creator = await findCreator(token); } catch (e) { out.errors.push("creator"); }
     const exclude = new Set([V4_PM, ...(pairs || []).map(p => lc(p.pairAddress)).filter(a => /^0x[0-9a-f]{40}$/.test(a))]);
-    try { out.holders = await holders(token, exclude); } catch (e) { out.errors.push("holders"); }
+    const left = () => Math.max(500, deadline - Date.now());
+    // Holders and creator lookups run in parallel; each part fails on its own.
+    const hP = within(holders(token, exclude), left()).then(v => { out.holders = v; }, () => out.errors.push("holders"));
+    try { out.creator = await within(findCreator(token), left()); } catch (e) { out.errors.push("creator"); }
+    const jobs = [hP];
     if (out.creator) {
-      try { out.rep = await reputation(token, out.creator); } catch (e) { out.errors.push("reputation: " + (e && e.message) + " " + String(e && e.stack).slice(0, 300)); }
-      if (pair) { try { out.lp = await liquidityControl(pair, out.creator.deployer); } catch (e) { out.errors.push("lp"); } }
-      if (out.holders) {
-        const mine = (out.holders.top || []).find(x => x.addr === out.creator.deployer);
-        out.creatorPct = mine ? mine.pct : 0;
-      }
+      jobs.push(within(reputation(token, out.creator), left()).then(v => { out.rep = v; }, e => out.errors.push("reputation: " + (e && e.message))));
+      if (pair) jobs.push(within(liquidityControl(pair, out.creator.deployer), left()).then(v => { out.lp = v; }, () => out.errors.push("lp")));
     }
+    await Promise.all(jobs);
+    if (out.creator && out.holders) {
+      const mine = (out.holders.top || []).find(x => x.addr === out.creator.deployer);
+      out.creatorPct = mine ? mine.pct : 0;
+    }
+    out.ms = Date.now() - t0;
     return out;
   }
 
