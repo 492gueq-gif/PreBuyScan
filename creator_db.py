@@ -105,11 +105,11 @@ def aggregate(tokens):
 
 
 def publish(creators, now, tracked, nonces=None):
-    # Compact: [launched, dead, alive, pending, first, last, [up to 5 latest tokens], platform]
+    # Compact: [launched, dead, alive, pending, first, last, [up to 20 latest tokens], platform]
     # for creators with 2+ launches. platform=1 when the creator wallet has more than PLATFORM_NONCE txs.
     nonces = nonces or {}
     out = {c: [x["launched"], x["dead"], x["alive"], x["pending"], x["first"], x["last"],
-               [t for _, t in sorted(x["tokens"], reverse=True)[:5]], 1 if (nonces.get(c) or 0) > PLATFORM_NONCE else 0]
+               [t for _, t in sorted(x["tokens"], reverse=True)[:20]], 1 if (nonces.get(c) or 0) > PLATFORM_NONCE else 0]
            for c, x in creators.items() if x["launched"] >= 2}
     return dict(updated=now, since=min((x["first"] for x in creators.values()), default=now), tracked=tracked,
                 dead_liquidity_usd=DEAD_LIQ, fields=["launched", "dead", "alive", "pending", "first", "last", "latest_tokens", "platform"],
