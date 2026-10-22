@@ -119,9 +119,10 @@ footer{font-size:.82rem;color:var(--muted);max-width:70ch}
     <p>Lo que significa: un «riesgo alto» casi siempre termina mal, pero «sin alertas» tampoco es seguro; más de la mitad de los tokens nuevos colapsa igual. Esta prueba evaluó solo las señales de mercado, no las del contrato, y 41 % de la muestra no tenía datos del proveedor. <a href="https://github.com/492gueq-gif/PreBuyScan/blob/research/base-rates-v1/docs/PRECISION_V1.md" target="_blank" rel="noopener">Ver método</a>.</p>
   </section>
 
-  <footer>PreBuyScan, por VIGIA. Herramienta informativa. Revisa datos públicos de mercado (DexScreener) y el contrato en la cadena (RPC pública de Robinhood Chain) desde tu navegador. No es asesoría financiera ni una auditoría: «sin alertas» no significa «seguro», y ninguna revisión garantiza que puedas vender.</footer>
+  <footer>PreBuyScan, por VIGIA. Herramienta informativa. Revisa datos públicos de mercado (DexScreener, GeckoTerminal) y el contrato en la cadena (RPC pública de Robinhood Chain) desde tu navegador, y simula una compra y venta sin firmar ni enviar nada. No es asesoría financiera ni una auditoría: «sin alertas» no significa «seguro», y ninguna revisión garantiza que puedas vender.</footer>
 </div>
 
+<script src="sellsim.js"></script>
 <script>
 const RPC="https://rpc.mainnet.chain.robinhood.com";
 const DEX="https://api.dexscreener.com/tokens/v1/robinhood/";
@@ -214,6 +215,23 @@ async function inspect(token){
     else if((h24.sells||0)>0)checks.push({s:"ok",t:"Hay ventas de otros usuarios",d:num(h24.sells)+" ventas en 24 h. Que otros vendan no garantiza que tú puedas."});
   }else if(!checks.length){checks.push({s:"high",t:"Sin mercado en DexScreener",d:"No hay pares de este token en Robinhood Chain: no se puede comprar ni vender de forma normal."});}
 
+  // Sell simulation: buy 0.01 ETH -> approve -> sell everything, in one simulated block
+  let simDone=false;
+  if(pair&&window.PBSellSim){
+    const r=await window.PBSellSim.simulate(token,pair);
+    const keep=r.retention!=null?Math.round(r.retention*1000)/10:null;
+    if(r.status==="round_trip_ok"){
+      simDone=true;
+      facts["Venta simulada (0.01 ETH)"]="recuperas "+keep+" %";
+      if(keep<70)checks.push({s:"high",t:"Pérdida muy alta al vender",d:"En la simulación recuperarías solo "+keep+" % de lo invertido (comisiones, impacto e impuestos del token). Posible impuesto de venta abusivo."});
+      else if(keep<90)checks.push({s:"warn",t:"Pérdida alta al vender",d:"En la simulación recuperarías "+keep+" % de lo invertido: puede haber un impuesto de venta o poca liquidez."});
+      else{const nv=checks.find(c=>c.t==="Nadie ha vendido");if(nv){nv.s="warn";nv.d+=" Aun así, la simulación sí pudo vender: no parece un bloqueo del contrato.";}
+        checks.push({s:"ok",t:"La venta simulada funciona",d:"Simulamos comprar con 0.01 ETH y vender todo: recuperarías "+keep+" % (incluye comisiones e impacto). No garantiza que siga así."});}
+    }else if(r.status==="sell_failed"){simDone=true;checks.push({s:"high",t:"La venta simulada falla",d:"Se pudo comprar pero no vender en la simulación: señal fuerte de honeypot."});}
+    else if(r.status==="buy_failed")checks.push({s:"warn",t:"No se pudo simular la compra",d:r.detail||"La compra simulada falló."});
+    else checks.push({s:"unk",t:"Venta no simulada",d:r.detail||"Simulación no disponible para este par."});
+    if(r.hooks&&!/^0x0+$/.test(r.hooks))checks.push({s:"warn",t:"El pool V4 tiene un hook",d:"Código extra en el pool ("+short(r.hooks)+") que puede cambiar comisiones o reglas de compra y venta."});
+  }
   // Recent trades: top winners and coordinated buying
   let tr=null;
   if(pair&&pair.pairAddress){
@@ -265,7 +283,8 @@ async function inspect(token){
       else checks.push({s:"ok",t:"Sin funciones peligrosas comunes",d:"No se encontraron mint, lista negra, cambio de comisiones ni pausa entre las variantes conocidas."});
     }
   }catch(e){checks.push({s:"unk",t:"Contrato no revisado",d:"No se pudo consultar la cadena desde este navegador. Prueba de nuevo más tarde."});}
-  notChecked.push("si tú en particular podrías vender (requiere simulación)","concentración del resto de holders","bloqueo de la liquidez");
+  if(!simDone)notChecked.push("si se puede vender (simulación no disponible para este par)");
+  notChecked.push("concentración del resto de holders","bloqueo de la liquidez");
   return {checks,facts,notChecked,tr};
 }
 
