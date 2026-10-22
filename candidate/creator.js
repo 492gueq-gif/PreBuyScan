@@ -214,7 +214,62 @@
         }
       } catch (e) { /* skip this NFT */ }
     }
+    if (res.kind === "v4" && !(res.creatorShare >= 50) && !res.creatorHasPosition && pair.pairCreatedAt) {
+      try { res.top = await v4Holders(pid, pair.pairCreatedAt, deployer); } catch (e) { res.topError = String(e && e.message); }
+    }
     return res;
+  }
+
+  // Who provided the V4 pool's liquidity, from PoolManager ModifyLiquidity logs, and who controls it now.
+  const MODLIQ = "0xf208f4912782fd25c7f114ca3723a2d5dd6f3bcc3ac8db5af63baa85f711d5ec";
+  async function v4Holders(pid, createdAtMs, deployer) {
+    const head = BigInt(await rpc("eth_blockNumber", []));
+    const hb = await rpc("eth_getBlockByNumber", ["0x" + head.toString(16), false]);
+    const pastN = head > 1000000n ? head - 1000000n : 1n;
+    const pb = await rpc("eth_getBlockByNumber", ["0x" + pastN.toString(16), false]);
+    const rate = Number(head - pastN) / Math.max(1, Number(BigInt(hb.timestamp) - BigInt(pb.timestamp)));
+    let est = head - BigInt(Math.floor(Math.max(0, Number(BigInt(hb.timestamp)) - createdAtMs / 1000) * rate));
+    const ranges = [];
+    let lo = est > 300000n ? est - 300000n : 0n, hi = lo + 9900000n; if (hi > head) hi = head;
+    ranges.push([lo, hi]);
+    if (hi < head) ranges.push([head > 9900000n ? (head - 9900000n > hi ? head - 9900000n : hi + 1n) : hi + 1n, head]);
+    const pos = {};
+    for (const [a, b] of ranges) {
+      const logs = await rpc("eth_getLogs", [{ address: V4_PM, topics: [MODLIQ, pid], fromBlock: "0x" + a.toString(16), toBlock: "0x" + b.toString(16) }]);
+      for (const l of logs || []) {
+        const w = words(l.data); if (w.length < 4) continue;
+        const sender = "0x" + l.topics[2].slice(-40);
+        const key = sender + ":" + w[0] + ":" + w[1] + ":" + w[3];
+        const p = pos[key] || (pos[key] = { sender, salt: w[3], net: 0n });
+        p.net += BigInt.asIntN(256, w[2]);
+      }
+    }
+    const live = Object.values(pos).filter(p => p.net > 0n).sort((x, y) => (y.net > x.net ? 1 : -1));
+    const total = live.reduce((t, p) => t + p.net, 0n);
+    if (!total) return [];
+    const byOwner = {};
+    for (const p of live.slice(0, 6)) {
+      let owner = p.sender, viaNft = false;
+      try {
+        const o = await call(p.sender, "0x6352211e" + word(p.salt));
+        if (o && o.length >= 66) { owner = asAddr(words(o)[0]); viaNft = true; }
+      } catch (e) { /* not an NFT manager: the sender holds it directly */ }
+      const b = byOwner[owner] || (byOwner[owner] = { addr: owner, pct: 0, viaNft });
+      b.pct += Number(p.net * 10000n / total) / 100;
+    }
+    const out = Object.values(byOwner).sort((x, y) => y.pct - x.pct).slice(0, 3);
+    for (const o of out) {
+      o.pct = Math.round(o.pct * 10) / 10;
+      o.creator = o.addr === deployer;
+      if (BURN.has(o.addr)) { o.kind = "burn"; continue; }
+      try {
+        const a = await getJSON(BS + "/v2/addresses/" + o.addr, 8000);
+        const isC = !!a.is_contract && a.proxy_type !== "eip7702";
+        o.name = a.name || null;
+        o.kind = !isC ? "wallet" : /lock/i.test(o.name || "") ? "locker" : "contract";
+      } catch (e) { o.kind = "unknown"; }
+    }
+    return out;
   }
 
   // ---------- launch snipers ----------
