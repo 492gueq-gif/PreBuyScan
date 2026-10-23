@@ -1,6 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PreBuyScan</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://rpc.mainnet.chain.robinhood.com https://api.dexscreener.com https://api.geckoterminal.com https://robinhoodchain.blockscout.com https://raw.githubusercontent.com; frame-src https://www.geckoterminal.com; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://rpc.mainnet.chain.robinhood.com https://api.dexscreener.com https://api.geckoterminal.com https://robinhoodchain.blockscout.com https://raw.githubusercontent.com; frame-src https://www.geckoterminal.com; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="description" content="Escáner de tokens de Robinhood Chain: simula la venta, revisa contrato, creador, liquidez y holders. Scan before the scam.">
 <meta property="og:title" content="PreBuyScan · Scan before the scam">
@@ -372,6 +372,15 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 @media (max-width:520px){.alphabox .alphaf{grid-template-columns:1fr 1fr}.sigs{padding-left:0}}
 .sig{font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--ok-bg);color:var(--ok)}
 .sig.bad{background:var(--high-bg);color:var(--high)}.sig.dim{background:var(--unk-bg);color:var(--unk)}
+
+.sharecards .sc-intro{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:0 16px 12px}
+.sharecards .sc-intro p{margin:0}
+.sc-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:10px;padding:0 16px;align-items:start}
+.sc-grid figure{margin:0}.sc-grid img{width:100%;height:auto;display:block;border-radius:10px;border:1px solid var(--line)}
+.sc-grid figcaption{font-size:.74rem;color:var(--muted);margin-top:4px}
+.sc-actions{display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px 0}
+.verifybox.ok{border-color:rgba(39,230,163,.5)}.verifybox.bad{border-color:var(--high)}
+@media (max-width:700px){.sc-grid{grid-template-columns:1fr}}
 </style></head><body data-view="home">
 <script>try{const t=localStorage.getItem("pbs_theme");const pref=t?JSON.parse(t):"dark";const dark=pref==="auto"?matchMedia("(prefers-color-scheme: dark)").matches:pref!=="light";document.documentElement.dataset.theme=dark?"dark":"light";}catch(e){document.documentElement.dataset.theme="dark";}</script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -449,6 +458,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
         <button class="tile" data-nav="history" data-tab="fav"><i>⭐</i>Favoritos</button>
       </div>
       <section class="card home-only" id="alerts" hidden aria-labelledby="alerts-h"><div class="h3"><span id="alerts-h">Avisos de tus favoritos</span><button type="button" class="btn2 sm" id="alerts-clear">Marcar como vistos</button></div><ul class="list" id="alert-list"></ul></section>
+      <div id="verify" aria-live="polite"></div>
       <div id="out" aria-live="polite"></div>
       <section class="card home-only mobile-only"><div class="h3">Últimos analizados <a href="#" data-nav="history">Ver todos →</a></div><ul class="list" id="recent-m"></ul></section>
       <section class="card acc" id="accuracy" aria-labelledby="acc-h">
@@ -533,6 +543,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 <script src="creator.js"></script>
 <script src="bubblemap.js"></script>
 <script src="profile.js"></script>
+<script src="share.js"></script>
 <script>
 
 const RPC="https://rpc.mainnet.chain.robinhood.com";
@@ -904,6 +915,63 @@ async function shareIt(){
     else{await navigator.clipboard.writeText(text+" "+linkFor(last.token));flash("Texto y enlace copiados");}
   }catch(e){if(e&&e.name!=="AbortError")copyLink();}
 }
+// ---------- Smart Share Engine glue ----------
+let shareSet=null;
+async function ensureQR(){
+  if(window.qrcode)return;
+  for(const src of ["https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js","https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"]){try{await loadScript(src);if(window.qrcode)return;}catch(e){}}
+}
+function shareCtx(){const res=lastRes.res;return {score:scoreOf(res.checks),verdict:verdictOf(res.checks)[0],confidence:confidenceOf(res).score,algo:ALGO_VERSION,logoUrl:res.pair&&res.pair.info&&safeUrl(res.pair.info.imageUrl)};}
+async function makeCards(btn){
+  if(!lastRes||!window.PBShare)return;const box=$("#out .sc-out");const token=lastRes.token;
+  if(btn)btn.disabled=true;box.innerHTML=`<div class="busy"><span>Generando las tres tarjetas…</span></div>`;
+  try{
+    await ensureQR();
+    shareSet=await window.PBShare.makeAll(token,lastRes.res,shareCtx());
+    if(!lastRes||lastRes.token!==token)return;
+    const im=(c,alt)=>`<img src="${c.toDataURL("image/png")}" alt="${esc(alt)}" loading="lazy">`;
+    const id=shareSet.link.id;
+    box.innerHTML=`<div class="sc-grid">
+      <figure>${im(shareSet.cards.x,"Tarjeta para X")}<figcaption>X · 1600×900</figcaption></figure>
+      <figure>${im(shareSet.cards.telegram,"Tarjeta para Telegram")}<figcaption>Telegram · 1080×1080</figcaption></figure>
+      <figure>${im(shareSet.cards.premium,"Reporte premium")}<figcaption>Reporte premium · 1080×1350 · con QR</figcaption></figure></div>
+     <div class="sc-actions">
+      <button type="button" class="btn2" data-share="x">Compartir en X</button><button type="button" class="btn2" data-share="tg">Compartir en Telegram</button>
+      <button type="button" class="btn2" data-share="native">Compartir imagen</button>
+      <button type="button" class="btn2" data-dl="x">Descargar PNG (X)</button><button type="button" class="btn2" data-dl="telegram">Descargar PNG (Telegram)</button><button type="button" class="btn2" data-dl="premium">Descargar reporte premium</button><button type="button" class="btn2" data-dl="premium" data-fmt="webp">Premium en WebP</button>
+      <button type="button" class="btn2" data-share="copy">Copiar enlace verificable</button><span class="shmsg sc-msg" role="status"></span></div>
+     <div class="tnote">Reporte <b>${esc(id)}</b> · SHA-256 <span style="font-family:var(--mono)">${esc(shareSet.link.hash.slice(0,32))}…</span>${shareSet.qr?" · QR de "+shareSet.qr.modules+" módulos":" · QR no disponible"}. X y Telegram no permiten adjuntar una imagen desde un enlace: el botón abre la publicación con el texto y el enlace; descarga la imagen y súbela tú. Nada se publica sin que tú lo envíes.
+      El enlace y el QR llevan una copia del reporte: la página recalcula su huella y confirma que no fue alterado. Todavía no hay firma digital (requiere servidor), así que no prueba quién lo generó.</div>`;
+  }catch(e){box.innerHTML=`<div class="empty">No se pudieron generar las tarjetas en este navegador.</div>`;if(btn)btn.disabled=false;}
+}
+function scMsg(m){const e=$("#out .sc-msg");if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent="";},4000);}}
+const shareText=()=>{const r=shareSet.rep;const v={high:"Riesgo alto",warn:"Precaución",ok:"Sin alertas",unk:"Sin datos"}[r.vd];return (r.n||r.s||"Token")+(r.s?" ($"+r.s+")":"")+": "+v+" · "+r.sc+"/100 en PreBuyScan (100 = menor riesgo). Reporte "+shareSet.link.id+". Scan before the scam.";};
+function dl(kind,fmt){const c=shareSet.cards[kind];const type=fmt==="webp"?"image/webp":"image/png";
+  c.toBlob(b=>{if(!b)return scMsg("Tu navegador no pudo exportar la imagen.");const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="prebuyscan-"+kind+"-"+shareSet.link.id+(fmt==="webp"?".webp":".png");document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);scMsg("Descargada");},type,0.95);}
+$("#out").addEventListener("click",async e=>{
+  const d=e.target.closest("[data-dl]");if(d&&shareSet){dl(d.dataset.dl,d.dataset.fmt);return;}
+  const sh=e.target.closest("[data-share]");if(!sh||!shareSet)return;
+  const k=sh.dataset.share,url=shareSet.link.url,text=shareText();
+  if(k==="x")window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(text)+"&url="+encodeURIComponent(url),"_blank","noopener");
+  else if(k==="tg")window.open("https://t.me/share/url?url="+encodeURIComponent(url)+"&text="+encodeURIComponent(text),"_blank","noopener");
+  else if(k==="copy"){try{await navigator.clipboard.writeText(url);scMsg("Enlace verificable copiado");}catch(err){prompt("Copia el enlace:",url);}}
+  else if(k==="native"){try{const b=await new Promise(r=>shareSet.cards.x.toBlob(r,"image/png"));const f=new File([b],"prebuyscan-"+shareSet.link.id+".png",{type:"image/png"});
+    if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f],text,url});else{dl("x");scMsg("Tu navegador no comparte imágenes: la descargué.");}}catch(err){}}
+});
+async function showVerification(){
+  if(!window.PBShare)return;const v=await window.PBShare.verifyFromLocation(location);if(!v)return;
+  const box=$("#verify");const r=v.rep||{};
+  const when=r.ts?new Date(r.ts*1000).toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short",timeZoneName:"short"}):"—";
+  const vtxt={high:"Riesgo alto",warn:"Precaución",ok:"Sin alertas",unk:"Sin datos"}[r.vd]||"—";
+  const ic=a=>a[0]==="confirmed"?["high","✕"]:a[0]==="suspicious"?["warn","!"]:a[0]==="clear"?["ok","✓"]:["unk","?"];
+  box.innerHTML=v.ok?`<section class="card verifybox ok"><h3>✓ Reporte verificado <span class="tag ok">${esc(v.id)}</span></h3><div class="tnote" style="font-size:.86rem;padding-top:0">
+     El contenido de este enlace coincide con su huella SHA-256 (<span style="font-family:var(--mono)">${esc(v.hash.slice(0,24))}…</span>): no fue alterado desde que se generó.
+     Analizado el ${esc(when)}${r.b?" en el bloque "+Number(r.b).toLocaleString("es-MX"):""} con el algoritmo ${esc(r.al||"")}: <b>${esc(vtxt)} · ${esc(r.sc)}/100</b>, confianza de los datos ${esc(r.cf)} %.
+     <br>Sin firma digital todavía: esto prueba que el reporte no cambió, no quién lo generó. Abajo está el análisis actualizado de hoy para comparar.</div>
+     <ul class="secrows">${(r.x||[]).map(a=>`<li><i class="s-${ic(a)[0]}">${ic(a)[1]}</i><span class="k">${esc(a[2])}</span><span class="val">${esc(a[1])}</span></li>`).join("")}</ul></section>`
+   :`<section class="card verifybox bad"><h3>✕ Reporte no verificado</h3><div class="tnote" style="font-size:.86rem;padding-top:0">${esc(v.reason)} No confíes en la imagen que te compartieron; abajo está el análisis real de hoy.</div></section>`;
+}
+
 function loadScript(src){return new Promise((ok,ko)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=ko;document.head.appendChild(s);});}
 async function loadMap(btn){
   if(!lastRes)return;const {token,res}=lastRes;const cr=res.cr||{};const box=$("#mapout");
@@ -1264,6 +1332,9 @@ function render(token,res){
     </div>
     <div class="pane on" data-pane="resumen">
      ${simCard(res,"report")}
+     <section class="card a-wide sharecards"><h3>Tarjetas para compartir <span class="disc">X 1600×900 · Telegram 1080×1080 · Reporte premium 1080×1350</span></h3>
+      <div class="sc-intro"><p class="disc">Imágenes generadas con los datos reales de este análisis, con un enlace y un QR verificables.</p><button type="button" class="cta" data-act="cards" style="padding:10px 18px;font-size:.92rem">Crear tarjetas</button></div>
+      <div class="sc-out"></div></section>
      <section class="card a-info"><h3>Información del contrato <a href="https://robinhoodchain.blockscout.com/token/${esc(token)}" target="_blank" rel="noopener">Ver en explorador →</a></h3><div class="kv">${infoRows.map(r=>`<div>${r[0]}</div><div>${r[1]}</div>`).join("")}</div></section>
     </div>
     <div class="pane" data-pane="actividad">${winners}${bigs}${snip}${launches}${!winners&&!bigs&&!snip&&!launches?`<section class="card a-wide"><div class="empty">Sin actividad para mostrar.</div></section>`:""}</div>
@@ -1319,6 +1390,8 @@ $("#out").addEventListener("click",async e=>{
   if(act==="copyaddr"){try{await navigator.clipboard.writeText(last.token);flash("Dirección copiada");}catch(err){prompt("Copia la dirección:",last.token);}return;}
   if(act==="fav"){const r=lastRes&&lastRes.res;const p=r&&r.pair;const on=toggleFav({t:last.token,name:p&&p.baseToken&&p.baseToken.name||last.name,sym:p&&p.baseToken&&p.baseToken.symbol||"",img:p&&p.info&&safeUrl(p.info.imageUrl),score:last.score,v:last.v[0],at:Date.now(),liq:p&&p.liquidity&&p.liquidity.usd||0,price:p?Number(p.priceUsd)||0:0});
     b.setAttribute("aria-pressed",on);b.textContent=(on?"★":"☆")+" Favorito";flash(on?"Guardado en favoritos":"Quitado de favoritos");return;}
+  if(act==="cards"){makeCards(b);return;}
+  if((act==="share"||act==="img")&&lastRes){const sc=$("#out .sharecards");if(sc){sc.scrollIntoView({behavior:"smooth",block:"start"});if(!shareSet||shareSet.rep.a!==lastRes.token)makeCards($("#out [data-act=cards]"));}return;}
   ({copy:copyLink,share:shareIt,img:downloadCard,map:loadMap})[act]?.(b);
 });
 
@@ -1358,7 +1431,7 @@ async function analyze(raw){
   document.querySelectorAll(".addr-in").forEach(i=>{i.value=token;});
   setView("result");
   if(!/^0x[0-9a-f]{40}$/.test(token)){$("#out").innerHTML=`<section class="card"><div class="empty">Esa dirección no es válida. Debe empezar con 0x y tener 40 caracteres hexadecimales después.</div></section>`;return;}
-  if(running)return;running=true;stageIdx=0;
+  if(running)return;running=true;stageIdx=0;shareSet=null;
   document.querySelectorAll(".go").forEach(b=>b.disabled=true);
   $("#out").innerHTML=`<section class="card"><div class="busy"><span>Revisando ${esc(short(token))}…</span></div><ul class="stages"></ul><div class="tnote">Simulamos la compra y la venta, revisamos el contrato, el creador, la liquidez, los snipers y los holders. Tarda de 20 a 60 segundos.</div></section>`;
   paintStages();
@@ -1474,6 +1547,7 @@ if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.ser
 
 // ---------- start ----------
 document.querySelectorAll(".algov").forEach(e=>{e.textContent=ALGO_VERSION;});
+showVerification();
 renderRecent();renderAlerts();checkFavourites();
 if(isDesk())loadRail("new");
 chainTick();setInterval(()=>{if(!document.hidden)chainTick();},30000);

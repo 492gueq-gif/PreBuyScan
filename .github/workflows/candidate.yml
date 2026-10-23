@@ -14,7 +14,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
+      - run: pip install playwright==1.56.0 opencv-python-headless pillow && python -m playwright install --with-deps chromium
       - run: python cand_ui.py
       - name: Push screenshots to research/shots
         if: always()
