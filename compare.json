@@ -1,0 +1,138 @@
+[
+ {
+  "round": 0,
+  "target": "published",
+  "token": "0x39dbed",
+  "full_s": 27.1,
+  "fps_during": [
+   17,
+   31,
+   61,
+   61
+  ],
+  "fps_after": 57,
+  "fps_scroll": 53,
+  "badge": "ANÁLISIS COMPLETADO",
+  "gecko_requests": 313,
+  "total_requests": 421
+ },
+ {
+  "round": 0,
+  "target": "branch",
+  "token": "0x39dbed",
+  "full_s": 28.9,
+  "fps_during": [
+   61,
+   61,
+   61,
+   61
+  ],
+  "fps_after": 60,
+  "fps_scroll": 61,
+  "badge": "ANÁLISIS COMPLETADO",
+  "gecko_requests": 0,
+  "total_requests": 75
+ },
+ {
+  "round": 0,
+  "target": "published",
+  "token": "0xD5f1af",
+  "full_s": 47.9,
+  "fps_during": [
+   21,
+   34,
+   61,
+   61
+  ],
+  "fps_after": 49,
+  "fps_scroll": 51,
+  "badge": "ANÁLISIS COMPLETADO",
+  "gecko_requests": 317,
+  "total_requests": 491
+ },
+ {
+  "round": 0,
+  "target": "branch",
+  "token": "0xD5f1af",
+  "full_s": 49.7,
+  "fps_during": [
+   61,
+   61,
+   61,
+   61
+  ],
+  "fps_after": 61,
+  "fps_scroll": 61,
+  "badge": "ANÁLISIS COMPLETADO",
+  "gecko_requests": 0,
+  "total_requests": 131
+ },
+ {
+  "round": 1,
+  "target": "branch",
+  "token": "0x39dbed",
+  "full_s": 33.9,
+  "fps_during": [
+   60,
+   61,
+   61,
+   61
+  ],
+  "fps_after": 61,
+  "fps_scroll": 61,
+  "badge": "ANÁLISIS COMPLETADO",
+  "gecko_requests": 0,
+  "total_requests": 73
+ },
+ {
+  "round": 1,
+  "target": "published",
+  "token": "0x39dbed",
+  "full_s": 33.6,
+  "fps_during": [
+   5,
+   61,
+   61,
+   61
+  ],
+  "fps_after": 59,
+  "fps_scroll": 54,
+  "badge": "ANÁLISIS COMPLETADO",
+  "gecko_requests": 310,
+  "total_requests": 415
+ },
+ {
+  "round": 1,
+  "target": "branch",
+  "token": "0xD5f1af",
+  "full_s": 38.5,
+  "fps_during": [
+   61,
+   61,
+   61,
+   61
+  ],
+  "fps_after": 61,
+  "fps_scroll": 61,
+  "badge": "ANÁLISIS COMPLETADO",
+  "gecko_requests": 0,
+  "total_requests": 133
+ },
+ {
+  "round": 1,
+  "target": "published",
+  "token": "0xD5f1af",
+  "full_s": 41.8,
+  "fps_during": [
+   9,
+   61,
+   61,
+   61
+  ],
+  "fps_after": 46,
+  "fps_scroll": 53,
+  "badge": "ANÁLISIS COMPLETADO",
+  "gecko_requests": 312,
+  "total_requests": 477
+ }
+]
