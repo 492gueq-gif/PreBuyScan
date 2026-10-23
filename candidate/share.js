@@ -83,12 +83,22 @@
   const b64u = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const unb64u = s => decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/"))));
   // Link embeds a lighter copy of the report (descriptions trimmed) so the QR stays readable.
-  function linkPayload(rep) { return { ...rep, x: rep.x.slice(0, 6).map(a => [a[0], a[1], a[2], ""]) }; }
+  // Compact copy: state code + title only (labels are re-derived from the state), no market block.
+  const SCODE = { confirmed: "c", suspicious: "s", pending: "p", clear: "k" };
+  // Levels shrink the copy until the QR fits with >=3 px modules (URL <= 700 bytes).
+  const LEVELS = [[5, 40, 40], [5, 26, 28], [4, 20, 20], [3, 14, 16], [3, 0, 12]];
+  function linkPayload(rep, level) { const [na, tl, nl] = LEVELS[level || 0]; const { m, x, ...core } = rep;
+    return { ...core, n: (core.n || "").slice(0, nl), s: (core.s || "").slice(0, 14), x: x.slice(0, na).map(a => [SCODE[a[0]] || "p", a[2].slice(0, tl)]) }; }
+  function expandAlerts(lite) { const back = { c: "confirmed", s: "suspicious", p: "pending", k: "clear" };
+    return (lite.x || []).map(a => { const st = back[a[0]] || "pending"; return [st, st === "pending" ? (classify({ t: a[1], s: "unk" }).label) : STATE[st].label, a[1], ""]; }); }
   async function verifiableLink(rep) {
-    const lite = linkPayload(rep);
-    const h = await hashReport(lite);
-    const id = h.slice(0, 16);
-    return { id, hash: h, url: SITE + "?t=" + rep.a + "&r=" + id + "&b=" + (rep.b || "") + "&v=" + encodeURIComponent(rep.al) + "#rep=" + b64u(canonical(lite)) };
+    let out = null;
+    for (let lv = 0; lv < LEVELS.length; lv++) {
+      const lite = linkPayload(rep, lv); const h = await hashReport(lite); const id = h.slice(0, 16);
+      out = { id, hash: h, lite, url: SITE + "?t=" + rep.a + "&r=" + id + "#rep=" + b64u(canonical(lite)) };
+      if (new TextEncoder().encode(out.url).length <= 700) break;
+    }
+    return out;
   }
   async function verifyFromLocation(loc) {
     const m = /#rep=([A-Za-z0-9_-]+)/.exec(loc.hash || "");
@@ -99,7 +109,7 @@
     const h = await hashReport(rep);
     const id = h.slice(0, 16);
     const okId = q.get("r") === id, okAddr = (q.get("t") || "").toLowerCase() === rep.a;
-    return { ok: okId && okAddr, id, hash: h, rep, reason: !okId ? "El identificador no coincide con el contenido: el reporte fue modificado." : !okAddr ? "La dirección del enlace no coincide con la del reporte." : "" };
+    return { ok: okId && okAddr, id, hash: h, rep: { ...rep, x: expandAlerts(rep) }, reason: !okId ? "El identificador no coincide con el contenido: el reporte fue modificado." : !okAddr ? "La dirección del enlace no coincide con la del reporte." : "" };
   }
 
   // ---------- drawing helpers ----------
@@ -211,11 +221,11 @@
     box(g, 236, 306, 960, 60, 14, "rgba(5,11,18,.7)", C.line, 0, 2);
     const af = fit(g, addr, 880, 32, 500, FONT_M, 20); txt(g, af.t, 258, 346, af.s, 500, C.white, FONT_M);
     if (!logoOk) txt(g, "logo no verificado", 140, 375, 16, 700, C.gray, FONT_B, "center");
-    rep.x.slice(0, 4).forEach((a, i) => alertRow(g, 46, 400 + i * 94, 1170, 82, a));
-    gauge(g, 1408, 450, 190, rep.sc, vl, vc);
-    capsule(g, 1238, 606, 340, 74, vl, vc, 34);
-    txt(g, "Puntuación · " + scaleNote, 1408, 712, 21, 700, C.gray, FONT_B, "center");
-    txt(g, "Confianza de los datos: " + (rep.cf != null ? rep.cf + " %" : "N/D"), 1408, 744, 24, 800, rep.cf >= 80 ? C.green : rep.cf >= 50 ? C.yellow : C.red, FONT_B, "center");
+    rep.x.slice(0, 4).forEach((a, i) => alertRow(g, 46, 400 + i * 94, 1120, 82, a));
+    gauge(g, 1398, 452, 172, rep.sc, vl, vc);
+    capsule(g, 1238, 606, 320, 74, vl, vc, 34);
+    const sn = fit(g, "Puntuación · " + scaleNote, 360, 21, 700, FONT_B, 15); txt(g, sn.t, 1398, 712, sn.s, 700, C.gray, FONT_B, "center");
+    txt(g, "Confianza de los datos: " + (rep.cf != null ? rep.cf + " %" : "N/D"), 1398, 744, 24, 800, rep.cf >= 80 ? C.green : rep.cf >= 50 ? C.yellow : C.red, FONT_B, "center");
     box(g, 46, 784, 1000, 74, 18, "rgba(0,229,196,.06)", C.teal, 10, 2.5);
     const lf = fit(g, "492gueq-gif.github.io/PreBuyScan/?t=" + rep.a.slice(0, 12) + "…", 900, 32, 800, FONT_B, 18); txt(g, "↗ " + lf.t, 74, 832, lf.s, 800, C.teal, FONT_B);
     box(g, 1066, 784, 488, 74, 18, "rgba(11,23,36,.85)", C.line, 0, 2);
@@ -248,8 +258,8 @@
   }
   function drawQR(g, text, x, y, size) {
     if (!root.qrcode) throw new Error("qr library missing");
-    const qr = root.qrcode(0, "M"); qr.addData(text); qr.make();
-    const n = qr.getModuleCount(), quiet = 4, cell = Math.floor(size / (n + quiet * 2)), real = cell * (n + quiet * 2);
+    const qr = root.qrcode(0, "L"); qr.addData(text); qr.make();
+    const n = qr.getModuleCount(), quiet = 4; if (Math.floor(size / (n + quiet * 2)) < 3) throw new Error("qr too dense"); const cell = Math.floor(size / (n + quiet * 2)), real = cell * (n + quiet * 2);
     g.fillStyle = "#FFFFFF"; g.fillRect(x, y, real, real); g.fillStyle = "#000000";
     for (let r = 0; r < n; r++) for (let col = 0; col < n; col++) if (qr.isDark(r, col)) g.fillRect(x + (col + quiet) * cell, y + (r + quiet) * cell, cell, cell);
     return { modules: n, size: real };

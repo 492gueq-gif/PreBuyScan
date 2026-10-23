@@ -20,9 +20,9 @@ with sync_playwright() as p:
     d.screenshot(path="ui_d_share.png")
     # verification link
     v=b.new_page(viewport={"width":1440,"height":900});v.goto(sizes["url"].replace("https://492gueq-gif.github.io/PreBuyScan/","http://localhost:8765/"));v.wait_for_selector("#verify .verifybox",timeout=30000)
-    note("verify_ok",{"text":v.inner_text("#verify")[:400]})
+    note("verify_ok",{"ok":"Reporte verificado" in v.inner_text("#verify"),"text":v.inner_text("#verify")[:400]})
     tam=sizes["url"].replace("https://492gueq-gif.github.io/PreBuyScan/","http://localhost:8765/").replace("&r="+sizes["id"],"&r=0000000000000000")
-    v2=b.new_page();v2.goto(tam);v2.wait_for_selector("#verify .verifybox",timeout=30000);note("verify_tampered",{"text":v2.inner_text("#verify")[:200]})
+    v2=b.new_page();v2.goto(tam);v2.wait_for_selector("#verify .verifybox",timeout=30000);note("verify_tampered",{"rejected":"no verificado" in v2.inner_text("#verify"),"text":v2.inner_text("#verify")[:200]})
     # long name + missing data (test data, clearly labelled)
     d.evaluate("""async()=>{const rep={v:1,c:4663,a:'0x1111111111111111111111111111111111111111',n:'DATOS DE PRUEBA — Token con un nombre larguísimo que no cabe en ninguna tarjeta',s:'PRUEBAXYZLARGO',sc:15,vd:'high',cf:40,al:'test',b:null,ts:1792700000,
       x:[['confirmed','RIESGO CONFIRMADO','La venta simulada falla',''],['suspicious','SEÑAL SOSPECHOSA','El creador tiene 2 tokens muertos',''],['pending','SIMULACIÓN PENDIENTE','Venta no simulada',''],['pending','IDENTIDAD NO VERIFICADA','Dueño del contrato no identificado','']],m:null,lg:0};
@@ -39,5 +39,9 @@ srv.terminate()
 import cv2
 img=cv2.imread("card_premium.png");det=cv2.QRCodeDetector();val,pts,_=det.detectAndDecode(img)
 note("qr_decode",{"decoded":bool(val),"matches_link":val==sizes["url"],"len":len(val)})
+for n in ["card_test_premium.png"]:
+    try:
+        v3,_,_=det.detectAndDecode(cv2.imread(n));note("qr_decode_"+n,{"decoded":bool(v3)})
+    except Exception as e: note("qr_decode_"+n,{"err":str(e)[:200]})
 from PIL import Image
 for n in ["card_x.png","card_tg.png","card_premium.png"]:note("png_"+n,{"size":Image.open(n).size})
