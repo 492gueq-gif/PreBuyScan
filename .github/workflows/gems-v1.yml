@@ -1,0 +1,52 @@
+name: GEMS_V1 (read-only research)
+on:
+  schedule:
+    - cron: "47 * * * *"
+  push:
+    branches: [research/gems-v1]
+    paths: ["gems_v1.py", "test_gems_v1.py", "scanner/**", ".github/workflows/gems-v1.yml"]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "collect | smoke"
+        default: collect
+permissions:
+  contents: write
+concurrency:
+  group: gems-v1
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/gems-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Inside the study period?
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] || [ "${{ inputs.mode }}" = "smoke" ]; then echo "mode=smoke" >> $GITHUB_OUTPUT
+          elif python gems_v1.py window; then echo "mode=collect" >> $GITHUB_OUTPUT
+          else echo "mode=off" >> $GITHUB_OUTPUT; echo "Outside the GEMS_V1 period (scans 2026-10-30T16:00Z to 2026-11-13T16:00Z)"; fi
+      - if: steps.gate.outputs.mode != 'off'
+        run: python -m unittest test_gems_v1 -q
+      - if: steps.gate.outputs.mode != 'off'
+        run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
+      - name: Scan tokens aged 1-3 h
+        if: steps.gate.outputs.mode != 'off'
+        run: python gems_v1.py ${{ steps.gate.outputs.mode }}
+      - name: Measure 7-day outcomes
+        if: steps.gate.outputs.mode == 'collect'
+        run: python gems_v1.py outcome
+      - name: Save data
+        if: always() && steps.gate.outputs.mode != 'off'
+        run: |
+          git config user.name gems-v1 && git config user.email ci@users.noreply.github.com
+          git add data/ || true
+          git diff --cached --quiet && exit 0
+          git commit -qm "GEMS_V1 data $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+          for i in 1 2 3; do git pull -q --rebase origin research/gems-v1 && git push -q origin HEAD:research/gems-v1 && break; sleep 5; done
