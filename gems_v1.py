@@ -28,8 +28,12 @@ SCANS, OUTCOMES, RUNS, INDEX = "data/scans.jsonl", "data/outcomes.jsonl", "data/
 # ---- frozen parameters (see docs/GEMS_V1.md) ----
 START = 1793376000            # 2026-10-30T16:00:00Z first eligible scan
 END = 1794585600              # 2026-11-13T16:00:00Z last eligible scan (14 days)
-MIN_AGE, MAX_AGE = 60 * 60, 180 * 60   # pool age at sampling: 1 to 3 hours
-PER_RUN = 10                  # tokens scanned per hourly run
+# Two cohorts: "h1" = pools aged 1-3 h, "d1" = pools that already lived a day (24-27 h).
+COHORTS = {"h1": dict(min_age=60 * 60, max_age=180 * 60, per_run=10),
+           "d1": dict(min_age=24 * 3600, max_age=27 * 3600, per_run=5)}
+MIN_AGE, MAX_AGE = COHORTS["h1"]["min_age"], COHORTS["h1"]["max_age"]
+PER_RUN = COHORTS["h1"]["per_run"]
+INDEX_FROM = START - 26 * 3600   # pool index starts early so the d1 cohort has 24 h old pools at START
 HORIZON = 7 * 86400           # outcome horizon
 MEASURE_DELAY = 900           # measured 15 min after the horizon
 ENTRY_WINDOW = 3600           # no candle within 60 min after the scan -> no_trade_after_seen
@@ -125,6 +129,37 @@ def sig_alpha_60(r):
     return "unknown" if a is None else "present" if a >= 60 else "absent"
 
 
+def sig_equipo_invierte(r):
+    d = r.get("dex_info")
+    if d is None:
+        return "unknown"
+    return "present" if (d.get("sites", 0) >= 1 and d.get("socials", 0) >= 1) or d.get("header") else "absent"
+
+
+def sig_aguanta_primera_ola(r):
+    e = r.get("early") or {}
+    if not e.get("max_high") or not e.get("last_close"):
+        return "unknown"
+    return "present" if e["last_close"] >= 0.5 * e["max_high"] else "absent"
+
+
+def sig_volumen_sostenido(r):
+    e = r.get("early") or {}
+    if e.get("vol_first30") is None or e.get("vol_last30") is None:
+        return "unknown"
+    return "present" if e["vol_last30"] > 0 and e["vol_last30"] >= e["vol_first30"] else "absent"
+
+
+def sig_holders_100(r):
+    n = r.get("holders_count")
+    return "unknown" if n is None else "present" if n >= 100 else "absent"
+
+
+def sig_varios_pools(r):
+    n = r.get("n_pairs")
+    return "unknown" if n is None else "present" if n >= 2 else "absent"
+
+
 def sig_filtro_combinado(r):
     parts = [sig_sin_riesgo_alto(r), sig_compradores_30(r), sig_presion_compradora(r), sig_compras_organicas(r)]
     if all(p == "present" for p in parts):
@@ -145,7 +180,23 @@ SIGNALS = {
     "liquidez_15k": sig_liquidez_15k,
     "alpha_signal_60": sig_alpha_60,
     "filtro_combinado": sig_filtro_combinado,
+    "equipo_invierte": sig_equipo_invierte,
+    "aguanta_primera_ola": sig_aguanta_primera_ola,
+    "volumen_sostenido": sig_volumen_sostenido,
+    "holders_100": sig_holders_100,
+    "varios_pools": sig_varios_pools,
 }
+
+
+def early_metrics(candles, pool_created, scanned_at):
+    """5-min candles from pool creation to the scan: highest high, last close, volume of the first and
+    last 30 minutes. Only candles before the scan are used (no look-ahead)."""
+    rows = sorted(c for c in candles if all(isinstance(x, (int, float)) for x in c[:6]) and pool_created - 300 <= c[0] < scanned_at)
+    if not rows:
+        return dict(max_high=None, last_close=None, vol_first30=None, vol_last30=None, candles=0)
+    return dict(max_high=max(c[2] for c in rows), last_close=rows[-1][4], candles=len(rows),
+                vol_first30=sum(c[5] for c in rows if c[0] < pool_created + 1800),
+                vol_last30=sum(c[5] for c in rows if c[0] >= scanned_at - 1800))
 
 
 def get_json(url, tries=4):
@@ -223,7 +274,7 @@ def outcome(scan, candles, liq_7d):
     rows = sorted(c for c in candles if all(isinstance(x, (int, float)) for x in c[:5]) and c[1] > 0 and c[4] > 0)
     t0 = scan["scanned_at"]
     after = [c for c in rows if c[0] >= t0]
-    base = dict(token=scan["token"], liq_7d=liq_7d)
+    base = dict(token=scan["token"], cohort=scan.get("cohort", "h1"), liq_7d=liq_7d)
     dead = dict(base, status="no_trade_after_seen", gem=False, double=False, spike5=False)
     if not after or after[0][0] - t0 > ENTRY_WINDOW:
         return dead
@@ -272,11 +323,21 @@ def smart_set(discovery_rows):
     return smart - common
 
 
+def key(x):
+    return (x["token"], x.get("cohort", "h1"))
+
+
 def evaluate(scans, outcomes):
-    by_token = {o["token"]: o for o in outcomes if o.get("status") in ("entered", "no_trade_after_seen")}
+    """Both cohorts, evaluated separately with the same frozen rules."""
+    return dict(protocol="GEMS_V1", cohorts={c: evaluate_cohort([s for s in scans if s.get("cohort", "h1") == c],
+                                                                [o for o in outcomes if o.get("cohort", "h1") == c]) for c in COHORTS})
+
+
+def evaluate_cohort(scans, outcomes):
+    by_key = {key(o): o for o in outcomes if o.get("status") in ("entered", "no_trade_after_seen")}
     ok_scans = [s for s in scans if s.get("ok")]
-    rows = sorted((dict(s, **by_token[s["token"]]) for s in ok_scans if s["token"] in by_token), key=lambda r: r["scanned_at"])
-    res = dict(protocol="GEMS_V1", n=len(rows), scan_failures=len(scans) - len(ok_scans),
+    rows = sorted((dict(s, **by_key[key(s)]) for s in ok_scans if key(s) in by_key), key=lambda r: r["scanned_at"])
+    res = dict(n=len(rows), scan_failures=len(scans) - len(ok_scans),
                excluded_no_outcome=len(ok_scans) - len(rows))
     if not rows:
         return res
@@ -331,6 +392,8 @@ SCAN_JS = """async t=>{
       pair:r.facts&&r.facts._pair||null,block:r.block||null,
       early_wallets:sn.map(w=>w.addr).filter(Boolean).slice(0,15),
       top_holders:ho.filter(h=>!h.contract).map(h=>h.addr).filter(Boolean).slice(0,15),
+      holders_count:(cr.holders&&cr.holders.count)||null,n_pairs:(r.pairs||[]).length||null,
+      dex_info:r.pair?{sites:((r.pair.info||{}).websites||[]).length,socials:((r.pair.info||{}).socials||[]).length,header:!!(r.pair.info||{}).header}:null,
       explorer_errors:(cr.errors||[]).map(e=>String(e).split(":")[0]),explorer_ms:cr.ms||null};
   }catch(e){return {ok:false,error:String(e).slice(0,200)};}
 }"""
@@ -343,7 +406,7 @@ def _append(path, entry):
 
 
 def in_period(now):
-    return START - 3600 <= now <= END + HORIZON + GIVE_UP + 86400
+    return INDEX_FROM - 3600 <= now <= END + HORIZON + GIVE_UP + 86400
 
 
 def collect(now=None, smoke=False):
@@ -368,12 +431,19 @@ def collect(now=None, smoke=False):
                 _append(INDEX, dict(e, seen_at=now)); known.add((e["token"], e["pool"]))
     if not smoke and (now < START or now > END):
         print("outside scan window (pool index updated)"); return 0
-    seen = {s["token"] for s in _read(SCANS)}
     entries = fresh if smoke else _read(INDEX)
-    cands = candidates(entries, now, seen, *((15 * 60, MAX_AGE) if smoke else (MIN_AGE, MAX_AGE)))
-    chosen = pick(cands, 2 if smoke else PER_RUN)
+    done = _read(SCANS)
+    chosen, info = [], {}
+    for cohort, cfg in COHORTS.items():
+        if smoke and cohort != "h1":
+            continue
+        seen = {s["token"] for s in done if s.get("cohort", "h1") == cohort}
+        cands = candidates(entries, now, seen, *((15 * 60, cfg["max_age"]) if smoke else (cfg["min_age"], cfg["max_age"])))
+        pk = pick(cands, 2 if smoke else cfg["per_run"])
+        chosen += [dict(c, cohort=cohort) for c in pk]
+        info[cohort] = dict(eligible=len(cands), chosen=len(pk))
     _append("data/smoke_runs.jsonl" if smoke else RUNS, dict(at=now, pools=len(fresh), pages_failed=failed,
-                                                             index=0 if smoke else len(entries), eligible=len(cands), chosen=len(chosen)))
+                                                             index=0 if smoke else len(entries), cohorts=info))
     if not chosen:
         print("no eligible tokens"); return 0
     handler = lambda *a, **k: http.server.SimpleHTTPRequestHandler(*a, directory="scanner", **k)
@@ -396,12 +466,19 @@ def collect(now=None, smoke=False):
             except Exception as e:
                 gt, alpha = None, None
             try:
+                time.sleep(2.5)
+                q = "aggregate=5&limit=1000&currency=usd&token=%s&before_timestamp=%d&include_empty_intervals=false" % (c["token"], t_scan)
+                early = early_metrics(get_json(GT + "pools/" + c["pool"] + "/ohlcv/minute?" + q)["data"]["attributes"]["ohlcv_list"],
+                                      c["pool_created"], t_scan)
+            except Exception as e:
+                early = None
+            try:
                 r = pg.evaluate(SCAN_JS, c["token"])
             except Exception as e:
                 r = dict(ok=False, error=type(e).__name__)
-            row = dict(c, scanned_at=t_scan, scanner_sha=SCANNER_SHA, gt=gt, alpha=alpha, **r)
+            row = dict(c, scanned_at=t_scan, scanner_sha=SCANNER_SHA, gt=gt, alpha=alpha, early=early, **r)
             _append(target, row); n += 1
-            print(c["token"], r.get("verdict"), r.get("score"), alpha, (gt or {}).get("buyers_h1"), r.get("explorer_errors"))
+            print(c["cohort"], c["token"], r.get("verdict"), r.get("score"), alpha, (gt or {}).get("buyers_h1"), r.get("explorer_errors"))
         b.close()
     srv.shutdown()
     return n
@@ -409,8 +486,8 @@ def collect(now=None, smoke=False):
 
 def collect_outcomes(now=None):
     now = int(now or time.time())
-    final = {o["token"] for o in _read(OUTCOMES) if o.get("status") != "provider_unavailable"}
-    todo = [s for s in _read(SCANS) if s.get("ok") and s["token"] not in final and now >= s["scanned_at"] + HORIZON + MEASURE_DELAY]
+    final = {key(o) for o in _read(OUTCOMES) if o.get("status") != "provider_unavailable"}
+    todo = [s for s in _read(SCANS) if s.get("ok") and key(s) not in final and now >= s["scanned_at"] + HORIZON + MEASURE_DELAY]
     n = 0
     for s in todo:
         try:
@@ -422,7 +499,7 @@ def collect_outcomes(now=None):
             o = outcome(s, rows, liq)
         except Exception as e:
             late = now > s["scanned_at"] + HORIZON + MEASURE_DELAY + GIVE_UP
-            o = dict(token=s["token"], status="unknown" if late else "provider_unavailable", error_type=type(e).__name__)
+            o = dict(token=s["token"], cohort=s.get("cohort", "h1"), status="unknown" if late else "provider_unavailable", error_type=type(e).__name__)
         o["measured_at"] = now
         _append(OUTCOMES, o); n += 1
         time.sleep(2.5)                       # GeckoTerminal public limit

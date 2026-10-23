@@ -18,7 +18,8 @@ class Window(unittest.TestCase):
     def test_frozen_dates(self):
         self.assertEqual(G.START, int(datetime(2026, 10, 30, 16, tzinfo=timezone.utc).timestamp()))
         self.assertEqual(G.END - G.START, 14 * 86400)
-        self.assertFalse(G.in_period(G.START - 2 * 3600))
+        self.assertFalse(G.in_period(G.START - 28 * 3600))
+        self.assertTrue(G.in_period(G.START - 26 * 3600))       # pool index starts early for the d1 cohort
         self.assertTrue(G.in_period(G.START))
         self.assertTrue(G.in_period(G.END + G.HORIZON + 3600))
 
@@ -147,19 +148,19 @@ class Evaluation(unittest.TestCase):
 
     def test_useful_needs_both_halves_lift_and_gap(self):
         s, o = self.build(0.10, 0.02)
-        r = G.evaluate(s, o)
+        r = G.evaluate_cohort(s, o)
         self.assertEqual(r["n"], 200)
         self.assertTrue(r["signals"]["sin_riesgo_alto"]["useful"])
         s, o = self.build(0.06, 0.04, n=400)
-        self.assertEqual(G.evaluate(s, o)["signals"]["sin_riesgo_alto"]["verdict_text"], "no separa")
+        self.assertEqual(G.evaluate_cohort(s, o)["signals"]["sin_riesgo_alto"]["verdict_text"], "no separa")
         s, o = self.build(0.10, 0.02, n=40)
-        self.assertEqual(G.evaluate(s, o)["signals"]["sin_riesgo_alto"]["verdict_text"], "muestra insuficiente")
+        self.assertEqual(G.evaluate_cohort(s, o)["signals"]["sin_riesgo_alto"]["verdict_text"], "muestra insuficiente")
 
     def test_unknown_outcomes_and_failures_reported_not_counted(self):
         s, o = self.build(0.10, 0.02, n=10)
         s.append(dict(token="0xfail", ok=False, scanned_at=5))
         o[0] = dict(token=o[0]["token"], status="unknown")
-        r = G.evaluate(s, o)
+        r = G.evaluate_cohort(s, o)
         self.assertEqual((r["n"], r["scan_failures"], r["excluded_no_outcome"]), (9, 1, 1))
 
     def test_smart_money_learned_in_discovery_tested_in_confirmation(self):
@@ -172,7 +173,7 @@ class Evaluation(unittest.TestCase):
             w = ([SM] if has else ["0x%040x" % (1000 + i)]) + [INFRA]
             scans.append(row(i, 1000 + i, gem, wallets=w))
             outs.append(dict(token="0x%040x" % i, status="entered", gem=gem, double=gem, spike5=False, ret_7d=0, liq_7d=0))
-        r = G.evaluate(scans, outs)["dinero_inteligente"]
+        r = G.evaluate_cohort(scans, outs)["dinero_inteligente"]
         self.assertGreaterEqual(r["smart_wallets"], 1)
         self.assertEqual(r["confirmation"]["present"]["n"], 15)
         self.assertEqual(r["confirmation"]["present"]["gems"], 7)
@@ -184,6 +185,51 @@ class Evaluation(unittest.TestCase):
     def test_scan_js_and_scanner_present(self):
         self.assertIn("inspect(t)", G.SCAN_JS)
         self.assertNotEqual(G.SCANNER_SHA, hashlib_empty())
+
+
+class NewSignalsAndCohorts(unittest.TestCase):
+    def test_team_holders_pools(self):
+        self.assertEqual(G.sig_equipo_invierte(dict(dex_info=dict(sites=1, socials=2, header=False))), "present")
+        self.assertEqual(G.sig_equipo_invierte(dict(dex_info=dict(sites=0, socials=0, header=True))), "present")
+        self.assertEqual(G.sig_equipo_invierte(dict(dex_info=dict(sites=1, socials=0, header=False))), "absent")
+        self.assertEqual(G.sig_equipo_invierte(dict(dex_info=None)), "unknown")
+        self.assertEqual(G.sig_holders_100(dict(holders_count=150)), "present")
+        self.assertEqual(G.sig_holders_100(dict(holders_count=40)), "absent")
+        self.assertEqual(G.sig_holders_100(dict()), "unknown")
+        self.assertEqual(G.sig_varios_pools(dict(n_pairs=3)), "present")
+        self.assertEqual(G.sig_varios_pools(dict(n_pairs=1)), "absent")
+
+    def test_early_metrics_no_lookahead(self):
+        created, scan = 100_000, 100_000 + 7200
+        c = [[created + i * 300, 1, h, 1, cl, v] for i, (h, cl, v) in enumerate([(2, 1.5, 100)] * 6 + [(1.2, 1.1, 10)] * 12 + [(1, 0.9, 50)] * 6)]
+        c.append([scan + 300, 9, 99, 9, 99, 1e9])                       # after the scan: ignored
+        e = G.early_metrics(c, created, scan)
+        self.assertEqual(e["max_high"], 2)
+        self.assertEqual(e["last_close"], 0.9)
+        self.assertEqual(e["vol_first30"], 600)
+        self.assertEqual(e["vol_last30"], 300)
+        r = dict(early=e)
+        self.assertEqual(G.sig_aguanta_primera_ola(r), "absent")        # 0.9 < 0.5 x 2 ... = 1.0
+        self.assertEqual(G.sig_volumen_sostenido(r), "absent")
+        self.assertEqual(G.sig_aguanta_primera_ola(dict(early=dict(e, last_close=1.2))), "present")
+        self.assertEqual(G.sig_volumen_sostenido(dict(early=None)), "unknown")
+        self.assertEqual(G.early_metrics([], created, scan)["max_high"], None)
+
+    def test_d1_cohort_age_and_separate_outcomes(self):
+        now = G.START + 30 * 3600
+        idx = [dict(token="0x" + "a" * 40, pool="0xp", pool_created=now - 25 * 3600),
+               dict(token="0x" + "b" * 40, pool="0xq", pool_created=now - 2 * 3600)]
+        d1 = G.COHORTS["d1"]
+        self.assertEqual([c["token"] for c in G.candidates(idx, now, set(), d1["min_age"], d1["max_age"])], ["0x" + "a" * 40])
+        self.assertEqual([c["token"] for c in G.candidates(idx, now, set())], ["0x" + "b" * 40])
+        # the same token in both cohorts keeps two separate outcomes
+        scans = [dict(row(1, 10, False), cohort="h1"), dict(row(1, 10 + 86400, False), cohort="d1")]
+        outs = [dict(token=scans[0]["token"], cohort="h1", status="entered", gem=True, double=True, spike5=False, ret_7d=3, liq_7d=1e5),
+                dict(token=scans[0]["token"], cohort="d1", status="entered", gem=False, double=False, spike5=False, ret_7d=0, liq_7d=1e5)]
+        r = G.evaluate(scans, outs)["cohorts"]
+        self.assertEqual(r["h1"]["base_rate"]["all"]["gem"]["gems"], 1)
+        self.assertEqual(r["d1"]["base_rate"]["all"]["gem"]["gems"], 0)
+        self.assertEqual(len(G.SIGNALS), 17)
 
 
 def hashlib_empty():

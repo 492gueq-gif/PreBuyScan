@@ -10,7 +10,15 @@ Protocolo congelado el **23 oct 2026 (UTC)**, ANTES de recolectar ningún dato d
 
 ## Pregunta
 
-PRECISION_V1 mostró que el escáner detecta riesgo, pero que «sin alertas» no significa que el token sobreviva: el 57 % de esos tokens también colapsó en 24 h. La pregunta inversa es: entre los tokens nuevos, ¿qué datos visibles en su segunda o tercera hora de vida se asocian con convertirse en una joya a los 7 días?
+PRECISION_V1 mostró que el escáner detecta riesgo, pero que «sin alertas» no significa que el token sobreviva: el 57 % de esos tokens también colapsó en 24 h. La pregunta inversa es: entre los tokens nuevos, ¿qué datos visibles al escanearlos se asocian con convertirse en una joya a los 7 días?
+
+Se estudian dos grupos (cohortes), cada uno evaluado por separado con las mismas reglas:
+- **h1:** tokens en su segunda o tercera hora de vida (pools de 1 a 3 h).
+- **d1:** tokens que ya sobrevivieron su primer día (pools de 24 a 27 h).
+
+Un mismo token puede aparecer en las dos cohortes; cada una tiene su propio resultado.
+
+Ampliación acordada con el jefe el 23 oct (antes de recolectar datos): se agregaron 5 señales y la cohorte d1.
 
 ## Escáner
 
@@ -23,17 +31,19 @@ Si la página pública cambia, el estudio NO cambia de escáner.
 ## Universo y muestra (prospectiva, sin sesgo de supervivencia)
 
 - **Fuente:** listado público `new_pools` de GeckoTerminal para Robinhood Chain, páginas 1 a 10, consultado cada hora.
-- **Índice de pools:** ese listado solo alcanza aproximadamente la última hora de lanzamientos (prueba de humo del 23 oct: 180 pools, ninguno de más de 1 h). Por eso, cada hora se anotan todos los pools que aparecen en `data/pool_index.jsonl`, desde 1 h antes de la ventana. Cada corrida queda en `data/runs.jsonl`.
+- **Índice de pools:** ese listado solo alcanza aproximadamente la última hora de lanzamientos (prueba de humo del 23 oct: 180 pools, ninguno de más de 1 h). Por eso, cada hora se anotan todos los pools que aparecen en `data/pool_index.jsonl`. El índice empieza 26 h antes de la ventana (29 oct 14:00Z), para que la cohorte d1 tenga pools de 24 h desde el inicio. Cada corrida queda en `data/runs.jsonl`.
 - **Elegibles:**
-  - pools del índice con **1 a 3 horas** de edad en el momento del escaneo;
+  - pools del índice con **1 a 3 horas** (h1) o **24 a 27 horas** (d1) de edad en el momento del escaneo;
   - un registro por token (su primer pool creado), y los tokens ya escaneados se excluyen;
   - si WETH es el token base, el token estudiado es el otro.
-- **Muestra por corrida:** los **10** elegibles con menor SHA-256 de su dirección. El criterio no depende de precio, liquidez ni volumen.
+- **Muestra por corrida:** los **10** (h1) y **5** (d1) elegibles con menor SHA-256 de su dirección. El criterio no depende de precio, liquidez ni volumen.
 - **Ventana de escaneos:** desde **2026-10-30T16:00Z** hasta **2026-11-13T16:00Z** (14 días).
 - **Al escanear se guarda:**
   - el reporte completo del escáner (veredicto, Safety Score, títulos de cada hallazgo);
   - la actividad del pool en GeckoTerminal (liquidez, volumen, compras, ventas, compradores y vendedores únicos de 1 h y 15 min, FDV);
   - el Alpha Signal Score;
+  - las velas de 5 min desde la creación del pool hasta el escaneo (solo lo anterior al escaneo);
+  - el número de holders, el número de pares en DexScreener, y si tiene web, redes y banner de perfil;
   - hasta 15 wallets compradoras del lanzamiento y 15 holders principales que no son contratos.
 - **Fallas:** los escaneos que fallan se cuentan (`scan_failures`); no se descartan en silencio.
 
@@ -70,6 +80,11 @@ Cada señal es presente, ausente o desconocida. Los tokens con la señal descono
 | liquidez_15k | liquidez ≥ 15 000 USD | GeckoTerminal |
 | alpha_signal_60 | Alpha Signal Score ≥ 60 | escáner (Alpha Radar) |
 | filtro_combinado | sin_riesgo_alto + compradores_unicos_30 + presion_compradora + compras_organicas | combinado |
+| equipo_invierte | tiene web **y** al menos una red social en DexScreener, o banner de perfil (perfil pagado) | DexScreener |
+| aguanta_primera_ola | el último cierre antes del escaneo es ≥ 50 % del máximo desde su creación | GeckoTerminal (velas 5 min) |
+| volumen_sostenido | volumen de los últimos 30 min antes del escaneo ≥ volumen de los primeros 30 min del pool (y mayor que 0) | GeckoTerminal (velas 5 min) |
+| holders_100 | 100 holders o más | explorador |
+| varios_pools | 2 o más pares en DexScreener | DexScreener |
 
 **Dinero inteligente (diseño de dos etapas):**
 1. Con la mitad «descubrimiento» se arma la lista de wallets que fueron compradoras del lanzamiento u holders principales de tokens que llegaron a «doble».
@@ -89,7 +104,7 @@ Estas son las únicas comparaciones que se presentarán como hallazgo.
   - la tasa de joyas con la señal es al menos **2 veces** la tasa sin ella **y** al menos **3 puntos porcentuales** mayor.
 - **Dinero inteligente:** se evalúa solo en confirmación, con al menos 15 tokens con la señal y 30 sin ella, y el mismo umbral.
 - **Si no se alcanzan los mínimos,** el resultado es «muestra insuficiente», nunca «útil».
-- **Muchas comparaciones:** son 13 señales, y alguna puede parecer útil por azar. Por eso se exige la repetición en las dos mitades.
+- **Muchas comparaciones:** son 18 señales por cohorte, y alguna puede parecer útil por azar. Por eso se exige la repetición en las dos mitades.
 - **Alcance:** todo es descriptivo, no causal.
 
 Además se reporta:
@@ -99,7 +114,7 @@ Además se reporta:
 
 ## Publicación
 
-Se publican TODAS las señales, útiles o no, en este repositorio y en la página de PreBuyScan. Se publican después del **2026-11-21T17:00Z**, cuando el último escaneo ya tiene sus 7 días y el plazo de reintentos.
+Se publican TODAS las señales, útiles o no, en este repositorio y en la página de PreBuyScan. Se publican después del **2026-11-22T17:00Z**, cuando el último escaneo ya tiene sus 7 días y el plazo de reintentos.
 
 No se cambia ninguna regla del escáner ni de este protocolo mientras corre. Si un defecto de ejecución obliga a corregir algo, se anota con fecha al final de este documento, sin cambiar universo, muestra, señales, resultado ni reglas.
 
@@ -109,5 +124,5 @@ No se cambia ninguna regla del escáner ni de este protocolo mientras corre. Si 
 - **Un solo periodo:** dos semanas de un mercado. El comportamiento puede cambiar.
 - **Precio sin costos:** el resultado se mide con precio medio, sin comisiones, deslizamiento ni la posibilidad real de vender.
 - **Señales públicas:** si se publican, pueden perder valor porque otros compran lo mismo.
-- **Alcance de la muestra:** solo tokens de 1 a 3 horas de vida en Robinhood Chain.
+- **Alcance de la muestra:** solo tokens de 1 a 3 horas y de 24 a 27 horas de vida en Robinhood Chain.
 - **Interpretación:** ser joya no prueba que el proyecto sea legítimo, y no serlo no prueba estafa. Nada de esto es una recomendación de inversión.
