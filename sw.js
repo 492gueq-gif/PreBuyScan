@@ -1,8 +1,8 @@
 /* PreBuyScan service worker: keeps the app shell available offline and loads it fast.
  * Network first for our own files (so updates arrive immediately), cache as fallback.
  * Market, explorer and RPC requests (other origins) are never cached. */
-const V = "pbs-shell-v2";
-const SHELL = ["./", "index.html", "sellsim.js", "creator.js", "bubblemap.js", "profile.js",
+const V = "pbs-shell-v3";
+const SHELL = ["./", "index.html", "sellsim.js", "creator.js", "bubblemap.js", "profile.js", "share.js",
   "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "og.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {
