@@ -80,11 +80,11 @@ Cada señal es presente, ausente o desconocida. Los tokens con la señal descono
 | liquidez_15k | liquidez ≥ 15 000 USD | GeckoTerminal |
 | alpha_signal_60 | Alpha Signal Score ≥ 60 | escáner (Alpha Radar) |
 | filtro_combinado | sin_riesgo_alto + compradores_unicos_30 + presion_compradora + compras_organicas | combinado |
-| equipo_invierte | tiene web **y** al menos una red social en DexScreener, o banner de perfil (perfil pagado) | DexScreener |
+| equipo_invierte | tiene web **y** al menos una red social (GeckoTerminal o DexScreener), o banner de perfil pagado en DexScreener | GeckoTerminal / DexScreener |
 | aguanta_primera_ola | el último cierre antes del escaneo es ≥ 50 % del máximo desde su creación | GeckoTerminal (velas 5 min) |
 | volumen_sostenido | volumen de los últimos 30 min antes del escaneo ≥ volumen de los primeros 30 min del pool (y mayor que 0) | GeckoTerminal (velas 5 min) |
 | holders_100 | 100 holders o más | explorador |
-| varios_pools | 2 o más pares en DexScreener | DexScreener |
+| varios_pools | 2 o más pools del token en GeckoTerminal (si no responde, pares en DexScreener) | GeckoTerminal / DexScreener |
 
 **Dinero inteligente (diseño de dos etapas):**
 1. Con la mitad «descubrimiento» se arma la lista de wallets que fueron compradoras del lanzamiento u holders principales de tokens que llegaron a «doble».

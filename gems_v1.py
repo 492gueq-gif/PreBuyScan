@@ -130,10 +130,15 @@ def sig_alpha_60(r):
 
 
 def sig_equipo_invierte(r):
-    d = r.get("dex_info")
-    if d is None:
+    """Website and at least one social network (GeckoTerminal token info or DexScreener), or a paid
+    DexScreener profile banner. Unknown only if both sources were unavailable."""
+    d, g = r.get("dex_info"), r.get("gt_info")
+    if d is None and g is None:
         return "unknown"
-    return "present" if (d.get("sites", 0) >= 1 and d.get("socials", 0) >= 1) or d.get("header") else "absent"
+    for x in (d, g):
+        if x and ((x.get("sites", 0) >= 1 and x.get("socials", 0) >= 1) or x.get("header")):
+            return "present"
+    return "absent"
 
 
 def sig_aguanta_primera_ola(r):
@@ -156,7 +161,7 @@ def sig_holders_100(r):
 
 
 def sig_varios_pools(r):
-    n = r.get("n_pairs")
+    n = r.get("n_pools") if r.get("n_pools") is not None else r.get("n_pairs")
     return "unknown" if n is None else "present" if n >= 2 else "absent"
 
 
@@ -186,6 +191,12 @@ SIGNALS = {
     "holders_100": sig_holders_100,
     "varios_pools": sig_varios_pools,
 }
+
+
+def gt_info(info_json):
+    a = ((info_json or {}).get("data") or {}).get("attributes") or {}
+    socials = sum(1 for k in ("twitter_handle", "telegram_handle", "discord_url") if a.get(k))
+    return dict(sites=len(a.get("websites") or []), socials=socials, header=False)
 
 
 def early_metrics(candles, pool_created, scanned_at):
@@ -473,10 +484,18 @@ def collect(now=None, smoke=False):
             except Exception as e:
                 early = None
             try:
+                time.sleep(2.5); ginfo = gt_info(get_json(GT + "tokens/" + c["token"] + "/info"))
+            except Exception as e:
+                ginfo = None
+            try:
+                time.sleep(2.5); n_pools = len(get_json(GT + "tokens/" + c["token"] + "/pools").get("data") or [])
+            except Exception as e:
+                n_pools = None
+            try:
                 r = pg.evaluate(SCAN_JS, c["token"])
             except Exception as e:
                 r = dict(ok=False, error=type(e).__name__)
-            row = dict(c, scanned_at=t_scan, scanner_sha=SCANNER_SHA, gt=gt, alpha=alpha, early=early, **r)
+            row = dict(c, scanned_at=t_scan, scanner_sha=SCANNER_SHA, gt=gt, alpha=alpha, early=early, gt_info=ginfo, n_pools=n_pools, **r)
             _append(target, row); n += 1
             print(c["cohort"], c["token"], r.get("verdict"), r.get("score"), alpha, (gt or {}).get("buyers_h1"), r.get("explorer_errors"))
         b.close()
