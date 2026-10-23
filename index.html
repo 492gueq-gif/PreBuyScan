@@ -478,16 +478,16 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 /* ---------- animated final score ring ---------- */
 .ring.live{--c:var(--unk);--tx:0deg;--ty:0deg;width:200px;height:200px;border-radius:50%;cursor:pointer;outline:none;
   transform:perspective(500px) rotateX(var(--tx)) rotateY(var(--ty));transition:transform .15s ease-out}
-.ring.live.lr-ok{--c:var(--ok)}.ring.live.lr-warn{--c:var(--warn)}.ring.live.lr-high{--c:var(--high)}
+.ring.live.lr-ok{--c:#00ff9d}.ring.live.lr-warn{--c:var(--warn)}.ring.live.lr-high{--c:#ff1f47}
 .ring.live:focus-visible{box-shadow:0 0 0 3px var(--c)}
 .ring.live svg{transform:none;overflow:visible;position:relative}
 .ring.live .lr-track{stroke:var(--sheet2)}
-.ring.live .lr-prog{stroke:var(--c);transform:rotate(-90deg);transform-origin:60px 60px;transition:stroke-dashoffset 1.4s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 7px var(--c))}
+.ring.live .lr-prog{stroke:var(--c);transform:rotate(-90deg);transform-origin:60px 60px;transition:stroke-dashoffset 1.4s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 6px var(--c)) drop-shadow(0 0 16px var(--c))}
 .ring.live .lr-spin{transform-origin:60px 60px;animation:spin 2.4s linear infinite}.ring.live .lr-spin circle{stroke:var(--c)}
 .ring.live .lr-spin2{transform-origin:60px 60px;animation:spin 14s linear infinite reverse}.ring.live .lr-spin2 circle{stroke:var(--c)}
 .ring.live .lr-ticks{stroke:var(--line2);transform-origin:60px 60px;animation:spin 20s linear infinite}
 .ring.live .lr-spark{fill:var(--c);opacity:0;animation:lrSpark 2.8s ease-in-out infinite}
-.ring.live .lr-halo{position:absolute;inset:8%;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 30%,transparent),transparent 70%);animation:srPulse 2.6s ease-in-out infinite}
+.ring.live .lr-halo{position:absolute;inset:8%;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 38%,transparent),transparent 70%);animation:srPulse 2.6s ease-in-out infinite}
 .ring.live .lr-ripple{position:absolute;inset:6%;border-radius:50%;border:2px solid var(--c);opacity:0;pointer-events:none}
 .ring.live.done .lr-ripple{animation:lrRipple 3.2s ease-out infinite}.ring.live.done .lr-ripple.r2{animation-delay:1.6s}
 .ring.live.lr-high.done .lr-ripple{animation-duration:1.5s}.ring.live.lr-high.done .lr-ripple.r2{animation-delay:.75s}
@@ -504,9 +504,9 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 @keyframes lrRipple{0%{transform:scale(.92);opacity:.7}100%{transform:scale(1.35);opacity:0}}
 @keyframes lrAlarm{0%,100%{opacity:.55;transform:scale(.94)}50%{opacity:1;transform:scale(1.12)}}
 @keyframes lrPop{0%{transform:scale(.85)}100%{transform:scale(1)}}
-@keyframes lrBurst{0%{filter:drop-shadow(0 0 4px var(--c))}40%{filter:drop-shadow(0 0 22px var(--c)) brightness(1.6)}100%{filter:drop-shadow(0 0 7px var(--c))}}
+@keyframes lrBurst{0%{filter:drop-shadow(0 0 6px var(--c))}40%{filter:drop-shadow(0 0 28px var(--c)) brightness(1.6)}100%{filter:drop-shadow(0 0 6px var(--c)) drop-shadow(0 0 16px var(--c))}}
 .ring.live .lr-spark{transform-box:fill-box;transform-origin:center}
-@media (min-width:1100px){.ring.live{width:230px;height:230px}.ring.live .v b{font-size:3.4rem}}
+@media (min-width:1100px){.rtop:has(.ring.live){grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}.ring.live{width:230px;height:230px}.ring.live .v b{font-size:3.4rem}}
 @media (max-width:520px){.ring.live{width:170px;height:170px}.ring.live .v b{font-size:2.6rem}}
 @media (max-width:1099px){.rtop .ring.live{grid-column:1 / -1;justify-self:center;margin:4px auto}}
 @media (prefers-reduced-motion:reduce){.ring.live *{animation:none!important;transition:none!important}}
