@@ -790,6 +790,13 @@ function creatorDB(){
 }
 const ALGO_VERSION=window.PBScore.ALGO_VERSION;
 const SRC={"Venta":"Simulación eth_simulateV1 en la RPC pública","Contrato":"Código del contrato en la cadena (RPC pública)","Creador y liquidez":"Explorador Blockscout + RPC pública","Lanzamiento":"Explorador Blockscout + RPC pública","Holders":"Explorador Blockscout","Mercado":"DexScreener"};
+let nextExplorerBudget=0;
+// A part cut by our own time budget is not a broken provider: say so, and say a retry can finish it.
+function explorerMiss(cr,key,t,dProvider){
+  const why=cr&&window.PBCreator&&window.PBCreator.failReason?window.PBCreator.failReason(cr,key):null;
+  if(why==="timeout")return{s:"unk",err:true,t:t+" (tiempo agotado)",d:"El explorador de Robinhood Chain respondió lento y la consulta se cortó a los "+Math.round(((cr&&cr.budgetMs)||60000)/1000)+" s para no congelar el reporte. «Reintentar análisis» le da más tiempo."};
+  return{s:"unk",err:true,t,d:dProvider};
+}
 async function inspect(token,onPartial){
   const dbP=creatorDB();
   const checks=[];const facts={};const notChecked=[];let cat="Mercado";const add=o=>{if(o)checks.push({c:cat,src:o.src||SRC[cat],...o});};
@@ -921,9 +928,10 @@ async function inspect(token,onPartial){
   if(!simDone)notChecked.push("si se puede vender (simulación no disponible para este par)");
   // Creator, liquidity control and holders (explorer data)
   let DBC=null;try{DBC=await dbP;}catch(e){}
-  let cr=null;step("Revisando creador, liquidez, snipers y holders (hasta 35 s)…");
+  let cr=null;step("Revisando creador, liquidez, snipers y holders (hasta "+Math.round((nextExplorerBudget||(window.PBCreator&&window.PBCreator.BUDGET_MS)||60000)/1000)+" s)…");
   if(window.PBCreator){
-    try{cr=await window.PBCreator.analyze(token,pair,allPairs);}catch(e){cr=null;}
+    const budgetMs=nextExplorerBudget||window.PBCreator.BUDGET_MS;nextExplorerBudget=0;
+    try{cr=await window.PBCreator.analyze(token,pair,allPairs,{budgetMs});}catch(e){cr=null;}
   }
   cat="Creador y liquidez";
   if(!cr||!cr.creator){add({s:"unk",t:"Creador no identificado",d:"El explorador de Robinhood Chain no respondió o no tiene el origen de este contrato."});}
@@ -952,10 +960,10 @@ async function inspect(token,onPartial){
       const K=DBC&&DBC.creators&&DBC.creators[D];
       if(K&&K[7]===1)add({s:"unk",t:"Lanzado desde una plataforma",d:short(D)+" es la wallet de una plataforma de lanzamiento, no de una persona."});
       else if(K){add(dbCreatorCheck(K,DBC));facts["Creador"]=short(D);facts["En la base de PreBuyScan"]=K[0]+" tokens · "+K[1]+" muertos";}
-      else add({s:"unk",err:true,t:"Historial del creador no disponible",d:"No se pudo consultar el historial de "+short(D)+"."});
+      else add(explorerMiss(cr,"reputation","Historial del creador no disponible","No se pudo consultar el historial de "+short(D)+"."));
     }
     const lp=cr.lp;
-    if(!lp)add({s:"unk",err:true,t:"Control de la liquidez no revisado",d:"No se pudo consultar quién tiene la liquidez del par."});
+    if(!lp)add(explorerMiss(cr,"lp","Control de la liquidez no revisado","No se pudo consultar quién tiene la liquidez del par."));
     else if(lp.kind==="v2"){
       if(lp.creatorShare>=50)add({s:"high",t:"El creador puede retirar la liquidez",d:"Tiene "+lp.creatorShare.toFixed(1)+" % de los tokens LP del par en su wallet, sin bloqueo: puede sacar la liquidez cuando quiera (rug pull)."});
       else if(lp.burned>=90)add({s:"ok",t:"Liquidez quemada",d:lp.burned.toFixed(1)+" % de los tokens LP están en una dirección de quemado: nadie puede retirarla."});
@@ -983,7 +991,7 @@ async function inspect(token,onPartial){
   }
   cat="Lanzamiento";
   const S=cr&&cr.snipers;
-  if(!S){if(cr&&cr.creator)add({s:"unk",err:true,t:"Snipers no revisados",d:"No se pudo consultar quién compró en el lanzamiento."});}
+  if(!S){if(cr&&cr.creator)add(explorerMiss(cr,"snipers","Snipers no revisados","No se pudo consultar quién compró en el lanzamiento."));}
   else if(S.n===0)add({s:"ok",t:"Sin snipers detectados",d:"Nadie más compró en el primer minuto de operaciones."});
   else{
     if(S.held>=20)add({s:"high",t:"Los snipers aún tienen "+S.held+" %",d:S.n+" wallets compraron en el primer minuto y siguen con "+S.held+" % del suministro: pueden vender de golpe."});
@@ -995,7 +1003,7 @@ async function inspect(token,onPartial){
   if(tr&&tr.bigSells&&liqUsd){const b=tr.bigSells[0];if(b&&b.v>=0.1*liqUsd&&Date.now()-b.ts<6*3.6e6)add({s:"warn",t:"Venta grande reciente",d:short(b.addr)+" vendió "+usd(Math.round(b.v))+" ("+Math.round(b.v/liqUsd*100)+" % de la liquidez) en las últimas horas."});}
   cat="Holders";
   const H=cr&&cr.holders;
-  if(!H||H.top10==null)add({s:"unk",err:true,t:"Holders no revisados",d:"No se pudo consultar la lista de holders."});
+  if(!H||H.top10==null)add(explorerMiss(cr,"holders","Holders no revisados","No se pudo consultar la lista de holders."));
   else{
     if(H.count)facts["Holders"]=num(H.count);
     const big=H.top[0];
@@ -1539,7 +1547,7 @@ $("#out").addEventListener("click",async e=>{
   if(act==="copyaddr"){try{await navigator.clipboard.writeText(last.token);flash("Dirección copiada");}catch(err){prompt("Copia la dirección:",last.token);}return;}
   if(act==="fav"){const r=lastRes&&lastRes.res;const p=r&&r.pair;const on=toggleFav({t:last.token,name:p&&p.baseToken&&p.baseToken.name||last.name,sym:p&&p.baseToken&&p.baseToken.symbol||"",img:p&&p.info&&safeUrl(p.info.imageUrl),score:last.score,v:last.v[0],at:Date.now(),liq:p&&p.liquidity&&p.liquidity.usd||0,price:p?Number(p.priceUsd)||0:0});
     b.setAttribute("aria-pressed",on);b.textContent=(on?"★":"☆")+" Favorito";flash(on?"Guardado en favoritos":"Quitado de favoritos");return;}
-  if(act==="retry"&&last){netCacheClear();analyze(last.token);return;}
+  if(act==="retry"&&last){netCacheClear();nextExplorerBudget=window.PBCreator?window.PBCreator.RETRY_BUDGET_MS:0;analyze(last.token);return;}
   if(act==="cards"){makeCards(b);return;}
   if((act==="share"||act==="img")&&lastRes){const sc=$("#out .sharecards");if(sc){sc.scrollIntoView({behavior:"smooth",block:"start"});if(!shareSet||shareSet.rep.a!==lastRes.token)makeCards($("#out [data-act=cards]"));}return;}
   ({copy:copyLink,share:shareIt,img:downloadCard,map:loadMap})[act]?.(b);

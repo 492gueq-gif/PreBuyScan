@@ -21,7 +21,7 @@ Todo corre en el navegador del usuario contra APIs públicas; GitHub Actions hac
 
 - `index.html` — interfaz (móvil con barra inferior; escritorio con menú lateral y columna derecha), reporte, puntuación, simulador de compra/venta (cálculo), historial, favoritos, avisos, ajustes, modo claro/oscuro, Content-Security-Policy.
 - `sellsim.js` — venta simulada real: compra → approve → venta en un bloque con `eth_simulateV1` y sobrescritura de estado (V2, V3, V4 incluidos hooks). Montos 0.01 / 0.1 / 0.5 ETH.
-- `creator.js` — creador (Blockscout v2), reputación, control de la liquidez (V2 LP holders; V3/V4 posiciones NFT y `ModifyLiquidity`), holders, snipers del primer minuto con su fondeo; presupuesto de tiempo de 35 s.
+- `creator.js` — creador (Blockscout v2), reputación, control de la liquidez (V2 LP holders; V3/V4 posiciones NFT y `ModifyLiquidity`), holders, snipers del primer minuto con su fondeo; presupuesto de tiempo de 60 s (120 s al reintentar).
 - `bubblemap.js` — mapa de wallets (holders, fondeo, transferencias, grupos, ventanas de 1 h para contratos fondeadores).
 - `profile.js` — perfil de wallet.
 - `share.js` — Smart Share Engine: tarjetas X (1600×900), Telegram (1080×1080) y reporte premium (1080×1350) dibujadas en Canvas con datos reales; enlace verificable con SHA-256 y QR (≤700 bytes, módulos ≥3 px, decodificación comprobada en CI). Sin firma digital hasta tener servidor. Detalle en `docs/SMART_SHARE.md` (rama de la página).

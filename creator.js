@@ -52,7 +52,7 @@
   // ---------- network helpers ----------
   let last = 0;
   // Hard time budget for the whole explorer section: a slow or rate-limited explorer must never
-  // freeze the report. Past the deadline every request fails fast and the check shows "Sin datos".
+  // freeze the report. Past the deadline every request fails fast and the check says the time ran out.
   let deadline = Infinity;
   async function getJSON(url, ms = 10000) {
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -355,16 +355,27 @@
     return { count, top, top10: Math.round(top.reduce((t, x) => t + x.pct, 0) * 100) / 100, burned, pools };
   }
 
+  // 60 s: older tokens with long creator histories need ~40 s on a desktop (CI, 23 oct 2026: microduck
+  // reputation finished at 40.2 s and was cut at 35 s). A retry asks for RETRY_BUDGET_MS.
+  const BUDGET_MS = 60000, RETRY_BUDGET_MS = 120000;
+  // Why a part is missing: "timeout" when our own time budget cut it (the explorer was slow, not broken),
+  // "provider" when the explorer/RPC failed, null when the part did not fail.
+  function failReason(out, key) {
+    const hits = ((out && out.errors) || []).filter(e => String(e).split(":")[0].trim() === key);
+    if (!hits.length) return null;
+    return hits.some(e => /time budget/.test(String(e))) ? "timeout" : "provider";
+  }
+  const msg = (k, e) => k + ": " + ((e && e.message) || "error");
   const within = (p, ms) => { p.catch(() => {}); return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("time budget")), ms))]); };
   async function analyze(token, pair, pairs, opts = {}) {
-    const budget = opts.budgetMs || 35000;
+    const budget = opts.budgetMs || BUDGET_MS;
     const t0 = Date.now(); deadline = t0 + budget;
     const out = { creator: null, rep: null, lp: null, holders: null, snipers: null, errors: [] };
     const exclude = new Set([V4_PM, ...(pairs || []).map(p => lc(p.pairAddress)).filter(a => /^0x[0-9a-f]{40}$/.test(a))]);
     const left = () => Math.max(500, deadline - Date.now());
     // Holders and creator lookups run in parallel; each part fails on its own.
-    const hP = within(holders(token, exclude), left()).then(v => { out.holders = v; }, () => out.errors.push("holders"));
-    try { out.creator = await within(findCreator(token), left()); } catch (e) { out.errors.push("creator"); }
+    const hP = within(holders(token, exclude), left()).then(v => { out.holders = v; }, e => out.errors.push(msg("holders", e)));
+    try { out.creator = await within(findCreator(token), left()); } catch (e) { out.errors.push(msg("creator", e)); }
     const jobs = [hP];
     if (out.creator) {
       const repP = reputation(token, out.creator);
@@ -377,11 +388,11 @@
       const mine = (out.holders.top || []).find(x => x.addr === out.creator.deployer);
       out.creatorPct = mine ? mine.pct : 0;
     }
-    out.ms = Date.now() - t0;
+    out.ms = Date.now() - t0; out.budgetMs = budget;
     return out;
   }
 
-  const api = { analyze, keccak, findCreator, reputation, liquidityControl, holders, snipers,
+  const api = { analyze, failReason, BUDGET_MS, RETRY_BUDGET_MS, keccak, findCreator, reputation, liquidityControl, holders, snipers,
     _get: getJSON, _firstFunder: firstFunder, _call: call, _rpc: rpc, _words: words, _budget: ms => { deadline = Date.now() + ms; } };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PBCreator = api;

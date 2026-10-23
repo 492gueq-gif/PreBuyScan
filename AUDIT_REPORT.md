@@ -8,7 +8,7 @@ Fecha: 23 oct 2026. Rama auditada: `gh-pages` en `0cc79a8` (igual a `feature/cre
 |---|---|---|
 | Página (HTML + CSS + JS sin compilación) | `index.html` (~1740 líneas) | Toda la interfaz, el motor de puntuación, Alpha Radar, historial, ajustes |
 | Venta simulada | `sellsim.js` | `eth_simulateV1` con sobrescritura de estado; V2, V3, V4 (hooks) |
-| Creador, liquidez, holders, snipers | `creator.js` | Blockscout API v2, RPC pública, keccak propio, presupuesto de 35 s |
+| Creador, liquidez, holders, snipers | `creator.js` | Blockscout API v2, RPC pública, keccak propio, presupuesto de 60 s (antes 35 s, ver #17) |
 | Mapa de wallets | `bubblemap.js` | d3 7.9.0 desde cdnjs; grafo 3D |
 | Perfil de wallet | `profile.js` | Blockscout v2 |
 | Tarjetas para compartir | `share.js` | Canvas; QR con qrcode-generator 1.4.4 |
@@ -40,6 +40,7 @@ Verificado en el código: todas las funciones visibles consultan datos reales (D
 | 14 | Medio | Scroll horizontal en celular con fuentes de respaldo | CI con fuentes del sistema: `scrollWidth` 398–406 px en 390 px; la columna `.app` usaba `1fr` (mínimo = contenido) | Página desplazable de lado en teléfonos sin la fuente web | `grid-template-columns:minmax(0,1fr)` y cápsula de red que se recorta; probado en 360 y 390 px con fuente ancha | Corregido |
 | 15 | Medio | Contraste insuficiente del texto secundario | axe-core: `color-contrast` serio, 3.74:1 (`--dim` #5f7482 sobre #0c1620) en la fuente de cada hallazgo | Difícil de leer para personas con baja visión | `--dim` #7a8f9d (≥ 5.1:1) en oscuro y #5d6f7d (≥ 4.6:1) en claro | Corregido |
 | 16 | Bajo | Estructura de encabezados | axe-core: `heading-order` en inicio y `page-has-heading-one` en el reporte | Lectores de pantalla navegan peor | `aria-level` en secciones y `h1` accesible en el reporte | Corregido |
+| 17 | Alto | Tokens con historial largo salían «Análisis parcial» con «Error técnico» aunque ningún proveedor falló | Reporte del jefe 23 oct (microduck `0xD5f1…E725`, pool V4, 2 errores en celular). Diagnóstico real en CI (run 39963991248): `reputation: time budget` a los 35.0 s; con presupuesto largo todo terminó en 40.2 s sin errores. En celular los snipers (que esperan la reputación) también se cortaban | El reporte parecía roto y bajaba el Safety Score por un corte propio, no por el token | Presupuesto 60 s; «Reintentar análisis» usa 120 s; cada parte faltante dice si fue **tiempo agotado** o **falla del proveedor** (`PBCreator.failReason`). Fórmula sin cambios | Corregido |
 | 11 | Bajo | README desactualizado | Dice que solo usa DexScreener y la RPC y que «no guarda datos» | Información incorrecta (también usa Blockscout/GeckoTerminal y guarda historial local) | README actualizado | Corregido |
 | 12 | Bajo | Estado «Análisis parcial» implícito | El presupuesto de 35 s marca partes como «sin datos» sin aviso global | El usuario puede no notar que faltó una parte | Banner de estado del análisis en el reporte | Corregido |
 
