@@ -907,6 +907,7 @@ function render(token,res){
      <li class="confline"><span>Cobertura</span><span class="confbar"><i class="fill ${cov.pct>=80?"ok":cov.pct>=50?"warn":"high"}" style="width:${cov.pct}%"></i></span><b>${cov.done} de ${cov.total}</b></li>
      <li class="confline"><span>Data Confidence</span><span class="confbar"><i class="fill ${confCls}" style="width:${conf.score}%"></i></span><b class="s-${confCls}">${conf.score} %</b></li></ul>
    </div>
+   ${scoreReason(checks,score)}
    <div class="rtabs" role="tablist">${[["resumen","Resumen"],["seguridad","Seguridad"],["actividad","Actividad"],["holders","Holders"]].map((t,i)=>`<button role="tab" data-tab="${t[0]}" aria-selected="${i===0}">${t[1]}</button>`).join("")}</div></section>
    <div class="panes">
     <div class="pane on" data-pane="resumen">
@@ -1052,6 +1053,23 @@ const GLOSS={"FDV":"Valor total si todos los tokens valieran el precio actual (F
   "proxy":"Contrato que delega en otro y puede cambiar su código.","hook":"Código extra de un pool Uniswap V4 que puede cambiar reglas o comisiones.","cooldown":"Tiempo de espera obligatorio entre operaciones."};
 const GLOSS_RE=new RegExp("\\b("+Object.keys(GLOSS).sort((a,b)=>b.length-a.length).map(k=>k.replace(/ /g,"\\s")).join("|")+")\\b","g");
 function gloss(text){const seen=new Set();return esc(text).replace(GLOSS_RE,m=>{const k=Object.keys(GLOSS).find(x=>x.toLowerCase()===m.toLowerCase().replace(/\s+/g," "));if(!k||seen.has(k))return m;seen.add(k);return `<abbr class="gl" tabindex="0" title="${esc(GLOSS[k])}">${m}</abbr>`;});}
+// Explain this report's score using its actual findings, never a canned token diagnosis.
+function scoreReason(checks,score){
+  const pending=checks.filter(c=>c.s==="unk"||c.s==="err");
+  const critical=checks.filter(c=>c.s==="high");
+  const cautions=checks.filter(c=>c.s==="warn");
+  const top=critical.concat(cautions).slice(0,3);
+  let text;
+  if(score==null)text="No hay suficientes comprobaciones concluyentes para asignar una puntuación.";
+  else if(top.length){
+    text="La puntuación de "+score+"/100 se debe principalmente a: "+top.map(c=>c.t).join("; ")+".";
+    if(critical.length)text+=" Una señal de riesgo alto limita la puntuación a un máximo de 39/100.";
+    else text+=" Las señales de precaución limitan la puntuación a un máximo de 79/100.";
+  }else text="No se detectaron alertas en las comprobaciones concluyentes. Esto no garantiza que el token sea seguro.";
+  if(pending.length)text+=" Hay "+pending.length+" comprobación(es) pendientes o con error técnico: reducen la puntuación por falta de datos, pero no prueban una vulnerabilidad.";
+  const tone=critical.length?"high":cautions.length?"warn":score==null||pending.length?"unk":"ok";
+  return `<div class="score-reason ${tone}" aria-label="Explicación de la puntuación"><b>¿Por qué recibe esta puntuación?</b><p>${esc(text)}</p></div>`;
+}
 // Three lines to decide fast: verdict, what matters most, what is missing.
 function summaryBox(checks,score,v,conf){
   const top=checks.filter(c=>c.s==="high").concat(checks.filter(c=>c.s==="warn")).slice(0,2).map(c=>c.t);

@@ -91,3 +91,7 @@ Base revisada: `8c738a8`. CI `40011181162` confirmada en GitHub: unit, dependenc
 ## Carga automática de visualizaciones
 
 Al terminar el análisis se carga el gráfico también en móvil y arranca el mapa de wallets en el resumen, sin clic ni desplazamiento previo. El mapa usa una tarea independiente del escaneo y permite reintentar si falla el explorador. Resultados de mapas de análisis anteriores no reemplazan el reporte actual. Shell `pbs-shell-v13`. Pendiente de revisión de CI y publicación con aprobación.
+
+## Explicación de la puntuación
+
+Franja debajo del marcador y antes de las métricas: «¿Por qué recibe esta puntuación?». Usa hasta tres hallazgos actuales, prioriza riesgo alto sobre precaución y explica los topes existentes de 39/79 sin cambiar el cálculo. Pendientes y errores se identifican como falta de datos, nunca como vulnerabilidades probadas. No evaluable y sin alertas tienen mensajes propios. Shell `pbs-shell-v14`. Pendiente de CI visual y publicación.
