@@ -7,6 +7,13 @@
 <meta property="og:url" content="https://492gueq-gif.github.io/PreBuyScan/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#060b10">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PreBuyScan">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -317,6 +324,22 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 .hero form{grid-template-columns:minmax(0,1fr)}
 .field{min-width:0}
 @media (max-width:420px){.pastebtn{padding:8px 10px}.field{padding-left:10px}}
+
+.stages{list-style:none;margin:0;padding:0 16px 14px;display:grid;gap:8px}
+.stages li{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:.9rem;font-weight:600}
+.stages li i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:.75rem;border:1.5px solid var(--line2)}
+.stages li.st-done{color:var(--ink)}.stages li.st-done i{background:var(--ok);border-color:var(--ok);color:var(--accent-ink)}
+.stages li.st-now{color:var(--ink)}.stages li.st-now i{border-color:var(--accent);border-top-color:transparent;animation:spin 1s linear infinite}
+.ring.pending svg circle:last-child{stroke:var(--line2)}
+.ring.pending .v b{font-size:1.1rem;color:var(--muted)}
+.badge{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--high);color:#fff;font-size:.7rem;font-weight:800;display:inline-grid;place-items:center}
+.tabbar .badge{position:absolute;top:0;right:22%;margin:0}
+[hidden]{display:none !important}
+.topbar .installbtn{display:none !important}
+@media (min-width:1100px){.topbar .installbtn:not([hidden]){display:inline-flex !important}}
+.installrow{position:relative;display:grid;justify-items:center;gap:6px;margin-top:12px}
+.installbtn{border-color:rgba(39,230,163,.45)}
+#alerts .list li .grow small{white-space:normal}
 </style></head><body data-view="home">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -344,6 +367,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
         <button type="submit" class="cta go">Analizar →</button></div>
       <div class="pastehint" role="status"></div>
     </form>
+    <button type="button" class="btn2 sm installbtn" hidden>⤓ Instalar app</button>
     <div class="chainpill" title="Robinhood Chain (chain 4663)"><i class="dot" id="chaindot"></i>Robinhood Chain</div>
   </header>
 
@@ -353,7 +377,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
     <button data-nav="explore"><svg><use href="#i-search"/></svg>Explorar</button>
     <button data-nav="explore" data-kind="trending"><svg><use href="#i-trend"/></svg>Tendencias</button>
     <button data-nav="sim"><svg><use href="#i-calc"/></svg>Simulador</button>
-    <button data-nav="history" data-tab="fav"><svg><use href="#i-star"/></svg>Favoritos</button>
+    <button data-nav="history" data-tab="fav"><svg><use href="#i-star"/></svg>Favoritos<span class="badge" hidden></span></button>
     <button data-nav="history"><svg><use href="#i-clock"/></svg>Historial</button>
     <button data-nav="accuracy"><svg><use href="#i-trend"/></svg>Precisión</button>
     <div class="chaincard"><b><i class="dot"></i>Robinhood Chain</b><span style="color:var(--muted)">L2 · Chain ID 4663</span>
@@ -378,6 +402,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
           <div class="pastehint" role="status"></div>
         </form>
         <div class="trust"><span>Sin wallet</span><span>Sin firmas</span><span>Solo análisis</span></div>
+        <div class="installrow" hidden><button type="button" class="btn2 installbtn">📲 Instalar PreBuyScan en tu celular</button><div class="disc installhint"></div></div>
         <div class="feats"><div class="feat"><b>Venta simulada</b>Compra y venta reales en simulación, sin firmar nada</div><div class="feat"><b>Creador y liquidez</b>Quién puede retirar la liquidez y qué lanzó antes</div><div class="feat"><b>Precisión publicada</b>Medimos cuánto aciertan las señales</div></div>
       </section>
       <div class="tiles home-only mobile-only">
@@ -386,6 +411,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
         <button class="tile" data-nav="sim"><i>🧮</i>Simulador</button>
         <button class="tile" data-nav="history" data-tab="fav"><i>⭐</i>Favoritos</button>
       </div>
+      <section class="card home-only" id="alerts" hidden aria-labelledby="alerts-h"><div class="h3"><span id="alerts-h">Avisos de tus favoritos</span><button type="button" class="btn2 sm" id="alerts-clear">Marcar como vistos</button></div><ul class="list" id="alert-list"></ul></section>
       <div id="out" aria-live="polite"></div>
       <section class="card home-only mobile-only"><div class="h3">Últimos analizados <a href="#" data-nav="history">Ver todos →</a></div><ul class="list" id="recent-m"></ul></section>
       <section class="card acc" id="accuracy" aria-labelledby="acc-h">
@@ -435,7 +461,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
     <button data-nav="explore"><svg><use href="#i-search"/></svg>Explorar</button>
     <button data-nav="analyze" class="center" aria-label="Analizar"><span><svg><use href="#eye"/></svg></span></button>
     <button data-nav="sim"><svg><use href="#i-calc"/></svg>Simulador</button>
-    <button data-nav="history"><svg><use href="#i-clock"/></svg>Historial</button>
+    <button data-nav="history" style="position:relative"><svg><use href="#i-clock"/></svg>Historial<span class="badge" hidden></span></button>
   </nav>
 </div>
 
@@ -516,7 +542,7 @@ function creatorDB(){
   if(!dbPromise)dbPromise=timed("https://raw.githubusercontent.com/492gueq-gif/PreBuyScan/creator-db/creators.json",{},7000).catch(()=>{dbPromise=null;return null;});
   return dbPromise;
 }
-async function inspect(token){
+async function inspect(token,onPartial){
   const dbP=creatorDB();
   const checks=[];const facts={};const notChecked=[];let cat="Mercado";const add=o=>checks.push({c:cat,...o});
   // Market data
@@ -555,6 +581,7 @@ async function inspect(token){
     else if((h24.sells||0)>0)add({s:"ok",t:"Hay ventas de otros usuarios",d:num(h24.sells)+" ventas en 24 h. Que otros vendan no garantiza que tú puedas."});
   }else if(!checks.length){add({s:"high",t:"Sin mercado en DexScreener",d:"No hay pares de este token en Robinhood Chain: no se puede comprar ni vender de forma normal."});}
 
+  if(onPartial&&pair){try{onPartial({pair,facts,pairs:allPairs});}catch(e){}}
   // Sell simulation: buy 0.01 ETH -> approve -> sell everything, in one simulated block
   let simDone=false,simR=null;cat="Venta";step("Simulando compra y venta…");
   if(pair&&window.PBSellSim){
@@ -1122,27 +1149,57 @@ $("#out").addEventListener("click",async e=>{
   const b=e.target.closest("[data-act]");if(!b||!last)return;
   const act=b.dataset.act;
   if(act==="copyaddr"){try{await navigator.clipboard.writeText(last.token);flash("Dirección copiada");}catch(err){prompt("Copia la dirección:",last.token);}return;}
-  if(act==="fav"){const r=lastRes&&lastRes.res;const p=r&&r.pair;const on=toggleFav({t:last.token,name:p&&p.baseToken&&p.baseToken.name||last.name,sym:p&&p.baseToken&&p.baseToken.symbol||"",img:p&&p.info&&safeUrl(p.info.imageUrl),score:last.score,v:last.v[0],at:Date.now()});
+  if(act==="fav"){const r=lastRes&&lastRes.res;const p=r&&r.pair;const on=toggleFav({t:last.token,name:p&&p.baseToken&&p.baseToken.name||last.name,sym:p&&p.baseToken&&p.baseToken.symbol||"",img:p&&p.info&&safeUrl(p.info.imageUrl),score:last.score,v:last.v[0],at:Date.now(),liq:p&&p.liquidity&&p.liquidity.usd||0,price:p?Number(p.priceUsd)||0:0});
     b.setAttribute("aria-pressed",on);b.textContent=(on?"★":"☆")+" Favorito";flash(on?"Guardado en favoritos":"Quitado de favoritos");return;}
   ({copy:copyLink,share:shareIt,img:downloadCard,map:loadMap})[act]?.(b);
 });
 
-function step(m){const b=$("#out .busy span");if(b)b.textContent=m;}
+const STAGES=[["Mercado y gráfico",/^Revisando 0x/],["Venta simulada",/^Simulando/],["Operaciones recientes",/^Revisando operaciones/],["Contrato",/^Revisando el contrato/],["Creador, liquidez, snipers y holders",/^Revisando creador/]];
+let stageIdx=0;
+function paintStages(){const ul=$("#out .stages");if(!ul)return;ul.innerHTML=STAGES.map((st,i)=>`<li class="${i<stageIdx?"st-done":i===stageIdx?"st-now":""}"><i>${i<stageIdx?"✓":""}</i>${st[0]}</li>`).join("");}
+function step(m){const b=$("#out .busy span");if(b)b.textContent=m;const i=STAGES.findIndex(st=>st[1].test(m));if(i>=0){stageIdx=Math.max(stageIdx,i);paintStages();}}
+// Shown as soon as market data arrives; the full report replaces it when every check finishes.
+function renderPartial(token,{pair,facts}){
+  if(stageIdx<1)stageIdx=1;
+  const info=pair.info||{};const img=safeUrl(info.imageUrl),banner=safeUrl(info.header);
+  const name=pair.baseToken&&pair.baseToken.name||short(token),sym=pair.baseToken&&pair.baseToken.symbol||"";
+  const h24=pair.txns&&pair.txns.h24||{},pc=pair.priceChange||{},vol=pair.volume||{};
+  const ageH=pair.pairCreatedAt?(Date.now()-pair.pairCreatedAt)/3.6e6:null;
+  const chg=x=>x==null?"":`<small class="${x>=0?"pos":"neg"}">${x>=0?"+":""}${Number(x).toFixed(1)} %</small>`;
+  const stats=[["Precio (USD)",fmtPrice(Number(pair.priceUsd)),chg(pc.h24)],["Market cap",usd(pair.marketCap??pair.fdv),""],["Liquidez",usd(pair.liquidity&&pair.liquidity.usd),""],["Volumen 24 h",usd(vol.h24),""],["Antigüedad",ageTxt(ageH),""],["Transacciones 24 h",num((h24.buys||0)+(h24.sells||0)),""]];
+  const links=linksOf(pair);
+  $("#out").innerHTML=`<div class="rcard">
+   <div class="rhead"><button class="iconbtn mobile-only" data-nav="home" aria-label="Volver">‹</button><h2>Analizando token</h2><span class="done" style="background:var(--warn-bg);color:var(--warn)">EN CURSO</span></div>
+   ${banner?`<img class="banner" src="${esc(banner)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`:""}
+   <section class="card"><div class="rtop">
+    <div><div class="ident">${img?`<img class="ticon" src="${esc(img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`:`<span class="ticon ph">${esc((sym||"?").slice(0,2))}</span>`}
+      <div style="min-width:0"><h2>${esc(name)}</h2><div class="sym">${esc(sym)}${pair.quoteToken?" / "+esc(pair.quoteToken.symbol):""}</div><span class="addr">${esc(short(token))}</span></div></div>
+      ${tagList(pair,null)}
+      ${links.length?`<div class="links" style="margin-top:10px">${links.map(l=>`<a class="btn2 sm" href="${esc(l.u)}" target="_blank" rel="noopener noreferrer nofollow">${esc(l.t)} ↗</a>`).join("")}</div>`:""}</div>
+    <div class="ring pending" aria-hidden="true">${ringSvg(0,"unk")}<div class="v"><b>Analizando</b></div></div>
+    <div class="grow"><div class="busy" style="padding:0 0 8px"><span>Simulando compra y venta…</span></div><ul class="stages"></ul></div>
+   </div></section>
+   <dl class="stats">${stats.map(st=>`<div class="stat"><dt>${st[0]}</dt><dd>${st[1]}${st[2]}</dd></div>`).join("")}</dl>
+   <section class="card">${chartSection(pair).replace(/^<section>/,"").replace(/<\/section>$/,"")}</section>
+  </div>`;
+  paintStages();
+}
 let running=false;
 async function analyze(raw){
   const token=String(raw||"").trim().toLowerCase();
   document.querySelectorAll(".addr-in").forEach(i=>{i.value=token;});
   setView("result");
   if(!/^0x[0-9a-f]{40}$/.test(token)){$("#out").innerHTML=`<section class="card"><div class="empty">Esa dirección no es válida. Debe empezar con 0x y tener 40 caracteres hexadecimales después.</div></section>`;return;}
-  if(running)return;running=true;
+  if(running)return;running=true;stageIdx=0;
   document.querySelectorAll(".go").forEach(b=>b.disabled=true);
-  $("#out").innerHTML=`<section class="card"><div class="busy"><span>Revisando ${esc(short(token))}…</span></div><div class="tnote">Simulamos la compra y la venta, revisamos el contrato, el creador, la liquidez, los snipers y los holders. Tarda de 20 a 60 segundos.</div></section>`;
+  $("#out").innerHTML=`<section class="card"><div class="busy"><span>Revisando ${esc(short(token))}…</span></div><ul class="stages"></ul><div class="tnote">Simulamos la compra y la venta, revisamos el contrato, el creador, la liquidez, los snipers y los holders. Tarda de 20 a 60 segundos.</div></section>`;
+  paintStages();
   try{
     let code=null;try{code=await rpc("eth_getCode",[token,"latest"]);}catch(e){}
     if(code==="0x"||(code&&code.toLowerCase().startsWith("0xef0100"))){
       step("Es una wallet: armando su perfil…");
       renderProfile(token,await window.PBProfile.build(token,{db:await creatorDB(),progress:step}));
-    }else render(token,await inspect(token));
+    }else{const res=await inspect(token,pp=>{if(running)renderPartial(token,pp);});render(token,res);afterReport(token,res);}
     try{const q=new URLSearchParams(location.search);if(q.get("t")!==token){q.set("t",token);history.replaceState(null,"","?"+q.toString());}}catch(e){}
   }catch(e){$("#out").innerHTML=`<section class="card"><div class="empty">No se pudo completar la revisión. Comprueba tu conexión y vuelve a intentarlo.</div></section>`;}
   finally{running=false;document.querySelectorAll(".go").forEach(b=>b.disabled=false);}
@@ -1174,8 +1231,57 @@ document.querySelectorAll(".addr-in").forEach(inp=>{
 });
 function flashGlobal(m){const o=$("#out");setView("result");o.innerHTML=`<section class="card"><div class="empty">${esc(m)}</div></section>`;}
 
+// ---------- favourites watch (this browser only) ----------
+const alertsList=()=>store.get("pbs_alerts",[]);
+function pushAlert(a){const l=alertsList();if(l.some(x=>x.key===a.key))return;l.unshift(a);store.set("pbs_alerts",l.slice(0,30));}
+function renderAlerts(){
+  const l=alertsList();const box=$("#alerts");
+  document.querySelectorAll(".badge").forEach(b=>{b.textContent=l.length;b.hidden=!l.length;});
+  if(!box)return;box.hidden=!l.length;
+  $("#alert-list").innerHTML=l.map(a=>`<li data-scan="${esc(a.t)}">${avatar(a.img,a.sym||a.name)}<div class="grow"><b>${esc(a.name||short(a.t))}</b><small>${esc(a.msg)} · ${ago(a.at)}</small></div><span class="pill ${a.s}">${a.s==="high"?"Urgente":a.s==="ok"?"Bueno":"Revisar"}</span></li>`).join("");
+}
+$("#alerts-clear").addEventListener("click",e=>{e.stopPropagation();store.set("pbs_alerts",[]);renderAlerts();});
+function afterReport(token,res){
+  // When a favourite is analysed again: note a verdict change, then refresh its snapshot.
+  const f=favs();const i=f.findIndex(x=>x.t===token);if(i<0)return;
+  const old=f[i],v=verdictOf(res.checks)[0],score=scoreOf(res.checks),p=res.pair;
+  if(old.v&&old.v!==v)pushAlert({key:token+":v:"+old.at,t:token,name:old.name,sym:old.sym,img:old.img,at:Date.now(),s:order[v]<order[old.v]?"high":"ok",
+    msg:"El veredicto cambió de «"+lbl[old.v]+"» ("+old.score+") a «"+lbl[v]+"» ("+score+")"});
+  f[i]={...old,score,v,at:Date.now(),liq:p&&p.liquidity&&p.liquidity.usd||old.liq,price:p?Number(p.priceUsd)||old.price:old.price};
+  store.set("pbs_fav",f);renderAlerts();
+}
+async function checkFavourites(){
+  const f=favs().filter(x=>/^0x[0-9a-f]{40}$/.test(x.t)&&x.sym!=="W").slice(0,30);if(!f.length)return;
+  const lastCheck=store.get("pbs_fav_check",0);if(Date.now()-lastCheck<10*60e3)return;store.set("pbs_fav_check",Date.now());
+  let ps=null;try{ps=await timed(DEX+f.map(x=>x.t).join(","),{},10000);}catch(e){return;}
+  const best={};for(const p of ps||[]){const b=(p.baseToken&&p.baseToken.address||"").toLowerCase();if(!best[b]||(p.liquidity&&p.liquidity.usd||0)>(best[b].liquidity&&best[b].liquidity.usd||0))best[b]=p;}
+  for(const x of f){
+    const p=best[x.t];const liq=p?(p.liquidity&&p.liquidity.usd||0):0,price=p?Number(p.priceUsd)||0:0;const base={t:x.t,name:x.name,sym:x.sym,img:x.img,at:Date.now()};
+    if(!p&&x.liq>0)pushAlert({...base,key:x.t+":gone:"+x.at,s:"high",msg:"Ya no tiene mercado en DexScreener"});
+    else if(p&&x.liq>=1000&&liq<1000)pushAlert({...base,key:x.t+":rug:"+x.at,s:"high",msg:"Se quedó sin liquidez (posible rug): de "+usd(Math.round(x.liq))+" a "+usd(Math.round(liq))});
+    else if(p&&x.liq>0&&liq<=x.liq*0.5)pushAlert({...base,key:x.t+":liq:"+x.at,s:"warn",msg:"La liquidez cayó "+Math.round((1-liq/x.liq)*100)+" % desde que lo guardaste"});
+    if(p&&x.price>0&&price<=x.price*0.5)pushAlert({...base,key:x.t+":px:"+x.at,s:"warn",msg:"El precio cayó "+Math.round((1-price/x.price)*100)+" % desde que lo guardaste"});
+    else if(p&&x.price>0&&price>=x.price*2)pushAlert({...base,key:x.t+":up:"+x.at,s:"ok",msg:"El precio subió "+Math.round((price/x.price-1)*100)+" % desde que lo guardaste"});
+  }
+  renderAlerts();
+}
+
+// ---------- install as an app ----------
+let installEvt=null;
+const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function showInstall(on){document.querySelectorAll(".installbtn").forEach(b=>{b.hidden=!on;});const r=$(".installrow");if(r)r.hidden=!on;}
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;if(!standalone())showInstall(true);});
+window.addEventListener("appinstalled",()=>{installEvt=null;showInstall(false);});
+document.querySelectorAll(".installbtn").forEach(b=>b.addEventListener("click",async()=>{
+  if(installEvt){installEvt.prompt();try{await installEvt.userChoice;}catch(e){}installEvt=null;showInstall(false);return;}
+  const h=$(".installhint");if(h)h.textContent=isIOS?"En iPhone: toca Compartir (el cuadro con flecha ⬆) y luego «Agregar a pantalla de inicio».":"Abre el menú del navegador (⋮) y elige «Instalar app» o «Agregar a pantalla de inicio».";
+}));
+if(isIOS&&!standalone())showInstall(true);
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+
 // ---------- start ----------
-renderRecent();
+renderRecent();renderAlerts();checkFavourites();
 if(isDesk())loadRail("new");
 chainTick();setInterval(()=>{if(!document.hidden)chainTick();},30000);
 (()=>{const q=new URLSearchParams(location.search).get("t")||location.hash.slice(1);if(q&&/^0x[0-9a-fA-F]{40}$/.test(q.trim()))analyze(q.trim());})();
