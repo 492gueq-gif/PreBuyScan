@@ -440,8 +440,8 @@ function chartSection(pair,defer){
   const pool=String(pair.pairAddress).toLowerCase();
   if(!/^0x[0-9a-f]{40}([0-9a-f]{24})?$/.test(pool))return "";
   const u="https://www.geckoterminal.com/robinhood/pools/"+pool+"?embed=1&info=0&swaps=0&grayscale=0&light_chart="+(dark?"0":"1");
-  if(defer==null)defer=matchMedia("(max-width: 760px)").matches;
-  const frame=`<iframe src="${esc(u)}" loading="lazy" title="Gráfico de precio en GeckoTerminal" referrerpolicy="no-referrer" allow="clipboard-write"></iframe>`;
+  if(defer==null)defer=false;
+  const frame=`<iframe src="${esc(u)}" loading="eager" title="Gráfico de precio en GeckoTerminal" referrerpolicy="no-referrer" allow="clipboard-write"></iframe>`;
   const body=defer==="scan"?`<div class="chart chart-wait"><span>El gráfico se carga al terminar el análisis.</span></div>`
     :defer?`<div class="chart chart-wait"><button type="button" class="btn2" data-chart="${esc(u)}">Ver gráfico</button></div>`:`<div class="chart">${frame}${SHIELD}</div>`;
   return `<section><h3>Gráfico</h3>${body}
@@ -509,7 +509,7 @@ async function makeCards(btn){
   try{
     await ensureQR();
     shareSet=await window.PBShare.makeAll(token,lastRes.res,shareCtx());
-    if(!lastRes||lastRes.token!==token)return;
+    if(!current())return;
     const im=(c,alt)=>`<img src="${c.toDataURL("image/png")}" alt="${esc(alt)}" loading="lazy">`;
     const id=shareSet.link.id;
     box.innerHTML=`<div class="sc-grid">
@@ -565,19 +565,28 @@ function mapLoadingHtml(){let dots="",lines="";const pts=[];for(let k=0;k<16;k++
   pts.forEach((p,k)=>{if(k)lines+=`<line class="ml-line" x1="${p[0]}%" y1="${p[1]}%" x2="${pts[(k*7)%k][0]}%" y2="${pts[(k*7)%k][1]}%" stroke="#2a6f96" stroke-opacity=".45"/>`;
     dots+=`<circle class="ml-dot" cx="${p[0]}%" cy="${p[1]}%" r="${3+(k%4)*2}" fill="${window.PBMap?window.PBMap.PALETTE[k%8]:"#27e6a3"}" fill-opacity=".5" style="animation-delay:${(k*0.17).toFixed(2)}s"/>`;});
   return `<div class="maploading"><svg aria-hidden="true">${lines}${dots}</svg><span id="mapmsg">Armando el grafo de wallets (hasta 90 s)…</span></div>`;}
-let mapObs=null;
-function autoMap(){if(mapObs){mapObs.disconnect();mapObs=null;}const sec=$("#out .mapsec");if(!sec||!("IntersectionObserver" in window))return;
-  mapObs=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)){mapObs.disconnect();mapObs=null;const b=sec.querySelector("[data-act=map]");if(b&&!b.disabled)loadMap(b);}},{rootMargin:"200px"});mapObs.observe(sec);}
+// Start only after the final report is painted; never during inspect().
+function autoMap(){
+  const box=$("#mapout");
+  setTimeout(()=>{
+    if(!box||!box.isConnected||$("#mapout")!==box)return;
+    const btn=box.closest(".mapsec").querySelector("[data-act=map]");
+    if(btn&&!btn.disabled)loadMap(btn);
+  },0);
+}
 async function loadMap(btn){
-  if(!lastRes)return;const {token,res}=lastRes;const cr=res.cr||{};const box=$("#mapout");
+  if(!lastRes||!btn||btn.disabled)return;const {token,res}=lastRes;const cr=res.cr||{};const box=$("#mapout");
+  if(!box||!box.isConnected)return;
+  const current=()=>box.isConnected&&$("#mapout")===box&&lastRes&&lastRes.res===res;
   btn.disabled=true;btn.hidden=true;box.innerHTML=mapLoadingHtml();
   try{
     if(!window.d3)await loadScript("https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js");
+    if(!current())return;
     const g=await window.PBMap.build(token,{pairs:res.pairs,creator:cr.creator&&cr.creator.deployer,creatorFunder:cr.rep&&cr.rep.funder,snipers:cr.snipers},
-      {progress:m=>{const e=$("#mapmsg");if(e)e.textContent=m;}});
-    if(!lastRes||lastRes.token!==token)return;
+      {progress:m=>{const e=box.querySelector("#mapmsg");if(current()&&e)e.textContent=m;}});
+    if(!current())return;
     renderMap(g,cr);btn.remove();
-  }catch(e){box.innerHTML=`<div class="busy">No se pudo armar el mapa: el explorador no respondió. Prueba de nuevo en un minuto.</div>`;btn.disabled=false;btn.hidden=false;}
+  }catch(e){if(!current())return;box.innerHTML=`<div class="busy">No se pudo armar el mapa: el explorador no respondió. Prueba de nuevo en un minuto.</div>`;btn.disabled=false;btn.hidden=false;}
 }
 function renderMap(g,cr){
   const box=$("#mapout");const P=window.PBMap.PALETTE;const hasCreator=!!(cr&&cr.creator);
@@ -917,10 +926,11 @@ function render(token,res){
      <section class="card a-info"><h3>Información del contrato <a href="https://robinhoodchain.blockscout.com/token/${esc(token)}" target="_blank" rel="noopener">Ver en explorador →</a></h3><div class="kv">${infoRows.map(r=>`<div>${r[0]}</div><div>${r[1]}</div>`).join("")}</div></section>
     </div>
     <div class="pane" data-pane="actividad">${winners}${bigs}${snip}${launches}${!winners&&!bigs&&!snip&&!launches?`<section class="card a-wide"><div class="empty">Sin actividad para mostrar.</div></section>`:""}</div>
-    <div class="pane" data-pane="holders">${holders}
+    <div class="pane" data-pane="holders">${holders}</div>
+    <div class="pane on" data-pane="resumen">
      <section class="card mapsec a-wide a-map"><h3>Mapa de wallets <span class="disc">grafo de entidades · en vivo</span></h3>
       <div class="mapintro"><p>Pasa el cursor o el dedo sobre el mapa para verlo en 3D. Burbujas = mayores holders. Las une quién les dio su primer ETH o si se pasaron el token. Un grupo de color suele ser una sola persona con varias wallets.</p>
-      <button class="btn2" type="button" data-act="map">Ver mapa de wallets</button></div><div id="mapout"></div></section></div>
+      <button class="btn2" type="button" data-act="map">Reintentar mapa de wallets</button></div><div id="mapout"></div></section></div>
    </div>
    <div class="note">${notChecked.length?"No revisado: "+esc(notChecked.join("; "))+". ":""}Liquidez bloqueada en contratos de terceros: no se verifica hasta cuándo.<br>Revisado ${res.block?"en el bloque "+res.block.toLocaleString("es-MX")+" · ":""}${esc(new Date(res.scannedAt||Date.now()).toLocaleString("es-MX"))} · algoritmo ${esc(res.algo||ALGO_VERSION)} · <a href="#metodo" data-nav="method">cómo calculamos</a>.</div>
   </div>`;

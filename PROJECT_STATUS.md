@@ -87,3 +87,7 @@ Base revisada: `8c738a8`. CI `40011181162` confirmada en GitHub: unit, dependenc
 - Venta no simulada, historial incompleto y liquidez no verificada son datos pendientes, no vulnerabilidades confirmadas.
 - Pendientes: completar la base de creadores desde génesis; ABI no estándar de lockers; traducciones largas; decidir con Mario la actualización del escáner de GEMS_V1 antes de recolectar datos.
 - Antes de publicar: ejecutar la CI del cierre, verificar el caso inglés `_english`, completar descripción del PR y solicitar autorización específica de publicación.
+
+## Carga automática de visualizaciones
+
+Al terminar el análisis se carga el gráfico también en móvil y arranca el mapa de wallets en el resumen, sin clic ni desplazamiento previo. El mapa usa una tarea independiente del escaneo y permite reintentar si falla el explorador. Resultados de mapas de análisis anteriores no reemplazan el reporte actual. Shell `pbs-shell-v13`. Pendiente de revisión de CI y publicación con aprobación.
