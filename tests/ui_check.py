@@ -197,8 +197,14 @@ def main():
                     pg.evaluate("""() => {setView('result'); render('""" + TOKEN + """',{
                       checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'}],
                       facts:{name:'English fixture'},notChecked:[],cr:{},pair:null,pairs:[]});}""")
-                    pg.wait_for_timeout(500)
-                    check("report_english_%d" % w, "Summary" in pg.inner_text("#out") and "Caution" in pg.inner_text("#out"))
+                    # Translation is asynchronous (MutationObserver); wait for its actual result.
+                    try:
+                        pg.wait_for_function("document.querySelector('#out').innerText.includes('Summary') && document.querySelector('#out').innerText.includes('Caution')", timeout=10000)
+                    except Exception:
+                        pass  # record a failed assertion with the rendered text below
+                    english_text=pg.inner_text("#out")
+                    check("report_english_%d" % w, "Summary" in english_text and "Caution" in english_text, english_text[:1600])
+                    shot(pg,"report_english_%d" % w)
                     check("report_no_errors_%d" % w, not errs, errs[:5])
                     ctx.close()
 
