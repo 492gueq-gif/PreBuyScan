@@ -1,0 +1,207 @@
+{
+ "kind": "MOCKED_FIXTURES",
+ "passed": 33,
+ "failed": [
+  "home_mobile_no_overflow"
+ ],
+ "results": {
+  "home_desktop_no_errors": {
+   "ok": true,
+   "detail": []
+  },
+  "home_desktop_boot_removed": {
+   "ok": true,
+   "detail": null
+  },
+  "home_desktop_no_overflow": {
+   "ok": true,
+   "detail": {
+    "scrollWidth": 1440,
+    "wide": []
+   }
+  },
+  "home_desktop_vector_logo": {
+   "ok": true,
+   "detail": null
+  },
+  "visual_home_desktop": {
+   "ok": true,
+   "detail": "no baseline yet (candidate saved)"
+  },
+  "a11y_home_desktop_all": [
+   {
+    "id": "heading-order",
+    "impact": "moderate",
+    "nodes": 1,
+    "targets": [
+     "#acc-h :: Heading order invalid"
+    ]
+   }
+  ],
+  "a11y_home_desktop_no_critical": {
+   "ok": true,
+   "detail": []
+  },
+  "home_mobile_no_errors": {
+   "ok": true,
+   "detail": []
+  },
+  "home_mobile_boot_removed": {
+   "ok": true,
+   "detail": null
+  },
+  "home_mobile_no_overflow": {
+   "ok": false,
+   "detail": {
+    "scrollWidth": 398,
+    "wide": [
+     "HEADER.topbar:398",
+     "MAIN.:398",
+     "DIV.globe:453"
+    ]
+   }
+  },
+  "home_mobile_vector_logo": {
+   "ok": true,
+   "detail": null
+  },
+  "visual_home_mobile": {
+   "ok": true,
+   "detail": "no baseline yet (candidate saved)"
+  },
+  "a11y_home_mobile_all": [
+   {
+    "id": "heading-order",
+    "impact": "moderate",
+    "nodes": 1,
+    "targets": [
+     "#acc-h :: Heading order invalid"
+    ]
+   }
+  ],
+  "a11y_home_mobile_no_critical": {
+   "ok": true,
+   "detail": []
+  },
+  "conn_error_badge": {
+   "ok": true,
+   "detail": null
+  },
+  "conn_error_not_evaluable": {
+   "ok": true,
+   "detail": null
+  },
+  "conn_error_technical_pills": {
+   "ok": true,
+   "detail": null
+  },
+  "conn_error_no_history_score": {
+   "ok": true,
+   "detail": null
+  },
+  "conn_error_no_share_card": {
+   "ok": true,
+   "detail": null
+  },
+  "conn_error_no_errors": {
+   "ok": true,
+   "detail": []
+  },
+  "visual_conn_error": {
+   "ok": true,
+   "detail": "no baseline yet (candidate saved)"
+  },
+  "a11y_result_conn_error_all": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "nodes": 4,
+    "targets": [
+     ".grp:nth-child(2) > ol > li > .ck > .src :: Element has insufficient color contrast of 3.74 (foreground color: #5f7482, background col",
+     ".grp:nth-child(3) > ol > li > .ck > .src :: Element has insufficient color contrast of 3.74 (foreground color: #5f7482, background col",
+     ".grp:nth-child(4) > ol > li > .ck > .src :: Element has insufficient color contrast of 3.74 (foreground color: #5f7482, background col",
+     ".grp:nth-child(5) > ol > li > .ck > .src :: Element has insufficient color contrast of 3.74 (foreground color: #5f7482, background col"
+    ]
+   },
+   {
+    "id": "page-has-heading-one",
+    "impact": "moderate",
+    "nodes": 1,
+    "targets": [
+     "html :: "
+    ]
+   }
+  ],
+  "a11y_result_conn_error_no_critical": {
+   "ok": true,
+   "detail": []
+  },
+  "alpha_default_filters_order": {
+   "ok": true,
+   "detail": [
+    "FRESH",
+    "MIDDAY",
+    "WASH",
+    "TRAP"
+   ]
+  },
+  "alpha_activity_badges": {
+   "ok": true,
+   "detail": null
+  },
+  "alpha_high_risk_last_unfavourable": {
+   "ok": true,
+   "detail": "4\nTR\nTRAP ⚡ <6 h\n$40,000 liq. · $9,000 vol 1 h · 50 tx (50 compras / 0 ventas) · 4.0 h\n$0.0123\nActividad 53\nRiesgo: Ries"
+  },
+  "alpha_source_and_time": {
+   "ok": true,
+   "detail": null
+  },
+  "alpha_filter_editable": {
+   "ok": true,
+   "detail": 5
+  },
+  "visual_alpha": {
+   "ok": true,
+   "detail": "no baseline yet (candidate saved)"
+  },
+  "alpha_no_errors": {
+   "ok": true,
+   "detail": []
+  },
+  "cards_sizes": {
+   "ok": true,
+   "detail": null
+  },
+  "cards_qr_drawn": {
+   "ok": true,
+   "detail": {
+    "modules": 69,
+    "size": 231
+   }
+  },
+  "cards_error_state_kept": {
+   "ok": true,
+   "detail": [
+    "SEÑAL SOSPECHOSA",
+    "ERROR TÉCNICO"
+   ]
+  },
+  "qr_decodes_to_link": {
+   "ok": true,
+   "detail": 397
+  },
+  "verify_ok": {
+   "ok": true,
+   "detail": null
+  },
+  "verify_tampered_rejected": {
+   "ok": true,
+   "detail": null
+  },
+  "cards_no_errors": {
+   "ok": true,
+   "detail": []
+  }
+ }
+}
