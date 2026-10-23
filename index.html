@@ -504,6 +504,13 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
   .a-chart .chart iframe{flex:1;min-height:420px}
 }
 
+/* Independent desktop columns avoid empty grid rows between short detail cards. */
+@media (min-width:1100px){
+  .report-main,.report-details{display:flex;flex-direction:column;gap:14px;min-width:0;align-self:start;order:2}
+  .report-main{grid-column:1}.report-details{grid-column:2}
+  .report-main>.card,.report-details>.card{width:100%;flex:0 0 auto}
+}
+
 /* ---------- animated final score ring ---------- */
 .ring.live{--c:var(--unk);--tx:0deg;--ty:0deg;width:200px;height:200px;border-radius:50%;cursor:pointer;outline:none;
   transform:perspective(500px) rotateX(var(--tx)) rotateY(var(--ty));transition:transform .15s ease-out}
@@ -739,6 +746,6 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
 <script src="profile.js"></script>
 <script src="share.js"></script>
 <script src="live.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=17"></script>
 <script src="i18n.js"></script>
 </body></html>
