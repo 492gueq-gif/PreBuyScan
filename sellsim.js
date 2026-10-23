@@ -8,6 +8,10 @@
 (function (root) {
   "use strict";
   const RPC = "https://rpc.mainnet.chain.robinhood.com";
+  // Public fallbacks with CORS and eth_simulateV1 (checked from a browser on 23 oct 2026). Their log
+  // queries are limited (recent blocks / small ranges), so they serve calls and simulations.
+  const FALLBACKS = ["https://robinhood-rpc.publicnode.com", "https://robinhood.drpc.org", "https://robinhood.daybreak-rpc.network"];
+  const usage = { primary: 0, fallback: {} };          // per-analysis counters, reset by the page
   const WETH = "0x0bd7d308f8e1639fab988df18a8011f41eacad73";
   const V2_ROUTER = "0x89e5db8b5aa49aa85ac63f691524311aeb649eba";
   const V3_ROUTER = "0xcaf681a66d020601342297493863e78c959e5cb2";      // SwapRouter02
@@ -44,15 +48,26 @@
   let rpcId = 0, lastCall = 0;
   const pause = ms => new Promise(s => setTimeout(s, ms));
   async function rpc(method, params, opt = {}) {
+    try { const r = await rpcAt(opt.rpc || RPC, method, params, opt, 3); usage.primary++; return r; }
+    catch (e) {
+      if (e.rpc || opt.rpc || opt.noFallback) throw e;  // a real JSON-RPC answer is not a transport failure
+      for (const url of FALLBACKS) {
+        try { const r = await rpcAt(url, method, params, opt, 1); const h = new URL(url).host; usage.fallback[h] = (usage.fallback[h] || 0) + 1; return r; }
+        catch (e2) { /* next fallback */ }
+      }
+      throw e;
+    }
+  }
+  async function rpcAt(url, method, params, opt, tries) {
     let lastErr;
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < tries; attempt++) {
       // Space calls out: the public RPC rate-limits bursts, and in a browser a 429 without
       // CORS headers surfaces as a generic network error ("Failed to fetch").
       const wait = 250 - (Date.now() - lastCall); if (wait > 0) await pause(wait); lastCall = Date.now();
       const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
       const t = ctl ? setTimeout(() => ctl.abort(), opt.timeout || 15000) : null;
       try {
-        const r = await fetch(opt.rpc || RPC, { method: "POST", headers: { "Content-Type": "application/json" },
+        const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ jsonrpc: "2.0", id: ++rpcId, method, params }), signal: ctl ? ctl.signal : undefined });
         if (r.status === 429) { await new Promise(s => setTimeout(s, 800 * (attempt + 1))); continue; }
         if (!r.ok) throw new Error("HTTP " + r.status);
@@ -182,12 +197,26 @@
         sellCalls = amt => [...permit(token), tx(router, v4Execute(key, !buyZeroForOne, amt, token, other))];
       } else { out.status = "unsupported"; out.detail = "Tipo de pool no reconocido."; return out; }
 
+      // Both simulations run on the SAME block: on a busy token the price moves between two calls to
+      // "latest", the second buy then returns fewer tokens and selling the first amount fails (a false
+      // "sell failed"; seen on UHI, 23 oct 2026).
+      const pin = o.block ? "0x" + BigInt(o.block).toString(16) : await rpc("eth_blockNumber", [], o);
+      out.block = Number(BigInt(pin));
       // First simulation: the buy, to learn the exact amount received.
       const base = { [ACTOR]: { balance: "0x" + (BUY * 10n).toString(16) } };
-      const sim = async cs => {
-        const r = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: base, calls: cs }], validation: false }, "latest"], o);
-        if (!Array.isArray(r) || !r[0] || !Array.isArray(r[0].calls)) throw new Error("invalid simulation");
-        return r[0].calls;
+      // o.delaySec: the sell (everything after `split`) runs in a second simulated block that many
+      // seconds later, to detect time-based locks (sell only right after buying, or only after a cooldown).
+      let later = null;
+      if (o.delaySec) {
+        const lb = await rpc("eth_getBlockByNumber", [pin, false], o);
+        later = { time: "0x" + (BigInt(lb.timestamp) + BigInt(o.delaySec)).toString(16) };   // block number: next one, assigned by the node
+      }
+      const sim = async (cs, split) => {
+        const blocks = later && split ? [{ stateOverrides: base, calls: cs.slice(0, split) }, { blockOverrides: later, calls: cs.slice(split) }]
+          : [{ stateOverrides: base, calls: cs }];
+        const r = await rpc("eth_simulateV1", [{ blockStateCalls: blocks, validation: false }, pin], o);
+        if (!Array.isArray(r) || r.length !== blocks.length || r.some(b => !b || !Array.isArray(b.calls))) throw new Error("invalid simulation");
+        return r.reduce((t, b) => t.concat(b.calls), []);
       };
       const first = await sim(calls);
       for (const k of ["wrap", "wapprove", "wpermit"]) if (k in idx && first[idx[k]].status !== "0x1") { out.status = "unknown"; out.detail = "Preparación de WETH simulada fallida."; return out; }
@@ -204,16 +233,24 @@
       out.boughtRaw = got.toString();
       // Second simulation: buy -> measure -> approve -> sell all -> measure.
       const all = calls.slice(); const mi = all.length; all.push(measure.before);
-      const sc = sellCalls(got); const si = all.length + sc.length - 1; all.push(...sc);
+      const bs = all.length; all.push(tx(token, balanceOf(token, ACTOR)));     // balance right before selling (debug/drift)
+      const sellAmt = o.sellBps ? got * BigInt(o.sellBps) / 10000n : got;
+      const sc = sellCalls(sellAmt); const si = all.length + sc.length - 1; all.push(...sc);
       const ma = all.length; all.push(measure.asset === "ETH" ? ethBalance() : tx(WETH, balanceOf(WETH, ACTOR)));
       const tAfter = all.length; all.push(tx(token, balanceOf(token, ACTOR)));
-      const r = await sim(all);
+      const r = await sim(all, mi);
       for (let i = mi + 1; i < si; i++) {          // approvals before the sell
         if (!r[i] || r[i].status !== "0x1") { out.status = "unknown"; out.detail = "La aprobación simulada falló."; return out; }
       }
+      out.balBeforeSell = r[bs] && r[bs].status === "0x1" ? uint(r[bs].returnData).toString() : null;
       out.sellGas = r[si] && r[si].gasUsed ? Number(BigInt(r[si].gasUsed)) : null;
       if (r[si] && r[si].status !== "0x1") out.revert = (r[si].error && (r[si].error.data || r[si].error.message)) || r[si].returnData || null;
-      if (r[si].status !== "0x1") { out.status = "sell_failed"; out.detail = "La compra funcionó pero la venta falló: posible honeypot."; return out; }
+      if (o.delaySec) out.delaySec = o.delaySec;
+      if (r[si].status !== "0x1") {
+        // Guard: if the balance before selling is below the amount sold, the failure is ours, not the token's.
+        if (out.balBeforeSell != null && BigInt(out.balBeforeSell) < sellAmt) { out.status = "unknown"; out.detail = "La simulación no fue consistente (el saldo cambió entre llamadas)."; return out; }
+        out.status = "sell_failed"; out.detail = "La compra funcionó pero la venta falló: posible honeypot."; return out;
+      }
       if (r[mi].status !== "0x1" || r[ma].status !== "0x1") { out.status = "unknown"; out.detail = "No se pudo medir lo recibido."; return out; }
       const received = uint(r[ma].returnData) - uint(r[mi].returnData);
       const left = uint(decodeOrNull(r[tAfter]));
@@ -230,6 +267,6 @@
     }
   }
 
-  const api = { simulate, v4Key, _rpc: rpc, _abi: { abi, encBytes, encBytesArray, word, addr, v4Execute }, BUY_WEI };
+  const api = { simulate, v4Key, _rpc: rpc, RPC, FALLBACKS, usage, resetUsage: () => { usage.primary = 0; for (const k in usage.fallback) delete usage.fallback[k]; }, _abi: { abi, encBytes, encBytesArray, word, addr, v4Execute }, BUY_WEI };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.PBSellSim = api;
 })(typeof window !== "undefined" ? window : globalThis);

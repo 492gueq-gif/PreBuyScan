@@ -235,7 +235,7 @@
     const lf = fit(g, "492gueq-gif.github.io/PreBuyScan/?t=" + rep.a.slice(0, 12) + "…", 900, 32, 800, FONT_B, 18); txt(g, "↗ " + lf.t, 74, 832, lf.s, 800, C.teal, FONT_B);
     box(g, 1066, 784, 488, 74, 18, "rgba(11,23,36,.85)", C.line, 0, 2);
     const df = fit(g, when(rep.ts), 450, 28, 700, FONT_B, 16); txt(g, df.t, 1310, 830, df.s, 700, C.white, FONT_B, "center");
-    txt(g, "Reporte " + meta.id + " · algoritmo " + rep.al + (rep.b ? " · bloque " + rep.b.toLocaleString("es-MX") : "") + " · Análisis informativo. No garantiza seguridad ni rentabilidad.", 56, 880, 17, 600, C.gray, FONT_B);
+    txt(g, "Reporte " + meta.id + " · SHA-256 " + meta.hash.slice(0, 16) + "… · " + rep.al + (rep.b ? " · bloque " + rep.b.toLocaleString("es-MX") : "") + " · Informativo: no garantiza seguridad ni rentabilidad.", 56, 880, 17, 600, C.gray, FONT_B);
     return c;
   }
   async function drawTelegram(rep, meta) {
@@ -258,7 +258,7 @@
     const af = fit(g, addr, 940, 30, 500, FONT_M, 18); txt(g, af.t, 540, 957, af.s, 500, C.white, FONT_M, "center");
     const lf = fit(g, "↗ 492gueq-gif.github.io/PreBuyScan/?t=" + rep.a.slice(0, 10) + "…", 600, 24, 800, FONT_B, 16); txt(g, lf.t, 52, 1018, lf.s, 800, C.teal, FONT_B);
     const df = fit(g, when(rep.ts), 380, 22, 700, FONT_B, 14); txt(g, df.t, 1028, 1018, df.s, 700, C.white, FONT_B, "right");
-    txt(g, "Reporte " + meta.id + " · " + rep.al + " · Análisis informativo. No garantiza seguridad ni rentabilidad.", 52, 1052, 15, 600, C.gray, FONT_B);
+    txt(g, "Reporte " + meta.id + " · SHA-256 " + meta.hash.slice(0, 16) + "… · " + rep.al + " · Informativo: no garantiza seguridad ni rentabilidad.", 52, 1052, 15, 600, C.gray, FONT_B);
     return c;
   }
   function drawQR(g, text, x, y, size) {

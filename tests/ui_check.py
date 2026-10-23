@@ -66,7 +66,8 @@ def axe(pg, tag):
     if not AXE.exists():
         check("a11y_" + tag, False, "axe-core not installed")
         return
-    pg.add_script_tag(path=str(AXE))
+    # The page's CSP forbids inline scripts (as it should); inject axe through the DevTools protocol instead.
+    pg.evaluate(AXE.read_text() + "\n;void 0")
     res = pg.evaluate("async()=>{const r=await axe.run(document,{resultTypes:['violations']});return r.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.length,targets:v.nodes.slice(0,6).map(n=>n.target.join(' ')+' :: '+(n.any[0]&&n.any[0].message||'').slice(0,90))}))}")
     critical = [v for v in res if v["impact"] == "critical"]
     results["a11y_" + tag + "_all"] = res
@@ -161,6 +162,75 @@ def main():
                 check("alpha_no_errors", not errs, errs[:5])
                 ctx.close()
 
+            def report_visuals_block():
+                # Exercise the actual report DOM at phone and desktop widths, without live APIs.
+                for w, h in ((360, 780), (1440, 900)):
+                    ctx, pg, errs = page(b, w, h, mode="blocked")
+                    pg.goto(BASE)
+                    pg.wait_for_selector("#boot", state="detached")
+                    pg.evaluate("""() => {
+                      window.mapBuilds=0; window.d3={};
+                      const originalFetch=PBNet.fetchJSON;
+                      PBNet.fetchJSON=(url,...args)=>url.endsWith('/trades')?Promise.resolve({data:[
+                        {id:'t1',attributes:{from_token_address:'0x'+'22'.repeat(20),to_token_address:'""" + TOKEN + """',tx_from_address:'0x'+'33'.repeat(20),volume_in_usd:'25',price_to_in_usd:'0.025',block_timestamp:'2026-10-23T00:00:00Z'}},
+                        {id:'t2',attributes:{from_token_address:'""" + TOKEN + """',to_token_address:'0x'+'22'.repeat(20),tx_from_address:'0x'+'33'.repeat(20),volume_in_usd:'100',price_from_in_usd:'0.03',block_timestamp:'2026-10-23T00:01:00Z'}}
+                      ]}):originalFetch(url,...args);
+                      PBMap.build=async()=>{window.mapBuilds++;return {nodes:[],groups:[],partial:{},creatorPct:0,holdersShown:0}};
+                      PBMap.draw=el=>{el.textContent='Fixture map ready'};
+                      window.reportPair={pairAddress:'0x'+'12'.repeat(20),baseToken:{name:'Fixture token',symbol:'FIX'},quoteToken:{symbol:'ETH'},priceUsd:'1',liquidity:{usd:20000}};
+                      setView('result');renderPartial('""" + TOKEN + """',{pair:reportPair,facts:{}});
+                    }""")
+                    check("scan_no_chart_%d" % w, pg.locator("#out iframe").count() == 0)
+                    check("scan_no_map_%d" % w, pg.evaluate("mapBuilds") == 0)
+                    pg.evaluate("""() => render('""" + TOKEN + """',{
+                      checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'},
+                        {s:'high',t:'Concentración crítica',d:'fixture',c:'Holders'},
+                        {s:'unk',t:'Venta no simulada',d:'fixture',c:'Venta'}],
+                      facts:{name:'Fixture token'},notChecked:[],cr:{},pair:reportPair,pairs:[reportPair],
+                      block:123,scannedAt:Date.parse('2026-10-23T00:00:00Z')})""")
+                    pg.wait_for_function("mapBuilds===1 && document.querySelector('#mapsvg')?.textContent==='Fixture map ready'")
+                    reason=pg.inner_text(".score-reason")
+                    check("reason_priority_%d" % w, reason.index("Concentración crítica") < reason.index("Liquidez baja"))
+                    check("reason_pending_not_risk_%d" % w, "no prueban una vulnerabilidad" in reason and "Venta no simulada" not in reason)
+                    check("reason_below_marker_%d" % w, pg.evaluate("document.querySelector('.score-reason').getBoundingClientRect().top >= document.querySelector('.rtop').getBoundingClientRect().bottom"))
+                    check("report_chart_auto_%d" % w, pg.locator("#out .chart iframe[loading=eager]").count() == 1)
+                    check("report_map_auto_%d" % w, pg.locator("#mapsvg").is_visible() and pg.evaluate("mapBuilds") == 1)
+                    check("report_no_overflow_%d" % w, pg.evaluate("document.documentElement.scrollWidth") <= w)
+                    pg.wait_for_selector('#market-tape tbody tr.tape-sell')
+                    check("tape_auto_%d" % w, pg.locator('#market-tape tbody tr').count()==2)
+                    pg.select_option('.market-side','sell')
+                    check("tape_side_filter_%d" % w, pg.locator('#market-tape tbody tr').count()==1 and 'Venta' in pg.inner_text('#market-tape tbody'))
+                    pg.fill('.market-min','200')
+                    check("tape_min_filter_%d" % w, 'Sin resultados' in pg.inner_text('#market-tape tbody'))
+                    pg.click('.market-pause')
+                    check("tape_pause_%d" % w, pg.locator('.market-pause').get_attribute('aria-pressed')=='true')
+                    pg.click('[data-market-tab=traders]')
+                    check("tape_traders_%d" % w, '25.00' in pg.inner_text('#market-tape tbody') and '100.00' in pg.inner_text('#market-tape tbody'))
+                    pg.click('[data-market-tab=holders]')
+                    check("tape_holders_unknown_%d" % w, 'Holders no disponibles' in pg.inner_text('#market-tape tbody'))
+                    pg.click('[data-market-tab=trades]')
+                    pg.fill('.market-min','0')
+                    pg.select_option('.market-side','all')
+                    check("tape_no_overflow_%d" % w, pg.evaluate("document.documentElement.scrollWidth")<=w)
+                    shot(pg,"report_visuals_%d" % w)
+                    # Exercise English mode on the rendered report, including async translation.
+                    ctx.add_init_script("localStorage.setItem('pbs_lang',JSON.stringify('en'))")
+                    pg.reload()
+                    pg.wait_for_function("window.PBI18N && PBI18N.lang==='en'")
+                    pg.evaluate("""() => {setView('result'); render('""" + TOKEN + """',{
+                      checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'}],
+                      facts:{name:'English fixture'},notChecked:[],cr:{},pair:null,pairs:[]});}""")
+                    # Translation is asynchronous (MutationObserver); wait for its actual result.
+                    try:
+                        pg.wait_for_function("document.querySelector('#out').innerText.toLowerCase().includes('summary') && document.querySelector('#out').innerText.toLowerCase().includes('caution')", timeout=10000)
+                    except Exception:
+                        pass  # record a failed assertion with the rendered text below
+                    english_text=pg.inner_text("#out")
+                    check("report_english_%d" % w, "summary" in english_text.lower() and "caution" in english_text.lower(), english_text[:1600])
+                    shot(pg,"report_english_%d" % w)
+                    check("report_no_errors_%d" % w, not errs, errs[:5])
+                    ctx.close()
+
             def cards_block():
                 # 10/11. share cards from a fixture analysis + QR decode + verification page
                 ctx, pg, errs = page(b, 1440, 900)
@@ -195,7 +265,7 @@ def main():
                 check("cards_no_errors", not errs, errs[:5])
                 ctx.close()
 
-            for n, fn in (("home", home_block), ("conn_error", conn_error_block), ("alpha", alpha_block), ("cards", cards_block)):
+            for n, fn in (("home", home_block), ("conn_error", conn_error_block), ("alpha", alpha_block), ("cards", cards_block), ("report_visuals", report_visuals_block)):
                 guarded(n, fn)
             b.close()
     finally:

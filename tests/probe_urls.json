@@ -1,0 +1,101 @@
+{
+ "uhi_holders": "https://robinhoodchain.blockscout.com/api/v2/tokens/0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94/holders",
+ "uhi_token": "https://robinhoodchain.blockscout.com/api/v2/tokens/0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94",
+ "uhi_sc": "https://robinhoodchain.blockscout.com/api/v2/smart-contracts/0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94",
+ "uhi_addr": "https://robinhoodchain.blockscout.com/api/v2/addresses/0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94",
+ "pons_sc": "https://robinhoodchain.blockscout.com/api/v2/smart-contracts/0x39dbed3a2bd333467115de45665cc57f813c4571",
+ "pons_addr": "https://robinhoodchain.blockscout.com/api/v2/addresses/0x39dbed3a2bd333467115de45665cc57f813c4571",
+ "paper_addr": "https://robinhoodchain.blockscout.com/api/v2/addresses/0x179b22557cd511124535e41cc0dacf845b650b07",
+ "paper_dex": "https://api.dexscreener.com/tokens/v1/robinhood/0x179b22557cd511124535e41cc0dacf845b650b07",
+ "paper_gt": "https://api.geckoterminal.com/api/v2/networks/robinhood/tokens/0x179b22557cd511124535e41cc0dacf845b650b07/pools",
+ "rpc_cors": {
+  "url": "https://rpc.mainnet.chain.robinhood.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 1,
+   "method": "eth_blockNumber",
+   "params": []
+  }
+ },
+ "pons_code": {
+  "url": "https://rpc.mainnet.chain.robinhood.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 1,
+   "method": "eth_getCode",
+   "params": [
+    "0x39dbed3a2bd333467115de45665cc57f813c4571",
+    "latest"
+   ]
+  }
+ },
+ "uhi_code": {
+  "url": "https://rpc.mainnet.chain.robinhood.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 1,
+   "method": "eth_getCode",
+   "params": [
+    "0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94",
+    "latest"
+   ]
+  }
+ },
+ "pons_impl": {
+  "url": "https://rpc.mainnet.chain.robinhood.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 1,
+   "method": "eth_getStorageAt",
+   "params": [
+    "0x39dbed3a2bd333467115de45665cc57f813c4571",
+    "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
+    "latest"
+   ]
+  }
+ },
+ "pons_owner": {
+  "url": "https://rpc.mainnet.chain.robinhood.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 1,
+   "method": "eth_call",
+   "params": [
+    {
+     "to": "0x39dbed3a2bd333467115de45665cc57f813c4571",
+     "data": "0x8da5cb5b"
+    },
+    "latest"
+   ]
+  }
+ },
+ "uhi_owner": {
+  "url": "https://rpc.mainnet.chain.robinhood.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 1,
+   "method": "eth_call",
+   "params": [
+    {
+     "to": "0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94",
+     "data": "0x8da5cb5b"
+    },
+    "latest"
+   ]
+  }
+ },
+ "uhi_impl": {
+  "url": "https://rpc.mainnet.chain.robinhood.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 1,
+   "method": "eth_getStorageAt",
+   "params": [
+    "0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94",
+    "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
+    "latest"
+   ]
+  }
+ },
+ "dead_search": "https://api.geckoterminal.com/api/v2/networks/robinhood/pools?page=10&sort=h24_volume_usd_liquidity_desc"
+}

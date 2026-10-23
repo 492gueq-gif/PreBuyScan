@@ -122,12 +122,20 @@
     return { txs, truncated: true, source: "v2" };
   }
 
+  // Verified source and ABI from the explorer (null when not verified or unavailable).
+  async function contractSource(addr) {
+    const j = await getJSON(BS + "/v2/smart-contracts/" + lc(addr), 15000);
+    if (!j || !(j.is_verified || j.is_fully_verified || j.is_partially_verified) || !Array.isArray(j.abi)) return null;
+    return { name: j.name || null, abi: j.abi, proxyType: j.proxy_type || null, implementations: (j.implementations || []).map(i => lc(i.address_hash || i.address)) };
+  }
+
   async function reputation(token, cr) {
     const out = { launches: [], others: 0, dead: 0, alive: 0, unknown: 0, funder: null, fundEth: null, firstSeen: null, truncated: false };
     // Busy wallets make the explorer slow: try a big page, then fall back to a smaller one.
     // First funding runs in parallel (v2). History: one legacy call (fast, 200 txs) and, if the
     // legacy API is rate-limited or fails, the v2 API (not rate-limited the same way, 50 per page).
     const fundP = firstFunder(cr.deployer); fundP.catch(() => {});
+    const nonceP = rpc("eth_getTransactionCount", [cr.deployer, "latest"]).then(n => Number(BigInt(n)), () => null);
     const h = await creatorHistory(cr.deployer);
     const txs = h.txs;
     out.txCount = txs.length; out.truncated = h.truncated; out.historySource = h.source;
@@ -169,6 +177,7 @@
     if (fund && fund.funder) { out.funder = fund.funder; if (fund.value) out.fundEth = Number(BigInt(fund.value) / 10n ** 12n) / 1e6; }
     const seen = [oldest, fund && fund.ts].filter(x => x && isFinite(x));
     out.firstSeen = seen.length ? Math.min(...seen) : null;
+    out.nonce = await nonceP;                     // transactions sent by the creator wallet, ever
     return out;
   }
 
@@ -193,6 +202,8 @@
         else if (it.address && it.address.is_contract && it.address.proxy_type !== "eip7702") res.contractShare += p;
         else res.eoaTop = Math.max(res.eoaTop, p);
       }
+      const lockC = res.holders.filter(x => x.contract && !BURN.has(x.addr) && x.addr !== deployer).sort((a, b) => b.pct - a.pct)[0];
+      if (lockC && lockC.pct >= 50 && root.PBContract) { res.lockAddr = lockC.addr; res.lockUntil = await root.PBContract.lockUntil(lockC.addr, rpc); }
       return res;
     }
     // V3 / V4: positions are NFTs. Look for the creator's Uniswap position NFTs that belong to this pool.
@@ -237,6 +248,8 @@
     }
     if (res.kind === "v4" && !(res.creatorShare >= 50) && !res.creatorHasPosition && pair.pairCreatedAt) {
       try { res.top = await v4Holders(pid, pair.pairCreatedAt, deployer); } catch (e) { res.topError = String(e && e.message); }
+      const t = res.top && res.top[0];
+      if (t && (t.kind === "locker" || t.kind === "contract") && root.PBContract) t.lockUntil = await root.PBContract.lockUntil(t.addr, rpc);
     }
     return res;
   }
@@ -296,8 +309,9 @@
   // First wallet that sent ETH to an address, via the v2 explorer API (the legacy API rate-limits
   // after a handful of calls). Wallets with 50+ incoming transactions are established, not fresh:
   // their first funder is not looked up. Falls back to internal transfers (disperse contracts).
-  async function firstFunder(a) {
-    a = lc(a);
+  // Who first funded a wallet never changes: cached for 7 days (makes the wallet map much faster on re-open).
+  async function firstFunder(a) { a = lc(a); return cached("funder", a, () => firstFunderRaw(a)); }
+  async function firstFunderRaw(a) {
     const j = await getJSON(BS + "/v2/addresses/" + a + "/transactions?filter=to", 10000);
     if (j.next_page_params) return { funder: null, established: true };
     const inc = (j.items || []).filter(t => t.from && t.from.hash && lc(t.from.hash) !== a && BigInt(t.value || "0") > 0n);
@@ -416,7 +430,8 @@
     const burned = all.filter(x => BURN.has(x.addr)).reduce((t, x) => t + x.pct, 0);
     const pools = all.filter(x => ex.has(x.addr) || x.addr === lc(token)).reduce((t, x) => t + x.pct, 0);
     const top = all.filter(x => !ex.has(x.addr) && !BURN.has(x.addr) && x.addr !== lc(token)).slice(0, 10);
-    return { count, top, top10: Math.round(top.reduce((t, x) => t + x.pct, 0) * 100) / 100, burned, pools };
+    const list = all.filter(x => !ex.has(x.addr) && !BURN.has(x.addr) && x.addr !== lc(token));   // up to 50, for cloned balances
+    return { count, top, list, top10: Math.round(top.reduce((t, x) => t + x.pct, 0) * 100) / 100, burned, pools };
   }
 
   // 60 s: older tokens with long creator histories need ~40 s on a desktop (CI, 23 oct 2026: microduck
@@ -432,7 +447,7 @@
   // Short-lived per-browser cache of explorer results: a re-scan of the same token (very common) is
   // instant instead of repeating ~15 slow explorer calls. Only successful results are stored; the
   // creation of a token never changes, the rest expire quickly. Storage failures are ignored.
-  const TTL = { creator: 7 * 864e5, reputation: 15 * 6e4, lp: 5 * 6e4, holders: 5 * 6e4, snipers: 10 * 6e4 };
+  const TTL = { funder: 7 * 864e5, creator: 7 * 864e5, reputation: 15 * 6e4, lp: 5 * 6e4, holders: 5 * 6e4, snipers: 10 * 6e4 };
   const enc = v => JSON.stringify(v, (k, x) => typeof x === "bigint" ? { __big: x.toString() } : x);
   const dec = t => JSON.parse(t, (k, x) => x && typeof x === "object" && typeof x.__big === "string" ? BigInt(x.__big) : x);
   function cacheGet(kind, key, now) {
@@ -476,7 +491,7 @@
     return out;
   }
 
-  const api = { analyze, failReason, cached, _cacheGet: cacheGet, TTL, BUDGET_MS, RETRY_BUDGET_MS, keccak, findCreator, reputation, liquidityControl, holders, snipers,
+  const api = { analyze, contractSource, failReason, cached, _cacheGet: cacheGet, TTL, BUDGET_MS, RETRY_BUDGET_MS, keccak, findCreator, reputation, liquidityControl, holders, snipers,
     _get: getJSON, _firstFunder: firstFunder, _launchBuysRpc: launchBuysRpc, _creatorHistory: creatorHistory, _call: call, _rpc: rpc, _words: words, _budget: ms => { deadline = Date.now() + ms; } };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PBCreator = api;

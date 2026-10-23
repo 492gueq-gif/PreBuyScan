@@ -20,7 +20,7 @@ test("Safety Score: weights, caps and 100 = lowest risk detected", () => {
   assert.equal(Score.scoreOf([ck("warn", "a"), ck("warn", "b"), ck("warn", "c")]), 70);
   assert.equal(Score.scoreOf([ck("high", "a")]), 39);                 // capped at 39 with any high risk
   assert.equal(Score.scoreOf(Array(5).fill(ck("high", "x"))), 0);     // floor 0
-  assert.equal(Score.ALGO_VERSION, "2026.10.23-2");
+  assert.equal(Score.ALGO_VERSION, "2026.10.23-3");
 });
 
 test("technical error costs like unchecked and never counts as passed", () => {
@@ -240,7 +240,7 @@ test("market GETs are cached for 30 s, then refreshed", async () => {
 // ---------- 2. Robinhood Chain compatibility ----------
 test("Robinhood Chain identity is fixed in the page and reports", () => {
   const fs = require("node:fs");
-  const html = fs.readFileSync(require("node:path").join(__dirname, "..", "index.html"), "utf8");
+  const html = fs.readFileSync(require("node:path").join(__dirname, "..", "app.js"), "utf8");
   assert.match(html, /const RPC="https:\/\/rpc\.mainnet\.chain\.robinhood\.com"/);
   assert.match(html, /tokens\/v1\/robinhood\//);
   assert.match(fs.readFileSync(require("node:path").join(__dirname, "..", "share.js"), "utf8"), /c: 4663/);
@@ -254,7 +254,7 @@ test("no secrets and CDN scripts carry integrity", () => {
     const text = fs.readFileSync(path.join(root, f), "utf8");
     assert.doesNotMatch(text, /(api[_-]?key|secret|alchemy\.com\/v2\/|infura\.io\/v3\/)\s*[:=]?\s*["'][A-Za-z0-9_-]{16,}/i, f);
   }
-  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const html = fs.readFileSync(path.join(root, "app.js"), "utf8");
   for (const lib of ["d3/7.9.0/d3.min.js", "qrcode-generator/1.4.4/qrcode.min.js", "qrcode-generator@1.4.4/qrcode.js"])
     assert.match(html, new RegExp(lib.replace(/[.@/]/g, m => "\\" + m) + "\":\"sha384-[A-Za-z0-9+/]{64}\""), lib);
 });
@@ -344,5 +344,169 @@ test("creator history: one legacy attempt, then the v2 API with paging when rate
     assert.equal(h.truncated, false);
     assert.equal(h.txs[0].contractAddress, "0x" + "c".repeat(39) + "0");
     assert.equal(seen.filter(u => u.includes("module=account")).length, 1);   // the legacy API is hit once, no retry burst
+  } finally { globalThis.fetch = orig; }
+});
+
+// ---------- external audit: market/holder rules on real snapshots (23 oct 2026) ----------
+const Risk = require("../risk.js");
+const Contract = require("../contract.js");
+const AUD = require("./fixtures/audit_cases.json");
+const UHI = "0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94", PONS = "0x39dbed3a2bd333467115de45665cc57f813c4571", PAPER = "0x179b22557cd511124535e41cc0dacf845b650b07";
+
+test("UHI: 49 wallets with near-identical balances are flagged as high risk", () => {
+  const c = Risk.clonedBalances(AUD.uhi_holders);
+  assert.ok(c && c.n >= 40, "cluster size " + (c && c.n));
+  assert.equal(c.finding.s, "high");
+  assert.ok(!c.wallets.includes("0x8366a39cc670b4001a1121b8f6a443a643e40951"));   // the PoolManager (contract) is not a wallet
+  assert.equal(Risk.clonedBalances([{ addr: "a", pct: 5 }, { addr: "b", pct: 3 }, { addr: "c", pct: 1 }]), null);
+});
+
+test("UHI: only 0.83 % of the supply in pools is a fragile price; multi-pool flags abusive fees and hollow volume", () => {
+  const f = Risk.poolSupply(0.83, 40334352);
+  assert.equal(f.s, "warn"); assert.match(f.t, /0,83 %|0.83 %/);
+  assert.equal(Risk.poolSupply(12, 4e7), null);
+  assert.equal(Risk.poolSupply(0.5, 50000), null);              // tiny FDV: nothing to fake
+  const pools = Risk.poolsFromGT(AUD.uhi_pools, UHI);
+  const mp = Risk.multiPool(pools, "0x462958d20cdaba313be960ee91f1fa783f0755791754edd930c3707f2a906025");
+  assert.ok(mp.n >= 10 && mp.totalLiq > 600000);
+  const t = mp.findings.map(x => x.t).join(" | ");
+  assert.match(t, /comisión abusiva/);
+  assert.match(t, /Volumen sin liquidez/);
+  assert.equal(mp.findings.find(x => /Volumen sin liquidez/.test(x.t)).s, "warn");      // small side pools, not the main one
+});
+
+test("fake volume: $50M in 13 trades is high risk; bot churn is a warning; normal volume passes", () => {
+  const f = Risk.fakeVolume(50e6, 7, 6, 10);
+  assert.equal(f.s, "high"); assert.match(f.d, /13 operaciones/);
+  const pools = Risk.poolsFromGT(AUD.pons_pools, PONS);
+  const churn = pools.map(p => Risk.fakeVolume(p.vol24, p.buys, p.sells, (p.buyers || 0) + (p.sellers || 0), p.name)).filter(Boolean);
+  assert.ok(churn.some(x => x.s === "warn" && /pocas wallets/.test(x.t)), "PONS pools with 15k+ sells from ~250 wallets");
+  assert.equal(Risk.fakeVolume(189465, 638, 478, 641), null);
+});
+
+test("PAPER: DexScreener $10.5M vs GeckoTerminal ~$0 is an inconsistent-data warning", () => {
+  const gt = Risk.poolsFromGT(AUD.paper_pools, PAPER);
+  const main = AUD.paper_dex.slice().sort((a, b) => ((b.liquidity || {}).usd || 0) - ((a.liquidity || {}).usd || 0))[0];
+  const gtMain = gt.find(p => p.pool === main.pairAddress.toLowerCase());
+  const m = Risk.sourceMismatch({ liq: main.liquidity.usd, price: Number(main.priceUsd) }, { liq: gtMain ? gtMain.liq : null, price: gtMain ? gtMain.price : null, poolFound: !!gtMain });
+  assert.ok(m); assert.equal(m.s, "warn"); assert.match(m.t, /inconsistentes/);
+  assert.equal(Risk.sourceMismatch({ liq: 100000, price: 1 }, { liq: 90000, price: 1.05 }), null);
+  assert.match(Risk.sourceMismatch({ liq: 2e6, price: 1 }, { liq: null, poolFound: false }).d, /no lo tiene/);
+  // PONS: DexScreener lists 1 pool and GeckoTerminal 20, but the same pool agrees -> no warning.
+  const pons = Risk.poolsFromGT(AUD.pons_pools, PONS).find(p => p.pool === "0x10cc6bd38112cac182db90b6a71d8bb5939526ba");
+  assert.equal(Risk.sourceMismatch({ liq: 2560327, price: 0.2549 }, { liq: pons.liq, price: pons.price, poolFound: true }), null);
+});
+
+test("early whales: a launch buyer with 5 %+ is flagged even after selling", () => {
+  const w = Risk.earlyWhales([{ addr: "0x" + "1".repeat(40), boughtPct: 7.5, pct: 0.1, sold: true }, { addr: "0xc", boughtPct: 30, creator: true }], "0xc");
+  assert.equal(w.s, "warn"); assert.match(w.d, /ya vendió/);
+  assert.equal(Risk.earlyWhales([{ addr: "0x" + "2".repeat(40), boughtPct: 20, pct: 18, sold: false }]).s, "high");
+  assert.equal(Risk.earlyWhales([{ addr: "x", boughtPct: 2 }]), null);
+});
+
+test("sale summary: works small + fails big becomes one finding with the max amount", () => {
+  const f = Risk.saleSummary([{ eth: 0.01, status: "round_trip_ok" }, { eth: 0.1, status: "round_trip_ok" }, { eth: 0.5, status: "sell_failed" }], { eth: 0.27, tokens: "1.234.567" });
+  assert.equal(f.s, "high"); assert.match(f.t, /0.27 ETH/); assert.match(f.d, /0.5 ETH/);
+  assert.equal(Risk.saleSummary([{ eth: 0.01, status: "round_trip_ok" }]), null);
+});
+
+test("Wilson interval: honest uncertainty for small samples", () => {
+  const [lo, hi] = Risk.wilson(33, 58);
+  assert.ok(lo > 0.43 && lo < 0.46 && hi > 0.68 && hi < 0.7, lo + " " + hi);
+  assert.equal(Risk.wilson(0, 0), null);
+});
+
+// ---------- contract analysis ----------
+test("selectors are keccak-256 of their signatures; PONS getters match its bytecode", () => {
+  const sel = s => globalThis.PBCreator.keccak(Buffer.from(s).toString("hex")).slice(2, 10);
+  assert.ok(Contract.RISKY.blacklist.sel.includes(sel("setBots(address[],bool)")));
+  assert.ok(Contract.RISKY.mint.sel.includes(sel("mint(address,uint256)")));
+  assert.ok(Contract.RISKY.trading.sel.includes(sel("enableTrading()")));
+  assert.ok(Contract.GET.maxTx.includes(sel("maxTxAmount()")) && Contract.GET.maxWallet.includes(sel("maxWalletAmount()")));
+  assert.equal(Contract.ROLE.hasRole, sel("hasRole(bytes32,address)"));
+  assert.deepEqual(Contract.riskyFromCode("6080604052" + "63" + sel("blacklist(address)") + "14"), ["blacklist"]);
+});
+
+test("proxies: EIP-1167 minimal proxy (classic and PUSH0) and tax units", () => {
+  const impl = "bebebebebebebebebebebebebebebebebebebebe";
+  assert.equal(Contract.minimalProxyTarget("0x363d3d373d3d3d363d73" + impl + "5af43d82803e903d91602b57fd5bf3"), "0x" + impl);
+  assert.equal(Contract.minimalProxyTarget("0x365f5f375f5f365f73" + impl + "5af43d5f5f3e5f3d91602a57fd5bf3"), "0x" + impl);
+  assert.equal(Contract.minimalProxyTarget("0x6080604052"), null);
+  assert.equal(Contract.taxPct(5), 5); assert.equal(Contract.taxPct(2500), 25); assert.equal(Contract.taxPct(1e9), null);
+});
+
+test("verified ABI: risky names, ERC20Burnable burn is fine, error selectors decode", () => {
+  const abi = [{ type: "function", name: "setBots", stateMutability: "nonpayable", inputs: [{ type: "address[]" }, { type: "bool" }] },
+               { type: "function", name: "burn", stateMutability: "nonpayable", inputs: [{ type: "uint256" }] },
+               { type: "function", name: "burn", stateMutability: "nonpayable", inputs: [{ type: "address" }, { type: "uint256" }] },
+               { type: "function", name: "maxTxAmount", stateMutability: "view", inputs: [] },
+               { type: "function", name: "updateSellFees", stateMutability: "nonpayable", inputs: [] },
+               { type: "error", name: "MaxTxExceeded", inputs: [{ type: "address" }, { type: "uint256" }, { type: "uint256" }] }];
+  const r = Contract.riskyFromAbi(abi);
+  assert.deepEqual(Object.keys(r).sort(), ["balance", "blacklist", "fees"]);
+  assert.equal(r.balance.length, 1);
+  const e = Contract.errorNames(abi, globalThis.PBCreator.keccak);
+  assert.equal(Object.values(e)[0], "MaxTxExceeded");
+});
+
+test("contract analyze over a fake RPC: beacon proxy, AccessControl admins, declared taxes", async () => {
+  const T = "0x" + "77".repeat(20), B = "0x" + "be".repeat(20), I = "0x" + "11".repeat(20), A = "0x" + "ad".repeat(20);
+  const sel = s => globalThis.PBCreator.keccak(Buffer.from(s).toString("hex")).slice(2, 10);
+  const w = x => "0x" + BigInt(x).toString(16).padStart(64, "0");
+  const code = "0x6080" + "63" + sel("hasRole(bytes32,address)") + "63" + sel("blacklist(address)");
+  const rpc = async (m, p) => {
+    if (m === "eth_getStorageAt") return p[1] === Contract.SLOT.beacon ? "0x" + B.slice(2).padStart(64, "0") : "0x" + "0".repeat(64);
+    if (m === "eth_getCode") return p[0] === I ? "0x6080" + "63" + sel("mint(address,uint256)") : "0x";
+    if (m === "eth_call") {
+      const to = p[0].to, d = p[0].data.slice(2, 10);
+      if (to === B && d === "5c60da1b") return "0x" + I.slice(2).padStart(64, "0");
+      if (d === Contract.ROLE.count) return w(1);
+      if (d === Contract.ROLE.member) return "0x" + A.slice(2).padStart(64, "0");
+      if (d === sel("sellTax()")) return w(2500);
+      if (d === sel("buyFee()")) return w(3);
+      throw new Error("revert");
+    }
+    throw new Error(m);
+  };
+  const r = await Contract.analyze(T, code, rpc);
+  assert.equal(r.proxy.kind, "beacon"); assert.equal(r.proxy.impl, I);
+  assert.deepEqual(r.roles.admins, [A]);
+  assert.equal(r.owner, null);
+  assert.deepEqual(r.risky.sort(), ["blacklist", "mint"]);              // the implementation's code is scanned too
+  assert.equal(r.taxes.sell, 25); assert.equal(r.taxes.buy, 3);
+});
+
+test("English mode: exact strings, dynamic titles and summary lines translate; unknown text stays", () => {
+  const I = require("../i18n.js");
+  assert.equal(I.tr("Riesgo alto"), "High risk");
+  assert.equal(I.tr("  Liquidez muy baja "), "  Very low liquidity ");
+  assert.equal(I.tr("49 wallets con saldos casi idénticos"), "49 wallets with near-identical balances");
+  assert.equal(I.tr("Solo se puede vender hasta ~0.27 ETH"), "You can only sell up to ~0.27 ETH");
+  assert.equal(I.tr("Precaución · Safety Score 61/100 · Data Confidence 85 %."), "Caution · Safety Score 61/100 · Data Confidence 85 %.");
+  assert.equal(I.tr("Lo más importante: Liquidez baja · Volumen anómalo."), "Most important: Low liquidity · Anomalous volume.");
+  assert.equal(I.tr("0x39db…4571"), "0x39db…4571");
+  assert.equal(I.tr("texto sin traducción"), "texto sin traducción");
+});
+
+test("sale simulation: both simulations pinned to one block; RPC falls back on transport failure and counts it", async () => {
+  const S = require("../sellsim.js");
+  const seen = []; const orig = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    const b = JSON.parse(init.body);
+    if (url === S.RPC && b.method === "eth_chainId") throw new TypeError("Failed to fetch");      // primary down for this call
+    seen.push([url, b.method, b.params]);
+    const res = b.method === "eth_blockNumber" ? "0x10" : b.method === "eth_chainId" ? "0x1237" : null;
+    if (b.method === "eth_simulateV1") throw Object.assign(new Error("stop"), { rpc: { message: "stop" } });
+    return { status: 200, ok: true, json: async () => ({ jsonrpc: "2.0", id: b.id, result: res }) };
+  };
+  try {
+    S.resetUsage();
+    const r = await S.simulate("0x" + "ab".repeat(20), { pairAddress: "0x" + "cd".repeat(20), labels: ["v2"] });
+    assert.equal(r.block, 16);
+    const sims = seen.filter(x => x[1] === "eth_simulateV1");
+    assert.ok(sims.length >= 1 && sims.every(x => x[2][1] === "0x10"), "simulateV1 must use the pinned block");
+    const id = await S._rpc("eth_chainId", []);
+    assert.equal(id, "0x1237");
+    assert.equal(S.usage.fallback[new URL(S.FALLBACKS[0]).host], 1);
   } finally { globalThis.fetch = orig; }
 });

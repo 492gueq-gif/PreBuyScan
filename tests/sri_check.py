@@ -2,7 +2,8 @@
 sha384 and compare with the SRI map in index.html. The page has no npm dependencies."""
 import base64, hashlib, json, re, sys, urllib.request
 from pathlib import Path
-html = (Path(__file__).resolve().parent.parent / "index.html").read_text()
+_r = Path(__file__).resolve().parent.parent
+html = (_r / "index.html").read_text() + (_r / "app.js").read_text()   # page logic lives in app.js
 block = re.search(r"const SRI=\{(.*?)\};", html, re.S).group(1)
 pins = dict(re.findall(r'"(https://[^"]+)":"(sha384-[^"]+)"', block))
 loaded = set(re.findall(r'loadScript\("(https://[^"]+)"', html)) | set(re.findall(r'"(https://(?:cdnjs|cdn\.jsdelivr)[^"]+\.js)"', html))

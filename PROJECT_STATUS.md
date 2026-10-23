@@ -1,6 +1,6 @@
 # PreBuyScan — estado del proyecto
 
-Actualizado: 23 oct 2026 (Prompt 2.2 en la rama `feature/prompt-2.2`, pendiente de aprobación para publicar). Responsable del producto: Mario («jefe»). Este archivo es el punto de continuidad entre sesiones.
+Actualizado: 23 oct 2026 (Prompt 2.2 publicado; auditoría externa en `fix/audit-ext`, PR #5, pendiente de aprobación para publicar). Responsable del producto: Mario («jefe»). Este archivo es el punto de continuidad entre sesiones.
 
 PreBuyScan es una herramienta de **solo lectura** para revisar tokens y wallets de **Robinhood Chain (chain 4663)** antes de comprar: «Scan before the scam». Sin wallet, sin firmas, sin transacciones ni dinero real.
 
@@ -9,7 +9,7 @@ PreBuyScan es una herramienta de **solo lectura** para revisar tokens y wallets 
 | Qué | Dónde |
 |---|---|
 | Página pública | https://492gueq-gif.github.io/PreBuyScan/ (rama `gh-pages`, GitHub Pages) |
-| Desarrollo de la página | rama `feature/creator-liquidity` → se publica con fast-forward a `gh-pages` |
+| Desarrollo de la página | rama `fix/audit-ext`, PR #5 → merge normal hacia `gh-pages` |
 | Base de creadores (cada hora) | código en `main` (`creator_db.py`), datos en la rama `creator-db` (`creators.json`) |
 | Estudio PRECISION_V2 (cada hora, 22–29 oct) | código y datos en `research/precision-v2`; el horario vive en `main` (`.github/workflows/precision-v2.yml`) |
 | Estudios anteriores | `research/base-rates-v1` (BASE_RATES_V1, PRECISION_V1) |
@@ -33,7 +33,7 @@ Fuentes: RPC pública `https://rpc.mainnet.chain.robinhood.com`, Blockscout `rob
 
 - Hecho: auditoría (`AUDIT_REPORT.md`, 16 hallazgos), estado «Error técnico», regla «No evaluable», Safety Score / Data Confidence / Cobertura / Estado del análisis separados, capa de red `net.js` (timeouts, reintentos, backoff, `Retry-After`, caché, espaciado de GeckoTerminal), indicador de conexión que caduca, Alpha Radar 2.2 (`alpha.js`, edad ≤12 h, prioridad <6 h, Alpha Signal Score independiente), logo vectorial `logo.svg`, SRI en CDN, accesibilidad, CI (`.github/workflows/ci.yml`) y documentación (`ARCHITECTURE.md`, `SCORING_METHODOLOGY.md`, `DATA_SOURCES.md`, `TEST_RESULTS.md`, `DEPLOYMENT.md`).
 - Pruebas: lint OK, 19/19 unitarias, SRI OK, 34/34 en navegador, comprobación real ejecutada (`TEST_RESULTS.md`).
-- Bloqueos: firma digital de reportes (requiere servidor); CSP con `unsafe-inline` (riesgo residual).
+- Firma digital pendiente (requiere servidor). En la auditoría, `script-src` ya no permite scripts en línea; `style-src` conserva `unsafe-inline`.
 - Publicar = fusionar la PR hacia `gh-pages`, solo con el «ok» del jefe.
 
 ## Puntuaciones (algoritmo `2026.10.23-1` en la rama 2.2; `2026.10.22-2` publicado — mismos pesos)
@@ -75,6 +75,29 @@ Fuentes: RPC pública `https://rpc.mainnet.chain.robinhood.com`, Blockscout `rob
 ## Pendiente técnico
 
 - Opportunity Score: diseñar y preregistrar su validación después de PRECISION_V2.
-- Versión en inglés.
+- Completar traducción de descripciones largas; el modo inglés básico ya está implementado en la auditoría.
 - Lista pública de creadores en serie.
 - «Seguir el dinero» después de un rug.
+
+## Cierre de auditoría externa (PR #5)
+
+Base revisada: `8c738a8`. CI `40011181162` confirmada en GitHub: unit, dependencies, ui y live terminaron con success. Lint y 36/36 unitarias repetidas localmente. No se ha publicado esta auditoría.
+
+- Cada tasa debe incluir n e intervalo de Wilson del 95 %. Con menos de 30 tokens por grupo: «indicio, muestra pequeña», nunca «útil». Esta regla de presentación no modifica protocolos congelados.
+- Venta no simulada, historial incompleto y liquidez no verificada son datos pendientes, no vulnerabilidades confirmadas.
+- Pendientes: completar la base de creadores desde génesis; ABI no estándar de lockers; traducciones largas; decidir con Mario la actualización del escáner de GEMS_V1 antes de recolectar datos.
+- Antes de publicar: ejecutar la CI del cierre, verificar el caso inglés `_english`, completar descripción del PR y solicitar autorización específica de publicación.
+
+## Carga automática de visualizaciones
+
+Al terminar el análisis se carga el gráfico también en móvil y arranca el mapa de wallets en el resumen, sin clic ni desplazamiento previo. El mapa usa una tarea independiente del escaneo y permite reintentar si falla el explorador. Resultados de mapas de análisis anteriores no reemplazan el reporte actual. Shell `pbs-shell-v13`. Pendiente de revisión de CI y publicación con aprobación.
+
+## Explicación de la puntuación
+
+Franja debajo del marcador y antes de las métricas: «¿Por qué recibe esta puntuación?». Usa hasta tres hallazgos actuales, prioriza riesgo alto sobre precaución y explica los topes existentes de 39/79 sin cambiar el cálculo. Pendientes y errores se identifican como falta de datos, nunca como vulnerabilidades probadas. No evaluable y sin alertas tienen mensajes propios. Shell `pbs-shell-v14`. Pendiente de CI visual y publicación.
+
+## Tabla de operaciones del par
+
+`live.js`: menú Transacciones / Top traders / Holders debajo del gráfico, consulta pública de GeckoTerminal cada 30 segundos con la capa de red existente. Tipo, monto USD, precio del token, hora, wallet y enlace a Blockscout. Filtro compra/venta y mínimo USD, pausa/reanudación, mensaje de error y última consulta correcta. No se consulta en pestañas ocultas ni fuera del reporte; se descartan resultados de reportes retirados.
+
+Dirección y precio se obtienen de las direcciones from/to del token, evitando invertir compra/venta en pools con orden distinto. Máximo 100 operaciones de la respuesta, sin prometer historial completo. Top traders = volumen de esta muestra, excluyendo datos anómalos y montos desconocidos; no PnL. Holders = captura del análisis, no consulta continua. No es un libro de órdenes ni un WebSocket. Shell v15. Pendiente CI visual y publicación.

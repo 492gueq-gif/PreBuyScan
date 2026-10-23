@@ -12,7 +12,7 @@
  */
 (function (root) {
   "use strict";
-  const ALGO_VERSION = "2026.10.23-2";
+  const ALGO_VERSION = "2026.10.23-3";
   const LABEL = { high: "Riesgo alto", warn: "Precaución", ok: "Bien", unk: "Sin datos", err: "Error técnico" };
   const WEIGHT = { high: 25, warn: 10, unk: 5, ok: 0 };
 
@@ -39,12 +39,13 @@
   function confidenceOf(res) {
     const { checks, pair, tr, cr } = res; const has = re => checks.some(c => re.test(c.t));
     const parts = [
-      ["Datos de mercado", 15, !!pair],
-      ["Venta simulada", 20, has(/^(La venta simulada funciona|La venta simulada falla|Pérdida (muy )?alta al vender)/)],
+      // Market data counts only when the two sources agree (DexScreener vs. GeckoTerminal).
+      ["Datos de mercado", 15, !!pair && !res.marketInconsistent],
+      ["Venta simulada", 20, has(/^(La venta simulada funciona|La venta simulada falla|Pérdida (muy )?alta al vender|Solo se puede vender hasta|La venta falla si esperas|No deja vender en el mismo bloque)/)],
       ["Código del contrato", 15, !has(/^(Contrato no revisado|No hay contrato)/)],
-      ["Dueño del contrato", 5, has(/^(Propiedad renunciada|El contrato tiene dueño activo)/)],
+      ["Dueño del contrato", 5, has(/^(Propiedad renunciada|El contrato tiene dueño activo|El contrato tiene administradores|Sin dueño ni administradores)/)],
       ["Creador identificado", 10, !!(cr && cr.creator)],
-      ["Historial del creador", 10, !!(cr && cr.creator) && !has(/^(Historial del creador (no disponible|incompleto)|Creador no identificado)/)],
+      ["Historial del creador", 10, !!(cr && cr.creator) && !has(/^(Historial del creador (no disponible|incompleto)|Historial incompleto en la base|Creador no identificado)/)],
       ["Control de la liquidez", 10, !has(/^(Control de la liquidez no revisado|No sabemos quién tiene la liquidez|Liquidez en un contrato$)/) && !!(cr && cr.creator)],
       ["Snipers del lanzamiento", 5, !!(cr && cr.snipers)],
       ["Holders", 5, !!(cr && cr.holders && cr.holders.top10 != null)],

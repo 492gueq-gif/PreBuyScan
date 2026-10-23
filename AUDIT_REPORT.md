@@ -55,3 +55,39 @@ Verificado en el código: todas las funciones visibles consultan datos reales (D
 ## Sincronía repositorio ↔ publicado
 
 La comprobación en navegador real compara el `index.html` servido por GitHub Pages con `gh-pages` (ver `TEST_RESULTS.md`).
+
+## Auditoría externa 23 oct
+
+Implementación en `fix/audit-ext`, base `8c738a8`, pendiente de publicación. La tabla refleja el alcance implementado; «hecho» no equivale a ausencia de riesgo ni validación universal.
+
+| # | Punto | Estado |
+|---|---|---|
+| 1 | Multi-pool (todos los pools de GeckoTerminal, comisiones abusivas, volumen sin liquidez en pools chicos, precio distinto) | Hecho |
+| 2 | Volumen falso (≥$100k con <50 operaciones; bots: ≥30 operaciones por wallet) | Hecho |
+| 3 | Discrepancia entre fuentes sobre el MISMO pool; baja Data Confidence | Hecho |
+| 4 | % del suministro en pools (V4 en el PoolManager) | Hecho |
+| 5 | Saldos clonados (banda 3 %, 10+ = riesgo alto) | Hecho |
+| 6 | Comprador del lanzamiento con ≥5 % aunque haya vendido | Hecho |
+| 7 | Proxies beacon / EIP-1167 / diamond / ZeppelinOS / admin | Hecho (`contract.js`) |
+| 8 | Roles AccessControl, getOwner/admin, creador con rol admin | Hecho |
+| 9 | ~100 selectores (keccak verificado) + ABI verificado de Blockscout | Hecho |
+| 10 | Impuestos declarados (getters comunes) | Hecho |
+| 11 | Bloqueos con fecha (getters comunes en V2 LP y posiciones V4) | Hecho; los lockers con ABI no estándar quedan sin fecha |
+| 12, 19 | Monto máximo vendible por búsqueda binaria, causa, un solo hallazgo | Hecho |
+| 13 | Venta en un segundo bloque 1 h después (bloqueo por tiempo / cooldown) | Hecho |
+| 14 | Base de creadores: «historial incompleto» si el token es anterior a la base | Marcado hecho. **Pendiente:** rellenar desde el génesis (trabajo de datos en `creator_db.py`, rama `main`) |
+| 15 | Creador sin tokens pero con nonce ≥50 → «Wallet con actividad previa: revisar» | Hecho |
+| 16 | Intervalos de confianza (Wilson), n y advertencia en la página | Hecho |
+| 17 | RPC de respaldo: publicnode, drpc y daybreak (con CORS y `eth_simulateV1`), avisado en el reporte | Hecho. El encabezado `*,*` no se reprodujo |
+| 18 | Score preliminar tras mercado + venta + contrato; caché de fondeadores para el mapa | Hecho. La primera carga del mapa sigue dependiendo de Blockscout |
+| 20 | Capa sobre el gráfico (la rueda hace scroll; clic o Ctrl + rueda activa el gráfico) | Hecho |
+| 21 | Resumen de 3 líneas, glosario con tooltips, letra mínima mayor, modo inglés (`i18n.js`) | Hecho. Algunas descripciones largas siguen en español |
+| 22 | Móvil 360 px sin scroll horizontal en los 4 casos | Hecho |
+| 23 | CSP `script-src` sin `unsafe-inline` (scripts movidos a `app.js`/`theme.js`; sin `onerror` en línea) | Hecho. `style-src` conserva `unsafe-inline` |
+| 24 | Historial de git sin claves | Hecho. La rotación de Alchemy es acción del jefe |
+| 25 | Todas las tarjetas (también la «Imagen» simple) con id, SHA-256, fecha y bloque | Hecho |
+
+
+Validación del cierre: ver `TEST_RESULTS.md`. La CSP de scripts ya no permite código en línea; el riesgo residual se limita aquí a `style-src`.
+
+UHI: el fallo con 0.5 ETH era un falso positivo por usar bloques distintos; las simulaciones ahora fijan el mismo bloque. PONS: no atribuir dueño ni lista negra que el código verificado no tiene. PAPER: la discrepancia entre fuentes baja confianza, sin decidir arbitrariamente cuál tiene razón.
