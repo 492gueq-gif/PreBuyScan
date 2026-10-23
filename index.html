@@ -575,6 +575,18 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
 @keyframes bootHide{to{opacity:0;visibility:hidden}}
 @keyframes bootPulse{0%,100%{transform:scale(.96)}50%{transform:scale(1.04)}}
 @media (prefers-reduced-motion:reduce){#boot img{animation:none}}
+
+/* Only the decorative background moves; foreground content stays fixed. */
+.hero{isolation:isolate}
+.hero > .globe{inset:0;height:auto;z-index:-1;overflow:hidden;filter:none;background:radial-gradient(ellipse at 78% 55%,rgba(39,230,163,.23),transparent 65%);transform:translate(var(--hero-x,0px),var(--hero-y,0px)) scale(1.08);transition:transform 1.2s ease-out}
+.hero .globe svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.hero .globe path{fill:none;stroke:#27e6a3;stroke-width:2;opacity:.28;animation:hero-wave 16s ease-in-out infinite alternate;transform-origin:center}
+.hero .globe path:nth-child(2){stroke:#13b6c8;stroke-width:16;opacity:.09;animation-duration:23s;animation-delay:-8s}
+.hero .globe path:nth-child(3){stroke-width:4;opacity:.16;animation-duration:19s;animation-delay:-5s}
+@keyframes hero-wave{from{transform:translate(-35px,-28px) rotate(-5deg) scaleY(.85)}to{transform:translate(35px,30px) rotate(5deg) scaleY(1.15)}}
+body:not([data-view="home"]) .hero .globe path{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.hero .globe path{animation:none}.hero > .globe{transform:none;transition:none}}
+
 </style></head><body data-view="home">
 <div id="boot" aria-hidden="true"><img src="logo.svg" alt="" width="96" height="96"><b>PreBuy<span>Scan</span></b><small>Scan before the scam</small></div>
 <script src="theme.js"></script>
@@ -625,7 +637,7 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
   <main id="main">
     <div id="v-home" class="view">
       <section class="hero home-keep" aria-labelledby="hero-h">
-        <div class="globe" aria-hidden="true"></div>
+        <div class="globe" aria-hidden="true"><svg viewBox="0 0 1000 500" preserveAspectRatio="none" focusable="false"><path d="M-150 340 C150 60 300 490 600 260 S950 80 1150 190"/><path d="M-150 360 C160 90 340 470 620 280 S950 60 1150 230"/><path d="M-150 380 C120 160 350 450 650 300 S960 130 1150 260"/></svg></div>
         <img class="eye" src="logo-full.jpg" alt="PreBuyScan · Scan before the scam" width="640" height="640">
         <div class="htext">
           <h1 id="hero-h"><span class="mobile-only">Analiza cualquier token <em>antes de comprar</em></span><span class="desk-only">Inteligencia <em>antes de invertir.</em></span></h1>
@@ -747,6 +759,6 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
 <script src="profile.js"></script>
 <script src="share.js"></script>
 <script src="live.js"></script>
-<script src="app.js?v=19"></script>
+<script src="app.js?v=20"></script>
 <script src="i18n.js"></script>
 </body></html>
