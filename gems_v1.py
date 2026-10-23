@@ -450,6 +450,14 @@ if __name__ == "__main__":
         collect()
     elif cmd == "smoke":
         collect(smoke=True)
+        # Outcome path against real data: a known pool "scanned" 8 days ago (never study data).
+        pool, tok = "0x6693cf7e87a7039e36fa5f3c0d7e06818d259468", "0x39dbed3a2bd333467115de45665cc57f813c4571"
+        s0 = dict(token=tok, pool=pool, scanned_at=int(time.time()) - 8 * 86400)
+        q = "aggregate=15&limit=1000&currency=usd&token=%s&before_timestamp=%d&include_empty_intervals=false" % (tok, s0["scanned_at"] + HORIZON + MEASURE_DELAY)
+        rows = get_json(GT + "pools/" + pool + "/ohlcv/minute?" + q)["data"]["attributes"]["ohlcv_list"]
+        o = outcome(s0, rows, gt_metrics(get_json(GT + "pools/" + pool))["reserve_usd"])
+        _append("data/smoke_outcomes.jsonl", dict(o, candles=len(rows), measured_at=int(time.time())))
+        print("smoke outcome:", o)
     elif cmd == "outcome":
         collect_outcomes()
     elif cmd == "report":
