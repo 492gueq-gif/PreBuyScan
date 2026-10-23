@@ -20,7 +20,7 @@ test("Safety Score: weights, caps and 100 = lowest risk detected", () => {
   assert.equal(Score.scoreOf([ck("warn", "a"), ck("warn", "b"), ck("warn", "c")]), 70);
   assert.equal(Score.scoreOf([ck("high", "a")]), 39);                 // capped at 39 with any high risk
   assert.equal(Score.scoreOf(Array(5).fill(ck("high", "x"))), 0);     // floor 0
-  assert.equal(Score.ALGO_VERSION, "2026.10.23-1");
+  assert.equal(Score.ALGO_VERSION, "2026.10.23-2");
 });
 
 test("technical error costs like unchecked and never counts as passed", () => {
@@ -35,7 +35,11 @@ test("technical error costs like unchecked and never counts as passed", () => {
 test("coverage and overall analysis state", () => {
   const ok = [ck("ok", "a"), ck("warn", "b")];
   assert.equal(Score.analysisStateOf(ok).key, "complete");
-  assert.equal(Score.analysisStateOf([...ok, ck("unk", "Venta no simulada")]).key, "partial");
+  // Inconclusive checks (no technical failure) finish the analysis; only technical errors make it partial.
+  const inc = Score.analysisStateOf([...ok, ck("unk", "Dueño del contrato no identificado")]);
+  assert.equal(inc.key, "complete");
+  assert.equal(inc.inconclusive, 1);
+  assert.match(inc.detail, /1 sin resultado concluyente/);
   const e = Score.analysisStateOf([...ok, ck("unk", "Holders no revisados", { err: true })]);
   assert.equal(e.key, "partial");
   assert.match(e.detail, /error técnico/);
@@ -267,4 +271,25 @@ test("explorer time budget: 60 s default, 120 s on retry; timeout told apart fro
   assert.equal(C.failReason(out, "creator"), null);
   assert.equal(C.failReason({ errors: ["reputationX: time budget"] }, "reputation"), null);
   assert.equal(C.failReason(null, "lp"), null);
+});
+
+test("explorer cache: BigInt round trip, TTL expiry, failures and nulls never cached", async () => {
+  const C = globalThis.PBCreator;
+  const store = new Map();
+  globalThis.localStorage = { getItem: k => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)) };
+  try {
+    let calls = 0;
+    const v1 = await C.cached("snipers", "0xabc", async () => { calls++; return { n: 1, wallets: [{ amt: 12345678901234567890n }] }; });
+    const v2 = await C.cached("snipers", "0xabc", async () => { calls++; return null; });
+    assert.equal(calls, 1);
+    assert.equal(v2.wallets[0].amt, 12345678901234567890n);            // BigInt survives storage
+    assert.deepEqual(v1, v2);
+    const t = Date.now();
+    assert.equal(C._cacheGet("snipers", "0xabc", t + C.TTL.snipers + 1), undefined);   // expired
+    await assert.rejects(C.cached("holders", "0xdef", async () => { throw new Error("unavailable"); }));
+    assert.equal(C._cacheGet("holders", "0xdef", Date.now()), undefined);              // failures not stored
+    await C.cached("lp", "0x1", async () => null);
+    assert.equal(C._cacheGet("lp", "0x1", Date.now()), undefined);                     // nulls not stored
+    assert.ok(C.TTL.reputation <= 15 * 60000 && C.TTL.holders <= 5 * 60000);
+  } finally { delete globalThis.localStorage; }
 });

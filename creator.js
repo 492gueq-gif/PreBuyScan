@@ -102,6 +102,7 @@
   async function reputation(token, cr) {
     const out = { launches: [], others: 0, dead: 0, alive: 0, unknown: 0, funder: null, fundEth: null, firstSeen: null, truncated: false };
     // Busy wallets make the explorer slow: try a big page, then fall back to a smaller one.
+    const ascP = getJSON(BS + "?module=account&action=txlist&address=" + cr.deployer + "&sort=asc&page=1&offset=10"); ascP.catch(() => {});
     let desc = null, size = 0;
     for (const n of [200, 50]) {
       try { desc = await getJSON(BS + "?module=account&action=txlist&address=" + cr.deployer + "&sort=desc&page=1&offset=" + n, 20000); size = n; break; }
@@ -116,14 +117,14 @@
         && lc(t.hash) !== cr.txh && t.isError !== "1").map(t => ({ addr: null, hash: lc(t.hash) }));
     }
     // Resolve which token each factory launch created (newest first, capped to keep the scan quick).
-    for (const l of viaFactory.slice(0, 10)) {
+    await Promise.all(viaFactory.slice(0, 10).map(async l => {
       try {
         const tt = await getJSON(BS + "/v2/transactions/" + l.hash + "/token-transfers?type=ERC-20");
         const items = tt.items || [];
         const mint = items.find(i => i.from && lc(i.from.hash) === ZERO) || items.find(i => tokenAddr(i.token) !== WETH);
         if (mint) l.addr = tokenAddr(mint.token);
       } catch (e) { /* stays unknown */ }
-    }
+    }));
     const all = [...direct, ...viaFactory];
     out.others = all.length;
     const known = [...new Set(all.map(l => l.addr).filter(a => a && a !== lc(token)))];
@@ -142,7 +143,7 @@
     out.launches = all.slice(0, 12);
     // First funding and wallet age
     try {
-      const asc = await getJSON(BS + "?module=account&action=txlist&address=" + cr.deployer + "&sort=asc&page=1&offset=10");
+      const asc = await ascP;
       const first = (asc.result || [])[0];
       if (first) out.firstSeen = Number(first.timeStamp) * 1000;
       const fund = (asc.result || []).find(t => lc(t.to) === cr.deployer && BigInt(t.value || "0") > 0n);
@@ -365,6 +366,26 @@
     if (!hits.length) return null;
     return hits.some(e => /time budget/.test(String(e))) ? "timeout" : "provider";
   }
+  // Short-lived per-browser cache of explorer results: a re-scan of the same token (very common) is
+  // instant instead of repeating ~15 slow explorer calls. Only successful results are stored; the
+  // creation of a token never changes, the rest expire quickly. Storage failures are ignored.
+  const TTL = { creator: 7 * 864e5, reputation: 15 * 6e4, lp: 5 * 6e4, holders: 5 * 6e4, snipers: 10 * 6e4 };
+  const enc = v => JSON.stringify(v, (k, x) => typeof x === "bigint" ? { __big: x.toString() } : x);
+  const dec = t => JSON.parse(t, (k, x) => x && typeof x === "object" && typeof x.__big === "string" ? BigInt(x.__big) : x);
+  function cacheGet(kind, key, now) {
+    try {
+      const raw = root.localStorage && root.localStorage.getItem("pbs-ex:" + kind + ":" + key); if (!raw) return undefined;
+      const e = dec(raw); if (!e || now - e.at > TTL[kind] || e.at > now) return undefined; return e.v;
+    } catch (x) { return undefined; }
+  }
+  function cacheSet(kind, key, v, now) {
+    if (v == null) return;
+    try { root.localStorage && root.localStorage.setItem("pbs-ex:" + kind + ":" + key, enc({ at: now, v })); } catch (x) { /* full or blocked */ }
+  }
+  async function cached(kind, key, fn, now = Date.now()) {
+    const hit = cacheGet(kind, key, now); if (hit !== undefined) return hit;
+    const v = await fn(); cacheSet(kind, key, v, Date.now()); return v;
+  }
   const msg = (k, e) => k + ": " + ((e && e.message) || "error");
   const within = (p, ms) => { p.catch(() => {}); return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("time budget")), ms))]); };
   async function analyze(token, pair, pairs, opts = {}) {
@@ -374,14 +395,14 @@
     const exclude = new Set([V4_PM, ...(pairs || []).map(p => lc(p.pairAddress)).filter(a => /^0x[0-9a-f]{40}$/.test(a))]);
     const left = () => Math.max(500, deadline - Date.now());
     // Holders and creator lookups run in parallel; each part fails on its own.
-    const hP = within(holders(token, exclude), left()).then(v => { out.holders = v; }, e => out.errors.push(msg("holders", e)));
-    try { out.creator = await within(findCreator(token), left()); } catch (e) { out.errors.push(msg("creator", e)); }
+    const hP = within(cached("holders", token, () => holders(token, exclude)), left()).then(v => { out.holders = v; }, e => out.errors.push(msg("holders", e)));
+    try { out.creator = await within(cached("creator", token, () => findCreator(token)), left()); } catch (e) { out.errors.push(msg("creator", e)); }
     const jobs = [hP];
     if (out.creator) {
-      const repP = reputation(token, out.creator);
+      const repP = cached("reputation", token, () => reputation(token, out.creator)); repP.catch(() => {});
       jobs.push(within(repP, left()).then(v => { out.rep = v; }, e => out.errors.push("reputation: " + (e && e.message))));
-      jobs.push(within(snipers(token, pair, pairs, out.creator, within(repP, left())), left()).then(v => { out.snipers = v; }, e => out.errors.push("snipers: " + (e && e.message))));
-      if (pair) jobs.push(within(liquidityControl(pair, out.creator.deployer), left()).then(v => { out.lp = v; }, () => out.errors.push("lp")));
+      jobs.push(within(cached("snipers", token, () => snipers(token, pair, pairs, out.creator, within(repP, left()))), left()).then(v => { out.snipers = v; }, e => out.errors.push("snipers: " + (e && e.message))));
+      if (pair) jobs.push(within(cached("lp", token + ":" + lc(pair.pairAddress), () => liquidityControl(pair, out.creator.deployer)), left()).then(v => { out.lp = v; }, () => out.errors.push("lp")));
     }
     await Promise.all(jobs);
     if (out.creator && out.holders) {
@@ -392,7 +413,7 @@
     return out;
   }
 
-  const api = { analyze, failReason, BUDGET_MS, RETRY_BUDGET_MS, keccak, findCreator, reputation, liquidityControl, holders, snipers,
+  const api = { analyze, failReason, cached, _cacheGet: cacheGet, TTL, BUDGET_MS, RETRY_BUDGET_MS, keccak, findCreator, reputation, liquidityControl, holders, snipers,
     _get: getJSON, _firstFunder: firstFunder, _call: call, _rpc: rpc, _words: words, _budget: ms => { deadline = Date.now() + ms; } };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PBCreator = api;

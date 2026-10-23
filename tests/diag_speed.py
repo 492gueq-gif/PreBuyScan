@@ -39,10 +39,12 @@ with sync_playwright() as p:
                 badge = pg.inner_text("#out .done")
                 st = pg.locator("#out .astate").all_inner_texts()
                 unk = pg.eval_on_selector_all("#out .pill.unk", "els=>els.map(e=>(e.classList.contains('err')?'ERR ':'')+e.closest('li').querySelector('b').innerText)")
-                res.append(dict(round=rnd, version=v, token=tok[:8], first_s=round(tp, 1), full_s=round(tf, 1), badge=badge, state=st, unknown=unk,
+                t1 = time.time(); pg.goto("http://localhost:%d/?t=%s&r=1" % (port, tok))
+                pg.wait_for_selector("#out .ring:not(.pending)", timeout=300000); trep = round(time.time() - t1, 1)
+                res.append(dict(repeat_s=trep, round=rnd, version=v, token=tok[:8], first_s=round(tp, 1), full_s=round(tf, 1), badge=badge, state=st, unknown=unk,
                                 steps=steps, hosts={h: [n, round(t, 1), f] for h, (n, t, f) in sorted(hosts.items(), key=lambda x: -x[1][1])[:8]}))
                 ctx.close(); srv.terminate()
     b.close()
 (OUT / "speed.json").write_text(json.dumps(res, indent=1, ensure_ascii=False))
 for r in res:
-    print("::notice title=%s %s r%d::%s" % (r["version"], r["token"], r["round"], json.dumps({k: r[k] for k in ("first_s", "full_s", "badge", "unknown", "hosts")}, ensure_ascii=False)[:3000]))
+    print("::notice title=%s %s r%d::%s" % (r["version"], r["token"], r["round"], json.dumps({k: r[k] for k in ("first_s", "full_s", "repeat_s", "badge", "unknown", "hosts")}, ensure_ascii=False)[:3000]))

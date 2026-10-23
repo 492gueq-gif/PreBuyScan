@@ -1,6 +1,6 @@
 # Metodología de puntuación
 
-Versión del algoritmo: **2026.10.23-1** (`scoring.js`). Los pesos son los de `2026.10.22-2`; esta versión solo agrega el estado «Error técnico», la cobertura, el estado del análisis y la regla de «No evaluable». Para los mismos hallazgos, la puntuación es idéntica a la versión anterior, así que los resultados históricos no se invierten ni cambian.
+Versión del algoritmo: **2026.10.23-2** (`scoring.js`). La 2026.10.23-2 solo cambia el estado del análisis: una comprobación sin resultado concluyente ya no lo marca «parcial» (ver abajo); la puntuación no cambia. Los pesos son los de `2026.10.22-2`; esta versión solo agrega el estado «Error técnico», la cobertura, el estado del análisis y la regla de «No evaluable». Para los mismos hallazgos, la puntuación es idéntica a la versión anterior, así que los resultados históricos no se invierten ni cambian.
 
 ## Estados de cada hallazgo
 
@@ -39,8 +39,8 @@ Comprobaciones con resultado (bien, precaución o riesgo) / total de comprobacio
 
 ## Estado del análisis
 
-- **Análisis completado:** todas las comprobaciones dieron resultado.
-- **Análisis parcial:** alguna quedó sin resultado o con error técnico (se indica cuántas y se ofrece reintentar).
+- **Análisis completado:** todas las comprobaciones corrieron. Las que terminaron sin conclusión (p. ej. dueño no identificable) se cuentan en la Cobertura y restan como «sin datos».
+- **Análisis parcial:** alguna comprobación no pudo correr por error técnico o tiempo agotado (se indica cuántas y se ofrece reintentar).
 - **Error de conexión:** no se pudo consultar ni el mercado ni la cadena; el resultado no es una evaluación.
 
 ## Alpha Signal Score (0–100, Alpha Radar)
