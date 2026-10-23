@@ -24,6 +24,7 @@ Todo corre en el navegador del usuario contra APIs públicas; GitHub Actions hac
 - `creator.js` — creador (Blockscout v2), reputación, control de la liquidez (V2 LP holders; V3/V4 posiciones NFT y `ModifyLiquidity`), holders, snipers del primer minuto con su fondeo; presupuesto de tiempo de 35 s.
 - `bubblemap.js` — mapa de wallets (holders, fondeo, transferencias, grupos, ventanas de 1 h para contratos fondeadores).
 - `profile.js` — perfil de wallet.
+- `share.js` — Smart Share Engine: tarjetas X (1600×900), Telegram (1080×1080) y reporte premium (1080×1350) dibujadas en Canvas con datos reales; enlace verificable con SHA-256 y QR (≤700 bytes, módulos ≥3 px, decodificación comprobada en CI). Sin firma digital hasta tener servidor. Detalle en `docs/SMART_SHARE.md` (rama de la página).
 - `sw.js`, `manifest.webmanifest`, íconos — app instalable (PWA), notificaciones locales con permiso.
 
 Fuentes: RPC pública `https://rpc.mainnet.chain.robinhood.com`, Blockscout `robinhoodchain.blockscout.com` (API v2; la API legacy limita tras ~9 llamadas), DexScreener, GeckoTerminal (datos y gráfico incrustado), base de creadores propia.
@@ -61,6 +62,7 @@ Fuentes: RPC pública `https://rpc.mainnet.chain.robinhood.com`, Blockscout `rob
 - Tiempo real por WebSocket / indexación de eventos (proveedor con clave + backend).
 - Dominio propio (p. ej. prebuyscan.xyz).
 - Rotar la clave de Alchemy (acción del jefe).
+- Firma digital de los reportes compartidos (clave privada en un backend).
 
 ## Pendiente técnico
 
