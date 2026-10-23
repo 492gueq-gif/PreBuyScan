@@ -407,7 +407,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 .scanring .v b{font-size:2.6rem}.scanring .v span{font-size:.74rem;max-width:120px}
 .scanring .sr-glow{inset:4%}
 @media (max-width:1099px){.rtop .scanring{grid-column:1 / -1;margin:6px auto 4px}.rtop>.grow{grid-column:1 / -1}}
-@media (min-width:1100px){.scanring{width:240px;height:240px}.scanring .v b{font-size:3.3rem}.scanring .v span{font-size:.82rem;max-width:150px}}
+@media (min-width:1100px){.rtop.scanning{grid-template-columns:minmax(0,auto) auto minmax(0,1fr);gap:48px}.rtop.scanning .scanring{justify-self:start}.scanring{width:240px;height:240px}.scanring .v b{font-size:3.3rem}.scanring .v span{font-size:.82rem;max-width:150px}}
 @media (max-width:520px){.scanring{width:180px;height:180px}.scanring .v b{font-size:2.4rem}}
 
 /* ---------- Arkham-style entity graph ---------- */
@@ -460,7 +460,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 @keyframes akPulse{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.18);opacity:.15}}
 @keyframes akIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.akmap *{animation:none!important}}
-.scanwrap{display:flex;gap:32px;align-items:center;justify-content:center;padding:24px 16px 6px;flex-wrap:wrap}.scanwrap .grow{flex:0 1 auto;min-width:220px}
+.scanwrap{display:flex;gap:48px;align-items:center;justify-content:flex-start;padding-left:40px!important;padding:24px 16px 6px;flex-wrap:wrap}.scanwrap .grow{flex:0 1 auto;min-width:220px}
 .maploading{position:relative;height:340px;display:grid;place-items:center;border-top:1px solid #12324a;
   background:radial-gradient(ellipse at 50% 40%,#0b2033 0%,#060d16 60%,#03070c 100%);color:#8fb0c4;font-size:.86rem;overflow:hidden}
 .maploading svg{position:absolute;inset:0;width:100%;height:100%;opacity:.8}
@@ -1538,7 +1538,7 @@ function renderPartial(token,{pair,facts}){
   $("#out").innerHTML=`<div class="rcard">
    <div class="rhead"><button class="iconbtn mobile-only" data-nav="home" aria-label="Volver">‹</button><h2>Analizando token</h2><span class="done" style="background:var(--warn-bg);color:var(--warn)">EN CURSO</span></div>
    ${banner?`<img class="banner" src="${esc(banner)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`:""}
-   <section class="card"><div class="rtop">
+   <section class="card"><div class="rtop scanning">
     <div><div class="ident">${img?`<img class="ticon" src="${esc(img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`:`<span class="ticon ph">${esc((sym||"?").slice(0,2))}</span>`}
       <div style="min-width:0"><h2>${esc(name)}</h2><div class="sym">${esc(sym)}${pair.quoteToken?" / "+esc(pair.quoteToken.symbol):""}</div><span class="addr">${esc(short(token))}</span></div></div>
       ${tagList(pair,null)}
