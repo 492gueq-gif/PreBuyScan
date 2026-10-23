@@ -21,7 +21,8 @@
     opts = opts || {};
     const fetchImpl = opts.fetch || ((...a) => root.fetch(...a));
     const sleep = opts.sleep || defaultSleep;
-    const now = opts.now || (() => Date.now());
+    // Monotonic clock for pacing and cache age (wall-clock changes must not stall requests).
+    const now = opts.now || (() => (root.performance && root.performance.now ? root.performance.now() : Date.now()));
     const random = opts.random || Math.random;
     const retries = opts.retries == null ? 2 : opts.retries;
     const cache = new Map();

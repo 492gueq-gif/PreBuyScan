@@ -43,7 +43,7 @@ jobs:
         run: |
           mkdir -p /tmp/o && cp -r out/. /tmp/o/ || true
           git config user.name ci && git config user.email ci@users.noreply.github.com
-          git checkout --orphan ci-results && git rm -rfq . && cp -r /tmp/o/. . && git add -A && git commit -qm "ui ${GITHUB_SHA}" && git push origin HEAD:refs/heads/ci/ui-${GITHUB_RUN_ID}
+          git checkout --orphan ci-results && git rm -rfq . && git clean -fdxq && cp -r /tmp/o/. . && git add -A && git commit -qm "ui ${GITHUB_SHA}" && git push origin HEAD:refs/heads/ci/ui-${GITHUB_RUN_ID}
   live:
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -63,4 +63,4 @@ jobs:
         run: |
           mkdir -p /tmp/o && cp -r out/. /tmp/o/ || true
           git config user.name ci && git config user.email ci@users.noreply.github.com
-          git checkout --orphan ci-live && git rm -rfq . && cp -r /tmp/o/. . && git add -A && git commit -qm "live ${GITHUB_SHA}" && git push origin HEAD:refs/heads/ci/live-${GITHUB_RUN_ID}
+          git checkout --orphan ci-live && git rm -rfq . && git clean -fdxq && cp -r /tmp/o/. . && git add -A && git commit -qm "live ${GITHUB_SHA}" && git push origin HEAD:refs/heads/ci/live-${GITHUB_RUN_ID}

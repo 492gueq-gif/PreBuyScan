@@ -101,87 +101,102 @@ def main():
     try:
         with sync_playwright() as p:
             b = p.chromium.launch()
-            # 12. home on desktop and mobile
-            for w, h, tag in ((1440, 900, "desktop"), (390, 844, "mobile")):
-                ctx, pg, errs = page(b, w, h)
-                pg.goto(BASE)
-                pg.wait_for_timeout(1200)
-                check("home_%s_no_errors" % tag, not errs, errs[:5])
-                check("home_%s_boot_removed" % tag, pg.locator("#boot").count() == 0)
-                sw = pg.evaluate("document.documentElement.scrollWidth")
-                wide = pg.evaluate("w=>[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();return r.right>w+0.5&&r.width>0}).slice(0,8).map(e=>e.tagName+'.'+e.className+':'+Math.round(e.getBoundingClientRect().right))", w)
-                check("home_%s_no_overflow" % tag, sw <= w, dict(scrollWidth=sw, wide=wide))
-                check("home_%s_vector_logo" % tag, pg.evaluate("[...document.querySelectorAll('img[src=\"logo.svg\"]')].some(i=>i.naturalWidth>0)"))
-                visual("home_" + tag, shot(pg, "home_" + tag))
-                axe(pg, "home_" + tag)
+            def guarded(name, fn):
+                try:
+                    fn()
+                except Exception as error:  # a crashed block is a failed check, never a silent pass
+                    check(name + "_crashed", False, type(error).__name__ + ": " + str(error)[:300])
+
+            def home_block():
+                for w, h, tag in ((1440, 900, "desktop"), (390, 844, "mobile")):
+                    ctx, pg, errs = page(b, w, h)
+                    pg.goto(BASE)
+                    pg.wait_for_timeout(1200)
+                    check("home_%s_no_errors" % tag, not errs, errs[:5])
+                    check("home_%s_boot_removed" % tag, pg.locator("#boot").count() == 0)
+                    sw = pg.evaluate("document.documentElement.scrollWidth")
+                    wide = pg.evaluate("w=>[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();return r.right>w+0.5&&r.width>0}).slice(0,8).map(e=>e.tagName+'.'+e.className+':'+Math.round(e.getBoundingClientRect().right))", w)
+                    check("home_%s_no_overflow" % tag, sw <= w, dict(scrollWidth=sw, wide=wide))
+                    check("home_%s_vector_logo" % tag, pg.evaluate("[...document.querySelectorAll('img[src=\"logo.svg\"]')].some(i=>i.naturalWidth>0)"))
+                    visual("home_" + tag, shot(pg, "home_" + tag))
+                    axe(pg, "home_" + tag)
+                    ctx.close()
+
+            def conn_error_block():
+                # 5/12. connection error: market and chain unreachable => not evaluable, nothing favourable
+                ctx, pg, errs = page(b, 1440, 900, mode="blocked")
+                pg.goto(BASE + "?t=" + TOKEN)
+                pg.wait_for_selector("#out .ring:not(.pending)", timeout=180000)
+                pg.wait_for_timeout(1800)
+                check("conn_error_badge", "ERROR DE CONEXIÓN" in pg.inner_text("#out .done"))
+                check("conn_error_not_evaluable", pg.inner_text("#out .ring .lr-lbl") == "No evaluable" and pg.inner_text("#out .lr-num") == "—")
+                check("conn_error_technical_pills", pg.locator("#out .pill.err").count() >= 3)
+                check("conn_error_no_history_score", pg.evaluate("JSON.parse(localStorage.getItem('pbs_hist')||'[]')[0].score") is None)
+                pg.click("[data-act=cards]")
+                pg.wait_for_timeout(300)
+                check("conn_error_no_share_card", "no se genera una tarjeta" in pg.inner_text("#out .sc-out"))
+                check("conn_error_no_errors", not errs, errs[:5])
+                visual("conn_error", shot(pg, "conn_error"))
+                axe(pg, "result_conn_error")
                 ctx.close()
-            # 5/12. connection error: market and chain unreachable => not evaluable, nothing favourable
-            ctx, pg, errs = page(b, 1440, 900, mode="blocked")
-            pg.goto(BASE + "?t=" + TOKEN)
-            pg.wait_for_selector("#out .ring:not(.pending)", timeout=180000)
-            pg.wait_for_timeout(1800)
-            check("conn_error_badge", "ERROR DE CONEXIÓN" in pg.inner_text("#out .done"))
-            check("conn_error_not_evaluable", pg.inner_text("#out .ring .lr-lbl") == "No evaluable" and pg.inner_text("#out .lr-num") == "—")
-            check("conn_error_technical_pills", pg.locator("#out .pill.err").count() >= 3)
-            check("conn_error_no_history_score", pg.evaluate("JSON.parse(localStorage.getItem('pbs_hist')||'[]')[0].score") is None)
-            pg.click("[data-act=cards]")
-            pg.wait_for_timeout(300)
-            check("conn_error_no_share_card", "no se genera una tarjeta" in pg.inner_text("#out .sc-out"))
-            check("conn_error_no_errors", not errs, errs[:5])
-            visual("conn_error", shot(pg, "conn_error"))
-            axe(pg, "result_conn_error")
-            ctx.close()
-            # 8. Alpha Radar with fixtures
-            ctx, pg, errs = page(b, 1440, 900)
-            pg.goto(BASE)
-            pg.wait_for_timeout(600)
-            pg.evaluate("setView('explore',{kind:'alpha'})")
-            pg.wait_for_selector("#explore-list li.al", timeout=30000)
-            names = pg.evaluate("[...document.querySelectorAll('#explore-list li.al .grow b')].map(b=>b.firstChild.textContent.trim())")
-            check("alpha_default_filters_order", names == EXP["order"], names)
-            check("alpha_activity_badges", pg.locator("#explore-list .alphab").count() == len(names))
-            last = pg.inner_text("#explore-list li.al >> nth=-1")
-            check("alpha_high_risk_last_unfavourable", "sin etiqueta favorable" in last, last[:120])
-            check("alpha_source_and_time", "Fuente: GeckoTerminal" in pg.inner_text("#explore-list"))
-            pg.select_option("#alpha-f select[name=age]", "24")
-            pg.wait_for_timeout(800)
-            n24 = pg.locator("#explore-list li.al").count()
-            check("alpha_filter_editable", n24 == len(EXP["age24_pass"]), n24)
-            visual("alpha", shot(pg, "alpha"))
-            check("alpha_no_errors", not errs, errs[:5])
-            ctx.close()
-            # 10/11. share cards from a fixture analysis + QR decode + verification page
-            ctx, pg, errs = page(b, 1440, 900)
-            pg.goto(BASE)
-            pg.wait_for_timeout(600)
-            data = pg.evaluate("""async()=>{await ensureQR();
-              const res={checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'},{s:'unk',err:true,t:'Holders no revisados',d:'fixture',c:'Holders'},{s:'ok',t:'La venta simulada funciona',d:'fixture',c:'Venta'}],
-                pair:null,cr:{},block:123,scannedAt:Date.parse('2026-10-23T00:00:00Z')};
-              const s=await PBShare.makeAll('""" + TOKEN + """',res,{score:PBScore.scoreOf(res.checks),verdict:'warn',confidence:40,algo:PBScore.ALGO_VERSION,logoUrl:null});
-              return {x:[s.cards.x.width,s.cards.x.height],t:[s.cards.telegram.width,s.cards.telegram.height],p:[s.cards.premium.width,s.cards.premium.height],
-                qr:s.qr,url:s.link.url,id:s.link.id,premium:s.cards.premium.toDataURL('image/png'),xpng:s.cards.x.toDataURL('image/png'),
-                alerts:s.rep.x.map(a=>a[1])}}""")
-            check("cards_sizes", (data["x"], data["t"], data["p"]) == ([1600, 900], [1080, 1080], [1080, 1350]))
-            check("cards_qr_drawn", bool(data["qr"]) and data["qr"]["size"] >= 200 and data["qr"]["size"] // (data["qr"]["modules"] + 8) >= 3, data["qr"])
-            check("cards_error_state_kept", "ERROR TÉCNICO" in data["alerts"], data["alerts"])
-            (OUT / "card_premium.png").write_bytes(base64.b64decode(data["premium"].split(",")[1]))
-            (OUT / "card_x.png").write_bytes(base64.b64decode(data["xpng"].split(",")[1]))
-            import cv2
-            val, _, _ = cv2.QRCodeDetectorAruco().detectAndDecode(cv2.imread(str(OUT / "card_premium.png")))
-            check("qr_decodes_to_link", val == data["url"], len(val or ""))
-            local = data["url"].replace("https://492gueq-gif.github.io/PreBuyScan/", BASE)
-            v = ctx.new_page()
-            v.route("**/*", router)
-            v.goto(local)
-            v.wait_for_selector("#verify .verifybox", timeout=30000)
-            check("verify_ok", "Reporte verificado" in v.inner_text("#verify"))
-            v2 = ctx.new_page()
-            v2.route("**/*", router)
-            v2.goto(local.replace("&r=" + data["id"], "&r=" + "0" * 16))
-            v2.wait_for_selector("#verify .verifybox", timeout=30000)
-            check("verify_tampered_rejected", "no verificado" in v2.inner_text("#verify"))
-            check("cards_no_errors", not errs, errs[:5])
-            ctx.close()
+
+            def alpha_block():
+                # 8. Alpha Radar with fixtures
+                ctx, pg, errs = page(b, 1440, 900)
+                pg.goto(BASE)
+                pg.wait_for_timeout(600)
+                pg.evaluate("setView('explore',{kind:'alpha'})")
+                pg.wait_for_selector("#explore-list li.al", timeout=60000)
+                names = pg.evaluate("[...document.querySelectorAll('#explore-list li.al .grow b')].map(b=>b.firstChild.textContent.trim())")
+                check("alpha_default_filters_order", names == EXP["order"], names)
+                check("alpha_activity_badges", pg.locator("#explore-list .alphab").count() == len(names))
+                last = pg.inner_text("#explore-list li.al >> nth=-1")
+                check("alpha_high_risk_last_unfavourable", "sin etiqueta favorable" in last, last[:120])
+                check("alpha_source_and_time", "Fuente: GeckoTerminal" in pg.inner_text("#explore-list"))
+                pg.select_option("#alpha-f select[name=age]", "24")
+                pg.wait_for_timeout(800)
+                n24 = pg.locator("#explore-list li.al").count()
+                check("alpha_filter_editable", n24 == len(EXP["age24_pass"]), n24)
+                visual("alpha", shot(pg, "alpha"))
+                check("alpha_no_errors", not errs, errs[:5])
+                ctx.close()
+
+            def cards_block():
+                # 10/11. share cards from a fixture analysis + QR decode + verification page
+                ctx, pg, errs = page(b, 1440, 900)
+                pg.goto(BASE)
+                pg.wait_for_timeout(600)
+                data = pg.evaluate("""async()=>{await ensureQR();
+                  const res={checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'},{s:'unk',err:true,t:'Holders no revisados',d:'fixture',c:'Holders'},{s:'ok',t:'La venta simulada funciona',d:'fixture',c:'Venta'}],
+                    pair:null,cr:{},block:123,scannedAt:Date.parse('2026-10-23T00:00:00Z')};
+                  const s=await PBShare.makeAll('""" + TOKEN + """',res,{score:PBScore.scoreOf(res.checks),verdict:'warn',confidence:40,algo:PBScore.ALGO_VERSION,logoUrl:null});
+                  return {x:[s.cards.x.width,s.cards.x.height],t:[s.cards.telegram.width,s.cards.telegram.height],p:[s.cards.premium.width,s.cards.premium.height],
+                    qr:s.qr,url:s.link.url,id:s.link.id,premium:s.cards.premium.toDataURL('image/png'),xpng:s.cards.x.toDataURL('image/png'),
+                    alerts:s.rep.x.map(a=>a[1])}}""")
+                check("cards_sizes", (data["x"], data["t"], data["p"]) == ([1600, 900], [1080, 1080], [1080, 1350]))
+                check("cards_qr_drawn", bool(data["qr"]) and data["qr"]["size"] >= 200 and data["qr"]["size"] // (data["qr"]["modules"] + 8) >= 3, data["qr"])
+                check("cards_error_state_kept", "ERROR TÉCNICO" in data["alerts"], data["alerts"])
+                (OUT / "card_premium.png").write_bytes(base64.b64decode(data["premium"].split(",")[1]))
+                (OUT / "card_x.png").write_bytes(base64.b64decode(data["xpng"].split(",")[1]))
+                import cv2
+                val, _, _ = cv2.QRCodeDetectorAruco().detectAndDecode(cv2.imread(str(OUT / "card_premium.png")))
+                check("qr_decodes_to_link", val == data["url"], len(val or ""))
+                local = data["url"].replace("https://492gueq-gif.github.io/PreBuyScan/", BASE)
+                v = ctx.new_page()
+                v.route("**/*", router)
+                v.goto(local)
+                v.wait_for_selector("#verify .verifybox", timeout=30000)
+                check("verify_ok", "Reporte verificado" in v.inner_text("#verify"))
+                v2 = ctx.new_page()
+                v2.route("**/*", router)
+                v2.goto(local.replace("&r=" + data["id"], "&r=" + "0" * 16))
+                v2.wait_for_selector("#verify .verifybox", timeout=30000)
+                check("verify_tampered_rejected", "no verificado" in v2.inner_text("#verify"))
+                check("cards_no_errors", not errs, errs[:5])
+                ctx.close()
+
+            for n, fn in (("home", home_block), ("conn_error", conn_error_block), ("alpha", alpha_block), ("cards", cards_block)):
+                guarded(n, fn)
             b.close()
     finally:
         srv.terminate()
