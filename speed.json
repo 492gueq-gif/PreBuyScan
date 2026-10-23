@@ -1,0 +1,428 @@
+[
+ {
+  "repeat_s": 15.1,
+  "round": 0,
+  "version": "HEAD",
+  "token": "0x39dbed",
+  "first_s": 1.0,
+  "full_s": 29.0,
+  "badge": "ANÁLISIS PARCIAL",
+  "state": [
+   "Análisis parcial.\n2 comprobación(es) con error técnico: reintentar puede cambiar el resultado.\nReintentar análisis"
+  ],
+  "unknown": [
+   "Dueño del contrato no identificado",
+   "ERR Historial del creador no disponible",
+   "No sabemos quién tiene la liquidez",
+   "ERR Snipers no revisados"
+  ],
+  "steps": [
+   [
+    0.2,
+    "Revisando 0x39db…4571…"
+   ],
+   [
+    0.6,
+    "Simulando compra y venta…"
+   ],
+   [
+    2.3,
+    "Simulando montos mayores…"
+   ],
+   [
+    7.9,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    9.3,
+    "Revisando el contrato…"
+   ],
+   [
+    9.9,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ],
+   [
+    29.4,
+    "Revisando 0x39db…4571…"
+   ],
+   [
+    29.6,
+    "Simulando compra y venta…"
+   ],
+   [
+    30.7,
+    "Simulando montos mayores…"
+   ],
+   [
+    33.2,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    33.2,
+    "Revisando el contrato…"
+   ],
+   [
+    33.8,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ]
+  ],
+  "hosts": {
+   "robinhoodchain.blockscout.com": [
+    29,
+    26.1,
+    0
+   ],
+   "s.geckoterminal.com": [
+    593,
+    12.6,
+    0
+   ],
+   "rpc.mainnet.chain.robinhood.com": [
+    57,
+    6.8,
+    2
+   ],
+   "www.geckoterminal.com": [
+    15,
+    1.4,
+    3
+   ],
+   "api.geckoterminal.com": [
+    2,
+    1.4,
+    0
+   ],
+   "scripts.webcontentassessor.com": [
+    4,
+    1.1,
+    4
+   ],
+   "app.geckoterminal.com": [
+    7,
+    0.9,
+    1
+   ],
+   "bam.nr-data.net": [
+    11,
+    0.7,
+    7
+   ]
+  }
+ },
+ {
+  "repeat_s": 14.9,
+  "round": 0,
+  "version": "HEAD",
+  "token": "0xD5f1af",
+  "first_s": 1.2,
+  "full_s": 28.1,
+  "badge": "ANÁLISIS PARCIAL",
+  "state": [
+   "Análisis parcial.\n2 comprobación(es) con error técnico: reintentar puede cambiar el resultado.\nReintentar análisis"
+  ],
+  "unknown": [
+   "Venta no simulada",
+   "Dueño del contrato no identificado",
+   "ERR Historial del creador no disponible",
+   "No sabemos quién tiene la liquidez",
+   "ERR Snipers no revisados"
+  ],
+  "steps": [
+   [
+    0.2,
+    "Revisando 0xd5f1…e725…"
+   ],
+   [
+    0.6,
+    "Simulando compra y venta…"
+   ],
+   [
+    1.8,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    2.6,
+    "Revisando el contrato…"
+   ],
+   [
+    3.0,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ],
+   [
+    28.5,
+    "Revisando 0xd5f1…e725…"
+   ],
+   [
+    28.6,
+    "Simulando compra y venta…"
+   ],
+   [
+    29.5,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    29.5,
+    "Revisando el contrato…"
+   ],
+   [
+    30.0,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ]
+  ],
+  "hosts": {
+   "robinhoodchain.blockscout.com": [
+    29,
+    25.8,
+    0
+   ],
+   "s.geckoterminal.com": [
+    598,
+    12.7,
+    0
+   ],
+   "rpc.mainnet.chain.robinhood.com": [
+    32,
+    4.3,
+    0
+   ],
+   "app.geckoterminal.com": [
+    9,
+    2.3,
+    1
+   ],
+   "scripts.webcontentassessor.com": [
+    4,
+    1.3,
+    4
+   ],
+   "api.geckoterminal.com": [
+    2,
+    0.7,
+    0
+   ],
+   "bam.nr-data.net": [
+    13,
+    0.6,
+    9
+   ],
+   "www.geckoterminal.com": [
+    6,
+    0.6,
+    0
+   ]
+  }
+ },
+ {
+  "repeat_s": 15.3,
+  "round": 1,
+  "version": "HEAD",
+  "token": "0x39dbed",
+  "first_s": 1.1,
+  "full_s": 27.0,
+  "badge": "ANÁLISIS PARCIAL",
+  "state": [
+   "Análisis parcial.\n2 comprobación(es) con error técnico: reintentar puede cambiar el resultado.\nReintentar análisis"
+  ],
+  "unknown": [
+   "Dueño del contrato no identificado",
+   "ERR Historial del creador no disponible",
+   "No sabemos quién tiene la liquidez",
+   "ERR Snipers no revisados"
+  ],
+  "steps": [
+   [
+    0.2,
+    "Revisando 0x39db…4571…"
+   ],
+   [
+    0.6,
+    "Simulando compra y venta…"
+   ],
+   [
+    2.0,
+    "Simulando montos mayores…"
+   ],
+   [
+    4.5,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    5.1,
+    "Revisando el contrato…"
+   ],
+   [
+    5.6,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ],
+   [
+    27.2,
+    "Revisando 0x39db…4571…"
+   ],
+   [
+    27.3,
+    "Simulando compra y venta…"
+   ],
+   [
+    28.5,
+    "Simulando montos mayores…"
+   ],
+   [
+    34.2,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    34.2,
+    "Revisando el contrato…"
+   ],
+   [
+    34.7,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ]
+  ],
+  "hosts": {
+   "robinhoodchain.blockscout.com": [
+    29,
+    26.2,
+    0
+   ],
+   "s.geckoterminal.com": [
+    500,
+    13.7,
+    24
+   ],
+   "rpc.mainnet.chain.robinhood.com": [
+    57,
+    5.6,
+    2
+   ],
+   "app.geckoterminal.com": [
+    5,
+    1.1,
+    0
+   ],
+   "scripts.webcontentassessor.com": [
+    4,
+    1.0,
+    4
+   ],
+   "www.geckoterminal.com": [
+    13,
+    0.9,
+    2
+   ],
+   "bam.nr-data.net": [
+    11,
+    0.7,
+    6
+   ],
+   "api.geckoterminal.com": [
+    2,
+    0.6,
+    0
+   ]
+  }
+ },
+ {
+  "repeat_s": 15.0,
+  "round": 1,
+  "version": "HEAD",
+  "token": "0xD5f1af",
+  "first_s": 1.0,
+  "full_s": 27.2,
+  "badge": "ANÁLISIS PARCIAL",
+  "state": [
+   "Análisis parcial.\n2 comprobación(es) con error técnico: reintentar puede cambiar el resultado.\nReintentar análisis"
+  ],
+  "unknown": [
+   "Venta no simulada",
+   "Dueño del contrato no identificado",
+   "ERR Historial del creador no disponible",
+   "No sabemos quién tiene la liquidez",
+   "ERR Snipers no revisados"
+  ],
+  "steps": [
+   [
+    0.2,
+    "Revisando 0xd5f1…e725…"
+   ],
+   [
+    0.8,
+    "Simulando compra y venta…"
+   ],
+   [
+    2.1,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    2.7,
+    "Revisando el contrato…"
+   ],
+   [
+    3.2,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ],
+   [
+    27.7,
+    "Revisando 0xd5f1…e725…"
+   ],
+   [
+    27.8,
+    "Simulando compra y venta…"
+   ],
+   [
+    28.7,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    28.7,
+    "Revisando el contrato…"
+   ],
+   [
+    29.2,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ]
+  ],
+  "hosts": {
+   "robinhoodchain.blockscout.com": [
+    29,
+    24.6,
+    0
+   ],
+   "s.geckoterminal.com": [
+    598,
+    14.4,
+    0
+   ],
+   "rpc.mainnet.chain.robinhood.com": [
+    32,
+    4.8,
+    0
+   ],
+   "app.geckoterminal.com": [
+    9,
+    1.8,
+    1
+   ],
+   "scripts.webcontentassessor.com": [
+    4,
+    1.0,
+    4
+   ],
+   "www.geckoterminal.com": [
+    6,
+    1.0,
+    0
+   ],
+   "bam.nr-data.net": [
+    17,
+    0.7,
+    12
+   ],
+   "api.geckoterminal.com": [
+    2,
+    0.6,
+    0
+   ]
+  }
+ }
+]
