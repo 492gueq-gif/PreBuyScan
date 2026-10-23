@@ -1,0 +1,20 @@
+name: Audit probes (temporary)
+on:
+  push:
+    branches: [fix/audit-ext]
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python tests/probe_api.py
+      - if: always()
+        run: |
+          mkdir -p /tmp/o && cp -r out/. /tmp/o/ || true
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git checkout --orphan d && git rm -rfq . && git clean -fdxq && cp -r /tmp/o/. . && git add -A && git commit -qm probe && git push origin HEAD:refs/heads/ci/probe-${GITHUB_RUN_ID}
