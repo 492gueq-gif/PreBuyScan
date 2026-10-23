@@ -1,0 +1,4 @@
+d_3d {"active": {"n": 31, "minScale": 0.726, "maxScale": 1.418}, "after_leave": {"minScale": 0.987, "maxScale": 1.014}, "errs": []}
+d_card {"visible": true}
+m_3d {"active": {"n": 31, "minScale": 0.834, "maxScale": 1.369}, "after_leave": {"minScale": 0.799, "maxScale": 1.483}, "errs": []}
+m_card {"visible": true}
