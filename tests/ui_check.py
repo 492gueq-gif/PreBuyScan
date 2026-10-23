@@ -66,7 +66,8 @@ def axe(pg, tag):
     if not AXE.exists():
         check("a11y_" + tag, False, "axe-core not installed")
         return
-    pg.add_script_tag(path=str(AXE))
+    # The page's CSP forbids inline scripts (as it should); inject axe through the DevTools protocol instead.
+    pg.evaluate(AXE.read_text() + "\n;void 0")
     res = pg.evaluate("async()=>{const r=await axe.run(document,{resultTypes:['violations']});return r.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.length,targets:v.nodes.slice(0,6).map(n=>n.target.join(' ')+' :: '+(n.any[0]&&n.any[0].message||'').slice(0,90))}))}")
     critical = [v for v in res if v["impact"] == "critical"]
     results["a11y_" + tag + "_all"] = res
