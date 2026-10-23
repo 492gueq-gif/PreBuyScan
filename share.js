@@ -308,6 +308,8 @@
         txt(g, cc[0], cx + 14, cy + 26, 16, 700, C.gray, FONT_B); const vf = fit(g, cc[1], 196, 26, 800, FONT_D, 14); txt(g, vf.t, cx + 14, cy + 60, vf.s, 800, C.white, FONT_D); });
       txt(g, "Fuente: DexScreener (mercado) y Blockscout (holders), al momento del análisis.", 40, yM + 196, 15, 600, C.gray, FONT_B);
     }
+    else { box(g, 40, yM, 680, 168, 14, "rgba(11,23,36,.92)", C.slate, 0, 2); capsule(g, 60, yM + 24, 236, 38, "NO DISPONIBLE", C.slate, 15);
+      txt(g, "Datos de mercado no disponibles", 60, yM + 104, 26, 800, C.white, FONT_B); txt(g, "Sin par en DexScreener al momento del análisis. No se inventan cifras.", 60, yM + 138, 17, 600, C.gray, FONT_B); }
     // 5 QR
     let qr = null;
     try { qr = drawQR(g, meta.url, 740, yM - 6, 300); } catch (e) { box(g, 740, yM, 300, 300, 12, null, C.line, 0, 2); txt(g, "QR no disponible", 890, yM + 150, 20, 700, C.gray, FONT_B, "center"); }
