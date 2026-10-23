@@ -1,0 +1,412 @@
+[
+ {
+  "repeat_s": 7.6,
+  "round": 0,
+  "version": "HEAD",
+  "token": "0x39dbed",
+  "first_s": 1.0,
+  "full_s": 21.1,
+  "badge": "ANÁLISIS COMPLETADO",
+  "state": [],
+  "unknown": [
+   "Dueño del contrato no identificado",
+   "No sabemos quién tiene la liquidez"
+  ],
+  "steps": [
+   [
+    0.1,
+    "Revisando 0x39db…4571…"
+   ],
+   [
+    0.5,
+    "Simulando compra y venta…"
+   ],
+   [
+    1.8,
+    "Simulando montos mayores…"
+   ],
+   [
+    4.3,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    5.2,
+    "Revisando el contrato…"
+   ],
+   [
+    5.7,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ],
+   [
+    21.2,
+    "Revisando 0x39db…4571…"
+   ],
+   [
+    21.3,
+    "Simulando compra y venta…"
+   ],
+   [
+    22.5,
+    "Simulando montos mayores…"
+   ],
+   [
+    28.2,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    28.2,
+    "Revisando el contrato…"
+   ],
+   [
+    28.6,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ]
+  ],
+  "hosts": {
+   "robinhoodchain.blockscout.com": [
+    11,
+    31.3,
+    0
+   ],
+   "s.geckoterminal.com": [
+    522,
+    9.2,
+    0
+   ],
+   "rpc.mainnet.chain.robinhood.com": [
+    68,
+    6.1,
+    2
+   ],
+   "app.geckoterminal.com": [
+    7,
+    0.9,
+    1
+   ],
+   "api.geckoterminal.com": [
+    2,
+    0.9,
+    0
+   ],
+   "scripts.webcontentassessor.com": [
+    3,
+    0.6,
+    3
+   ],
+   "sessions.bugsnag.com": [
+    8,
+    0.5,
+    0
+   ],
+   "unpkg.com": [
+    4,
+    0.5,
+    0
+   ]
+  }
+ },
+ {
+  "repeat_s": 2.5,
+  "round": 0,
+  "version": "HEAD",
+  "token": "0xD5f1af",
+  "first_s": 1.0,
+  "full_s": 34.4,
+  "badge": "ANÁLISIS COMPLETADO",
+  "state": [],
+  "unknown": [
+   "Venta no simulada",
+   "Dueño del contrato no identificado",
+   "No sabemos quién tiene la liquidez"
+  ],
+  "steps": [
+   [
+    0.1,
+    "Revisando 0xd5f1…e725…"
+   ],
+   [
+    0.5,
+    "Simulando compra y venta…"
+   ],
+   [
+    1.5,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    1.9,
+    "Revisando el contrato…"
+   ],
+   [
+    2.4,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ],
+   [
+    34.6,
+    "Revisando 0xd5f1…e725…"
+   ],
+   [
+    34.8,
+    "Simulando compra y venta…"
+   ],
+   [
+    35.7,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    36.1,
+    "Revisando el contrato…"
+   ],
+   [
+    36.6,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ]
+  ],
+  "hosts": {
+   "robinhoodchain.blockscout.com": [
+    29,
+    90.8,
+    0
+   ],
+   "rpc.mainnet.chain.robinhood.com": [
+    97,
+    13.1,
+    1
+   ],
+   "s.geckoterminal.com": [
+    598,
+    10.5,
+    0
+   ],
+   "app.geckoterminal.com": [
+    9,
+    2.3,
+    1
+   ],
+   "scripts.webcontentassessor.com": [
+    4,
+    0.8,
+    4
+   ],
+   "api.geckoterminal.com": [
+    2,
+    0.8,
+    0
+   ],
+   "api.dexscreener.com": [
+    3,
+    0.8,
+    0
+   ],
+   "bam.nr-data.net": [
+    17,
+    0.7,
+    8
+   ]
+  }
+ },
+ {
+  "repeat_s": 5.2,
+  "round": 1,
+  "version": "HEAD",
+  "token": "0x39dbed",
+  "first_s": 0.9,
+  "full_s": 17.5,
+  "badge": "ANÁLISIS COMPLETADO",
+  "state": [],
+  "unknown": [
+   "Dueño del contrato no identificado",
+   "No sabemos quién tiene la liquidez"
+  ],
+  "steps": [
+   [
+    0.1,
+    "Revisando 0x39db…4571…"
+   ],
+   [
+    0.5,
+    "Simulando compra y venta…"
+   ],
+   [
+    1.8,
+    "Simulando montos mayores…"
+   ],
+   [
+    7.4,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    7.6,
+    "Revisando el contrato…"
+   ],
+   [
+    8.1,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ],
+   [
+    17.8,
+    "Revisando 0x39db…4571…"
+   ],
+   [
+    17.9,
+    "Simulando compra y venta…"
+   ],
+   [
+    19.1,
+    "Simulando montos mayores…"
+   ],
+   [
+    21.6,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    21.6,
+    "Revisando el contrato…"
+   ],
+   [
+    22.6,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ]
+  ],
+  "hosts": {
+   "robinhoodchain.blockscout.com": [
+    11,
+    23.0,
+    0
+   ],
+   "s.geckoterminal.com": [
+    593,
+    12.3,
+    0
+   ],
+   "rpc.mainnet.chain.robinhood.com": [
+    69,
+    6.2,
+    3
+   ],
+   "app.geckoterminal.com": [
+    7,
+    0.9,
+    1
+   ],
+   "scripts.webcontentassessor.com": [
+    3,
+    0.6,
+    3
+   ],
+   "sessions.bugsnag.com": [
+    8,
+    0.5,
+    0
+   ],
+   "unpkg.com": [
+    4,
+    0.4,
+    0
+   ],
+   "www.geckoterminal.com": [
+    9,
+    0.4,
+    0
+   ]
+  }
+ },
+ {
+  "repeat_s": 3.1,
+  "round": 1,
+  "version": "HEAD",
+  "token": "0xD5f1af",
+  "first_s": 0.4,
+  "full_s": 33.7,
+  "badge": "ANÁLISIS COMPLETADO",
+  "state": [],
+  "unknown": [
+   "Venta no simulada",
+   "Dueño del contrato no identificado",
+   "No sabemos quién tiene la liquidez"
+  ],
+  "steps": [
+   [
+    0.1,
+    "Revisando 0xd5f1…e725…"
+   ],
+   [
+    0.4,
+    "Simulando compra y venta…"
+   ],
+   [
+    1.4,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    1.5,
+    "Revisando el contrato…"
+   ],
+   [
+    1.9,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ],
+   [
+    33.9,
+    "Revisando 0xd5f1…e725…"
+   ],
+   [
+    34.1,
+    "Simulando compra y venta…"
+   ],
+   [
+    35.0,
+    "Revisando operaciones recientes…"
+   ],
+   [
+    36.2,
+    "Revisando el contrato…"
+   ],
+   [
+    36.7,
+    "Revisando creador, liquidez, snipers y holders (hasta 60 s)…"
+   ]
+  ],
+  "hosts": {
+   "robinhoodchain.blockscout.com": [
+    29,
+    81.8,
+    0
+   ],
+   "s.geckoterminal.com": [
+    526,
+    10.1,
+    0
+   ],
+   "rpc.mainnet.chain.robinhood.com": [
+    100,
+    9.6,
+    4
+   ],
+   "app.geckoterminal.com": [
+    9,
+    1.9,
+    1
+   ],
+   "api.geckoterminal.com": [
+    2,
+    1.3,
+    0
+   ],
+   "sessions.bugsnag.com": [
+    8,
+    0.6,
+    0
+   ],
+   "bam.nr-data.net": [
+    15,
+    0.5,
+    8
+   ],
+   "scripts.webcontentassessor.com": [
+    4,
+    0.5,
+    4
+   ]
+  }
+ }
+]
