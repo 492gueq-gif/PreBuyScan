@@ -2,3 +2,4 @@
 {"at": 1792777436, "chosen": 2, "eligible": 142, "index": 0, "pages_failed": 0, "pools": 200}
 {"at": 1792777690, "chosen": 2, "eligible": 132, "index": 0, "pages_failed": 0, "pools": 200}
 {"at": 1792778282, "cohorts": {"h1": {"chosen": 2, "eligible": 119}}, "index": 0, "pages_failed": 1, "pools": 180}
+{"at": 1792779006, "cohorts": {"h1": {"chosen": 2, "eligible": 124}}, "index": 0, "pages_failed": 1, "pools": 180}
