@@ -14,3 +14,12 @@
 {"error_type": "HTTPError", "measured_at": 1792792330, "status": "provider_unavailable", "token": "0x4f8c742be84baa296d5285b08e566d7b9ed81111"}
 {"collapsed": false, "lost_half": false, "max_down_24h": -0.00016000104204727528, "measured_at": 1792792330, "ret_24h": 0.008746795240245797, "status": "entered", "token": "0xc72e551cd2b1bace881cf8adae6046abb6fbd2e2"}
 {"collapsed": true, "lost_half": true, "measured_at": 1792792330, "status": "no_trade_after_seen", "token": "0xc2f9e2d9971b8858feada30890216f6e6576558c"}
+{"collapsed": true, "lost_half": true, "measured_at": 1792795500, "status": "no_trade_after_seen", "token": "0x4f8c742be84baa296d5285b08e566d7b9ed81111"}
+{"collapsed": true, "lost_half": true, "measured_at": 1792795500, "status": "no_trade_after_seen", "token": "0x3657bab177625d08dcb16f24cda8be6be4431f64"}
+{"collapsed": false, "lost_half": true, "max_down_24h": -0.6629624843608526, "measured_at": 1792795500, "ret_24h": -0.6629624843608526, "status": "entered", "token": "0xb4ddf60c920240d7b226c63044a2aeb2bc21cc68"}
+{"collapsed": true, "lost_half": true, "measured_at": 1792795500, "status": "no_trade_after_seen", "token": "0xad2270a81807a259393b20eca13f51a1a7d5c964"}
+{"collapsed": true, "lost_half": true, "measured_at": 1792795500, "status": "no_trade_after_seen", "token": "0xe8e25591d437109551297230ac1d040a6e8c04e6"}
+{"collapsed": true, "lost_half": true, "measured_at": 1792795500, "status": "no_trade_after_seen", "token": "0x9629ab89cf9139c85918ffa7da2d80c931866d73"}
+{"collapsed": true, "lost_half": true, "measured_at": 1792795500, "status": "no_trade_after_seen", "token": "0x6bc1477c048538edccba641c197c13a61e4a0275"}
+{"collapsed": true, "lost_half": true, "measured_at": 1792795500, "status": "no_trade_after_seen", "token": "0xc4fe61e73592f5620cdb5075b721bcb0e9eaaa3e"}
+{"collapsed": true, "lost_half": true, "measured_at": 1792795500, "status": "no_trade_after_seen", "token": "0xa659768bd36c18ba803e345361e37cf34055c7bf"}
