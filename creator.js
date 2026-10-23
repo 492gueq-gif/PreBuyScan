@@ -309,8 +309,9 @@
   // First wallet that sent ETH to an address, via the v2 explorer API (the legacy API rate-limits
   // after a handful of calls). Wallets with 50+ incoming transactions are established, not fresh:
   // their first funder is not looked up. Falls back to internal transfers (disperse contracts).
-  async function firstFunder(a) {
-    a = lc(a);
+  // Who first funded a wallet never changes: cached for 7 days (makes the wallet map much faster on re-open).
+  async function firstFunder(a) { a = lc(a); return cached("funder", a, () => firstFunderRaw(a)); }
+  async function firstFunderRaw(a) {
     const j = await getJSON(BS + "/v2/addresses/" + a + "/transactions?filter=to", 10000);
     if (j.next_page_params) return { funder: null, established: true };
     const inc = (j.items || []).filter(t => t.from && t.from.hash && lc(t.from.hash) !== a && BigInt(t.value || "0") > 0n);
@@ -446,7 +447,7 @@
   // Short-lived per-browser cache of explorer results: a re-scan of the same token (very common) is
   // instant instead of repeating ~15 slow explorer calls. Only successful results are stored; the
   // creation of a token never changes, the rest expire quickly. Storage failures are ignored.
-  const TTL = { creator: 7 * 864e5, reputation: 15 * 6e4, lp: 5 * 6e4, holders: 5 * 6e4, snipers: 10 * 6e4 };
+  const TTL = { funder: 7 * 864e5, creator: 7 * 864e5, reputation: 15 * 6e4, lp: 5 * 6e4, holders: 5 * 6e4, snipers: 10 * 6e4 };
   const enc = v => JSON.stringify(v, (k, x) => typeof x === "bigint" ? { __big: x.toString() } : x);
   const dec = t => JSON.parse(t, (k, x) => x && typeof x === "object" && typeof x.__big === "string" ? BigInt(x.__big) : x);
   function cacheGet(kind, key, now) {

@@ -483,3 +483,26 @@ test("English mode: exact strings, dynamic titles and summary lines translate; u
   assert.equal(I.tr("0x39db…4571"), "0x39db…4571");
   assert.equal(I.tr("texto sin traducción"), "texto sin traducción");
 });
+
+test("sale simulation: both simulations pinned to one block; RPC falls back on transport failure and counts it", async () => {
+  const S = require("../sellsim.js");
+  const seen = []; const orig = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    const b = JSON.parse(init.body);
+    if (url === S.RPC && b.method === "eth_chainId") throw new TypeError("Failed to fetch");      // primary down for this call
+    seen.push([url, b.method, b.params]);
+    const res = b.method === "eth_blockNumber" ? "0x10" : b.method === "eth_chainId" ? "0x1237" : null;
+    if (b.method === "eth_simulateV1") throw Object.assign(new Error("stop"), { rpc: { message: "stop" } });
+    return { status: 200, ok: true, json: async () => ({ jsonrpc: "2.0", id: b.id, result: res }) };
+  };
+  try {
+    S.resetUsage();
+    const r = await S.simulate("0x" + "ab".repeat(20), { pairAddress: "0x" + "cd".repeat(20), labels: ["v2"] });
+    assert.equal(r.block, 16);
+    const sims = seen.filter(x => x[1] === "eth_simulateV1");
+    assert.ok(sims.length >= 1 && sims.every(x => x[2][1] === "0x10"), "simulateV1 must use the pinned block");
+    const id = await S._rpc("eth_chainId", []);
+    assert.equal(id, "0x1237");
+    assert.equal(S.usage.fallback[new URL(S.FALLBACKS[0]).host], 1);
+  } finally { globalThis.fetch = orig; }
+});
