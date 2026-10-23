@@ -132,8 +132,12 @@
     g.beginPath(); g.moveTo(30, 52); g.lineTo(45, 67); g.lineTo(72, 38); g.strokeStyle = C.teal; g.lineWidth = 10; g.lineCap = "round"; g.lineJoin = "round"; g.stroke();
     g.restore();
   }
+  let MARK = null;
+  function loadMark() { if (MARK) return Promise.resolve(MARK);
+    return new Promise(ok => { const im = new Image(); im.onload = () => { MARK = im; ok(im); }; im.onerror = () => ok(null); im.src = "logo-mark.png"; setTimeout(() => ok(null), 5000); }); }
   function brand(g, x, y, size, sub) {
-    shield(g, x, y - size * 0.95, size * 1.15);
+    const s = size * 1.15, top = y - size * 0.95;
+    if (MARK) { g.save(); g.shadowColor = C.teal; g.shadowBlur = 22; g.drawImage(MARK, x, top, s, s); g.restore(); } else shield(g, x, top, s);
     g.font = "800 " + size + "px " + FONT_D; g.fillStyle = C.white; g.fillText("PreBuy", x + size * 1.35, y);
     const w = g.measureText("PreBuy").width; g.fillStyle = C.teal; g.fillText("Scan", x + size * 1.35 + w, y);
     if (sub) txt(g, sub, x + size * 1.38, y + size * 0.52, Math.round(size * 0.34), 600, C.gray);
@@ -324,7 +328,7 @@
     if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
     const rep = buildReport(token, res, ctx);
     const link = await verifiableLink(rep);
-    const logo = await loadLogo(ctx.logoUrl);
+    const logo = await loadLogo(ctx.logoUrl); await loadMark();
     const meta = { id: link.id, hash: link.hash, url: link.url, logo };
     const x = await drawX(rep, meta), t = await drawTelegram(rep, meta), p = await drawPremium(rep, meta);
     return { rep, link, cards: { x, telegram: t, premium: p.canvas }, qr: p.qr };

@@ -252,7 +252,7 @@
         <dl><div><dt>Suministro</dt><dd>${n.kind === "magic" ? "no es holder" : (n.pct || 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " %"}</dd></div>
         <div><dt>Grupo</dt><dd>${n.group ? "#" + n.group : "—"}</dd></div><div><dt>Conexiones</dt><dd>${nb.get(n).size}</dd></div></dl>
         ${ns.length ? `<div class="ak-sub">Conectada con</div><ul>${ns.map(m => `<li data-id="${m.id}"><i style="background:${color(m)}"></i>${m.creator ? "Creador" : short(m.id)}<span>${m.pct ? m.pct.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " %" : ""}</span></li>`).join("")}</ul>` : ""}
-        <div class="ak-acts">${/^0x[0-9a-f]{40}$/i.test(id) ? `<a href="?t=${id}">Perfil de la wallet</a>` : ""}<a href="https://robinhoodchain.blockscout.com/address/${id}" target="_blank" rel="noopener">Explorador ↗</a></div>`);
+        <div class="ak-acts">${/^0x[0-9a-f]{40}$/i.test(id) && !n.contract ? `<a href="?t=${id}">Perfil de la wallet</a>` : ""}<a href="https://robinhoodchain.blockscout.com/address/${id}" target="_blank" rel="noopener">Explorador ↗</a></div>`);
       card.select(".ak-x").on("click", () => { picked = null; card.attr("hidden", true); focus(null); });
       card.selectAll("li").on("click", function () { const m = byId[this.dataset.id]; if (m) pick(m, true); });
     };
