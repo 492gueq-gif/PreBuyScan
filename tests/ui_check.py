@@ -170,6 +170,11 @@ def main():
                     pg.wait_for_selector("#boot", state="detached")
                     pg.evaluate("""() => {
                       window.mapBuilds=0; window.d3={};
+                      const originalFetch=PBNet.fetchJSON;
+                      PBNet.fetchJSON=(url,...args)=>url.endsWith('/trades')?Promise.resolve({data:[
+                        {id:'t1',attributes:{from_token_address:'0x'+'22'.repeat(20),to_token_address:'""" + TOKEN + """',tx_from_address:'0x'+'33'.repeat(20),volume_in_usd:'25',price_to_in_usd:'0.025',block_timestamp:'2026-10-23T00:00:00Z'}},
+                        {id:'t2',attributes:{from_token_address:'""" + TOKEN + """',to_token_address:'0x'+'22'.repeat(20),tx_from_address:'0x'+'33'.repeat(20),volume_in_usd:'100',price_from_in_usd:'0.03',block_timestamp:'2026-10-23T00:01:00Z'}}
+                      ]}):originalFetch(url,...args);
                       PBMap.build=async()=>{window.mapBuilds++;return {nodes:[],groups:[],partial:{},creatorPct:0,holdersShown:0}};
                       PBMap.draw=el=>{el.textContent='Fixture map ready'};
                       window.reportPair={pairAddress:'0x'+'12'.repeat(20),baseToken:{name:'Fixture token',symbol:'FIX'},quoteToken:{symbol:'ETH'},priceUsd:'1',liquidity:{usd:20000}};
@@ -191,6 +196,22 @@ def main():
                     check("report_chart_auto_%d" % w, pg.locator("#out .chart iframe[loading=eager]").count() == 1)
                     check("report_map_auto_%d" % w, pg.locator("#mapsvg").is_visible() and pg.evaluate("mapBuilds") == 1)
                     check("report_no_overflow_%d" % w, pg.evaluate("document.documentElement.scrollWidth") <= w)
+                    pg.wait_for_selector('#market-tape tbody tr.tape-sell')
+                    check("tape_auto_%d" % w, pg.locator('#market-tape tbody tr').count()==2)
+                    pg.select_option('.market-side','sell')
+                    check("tape_side_filter_%d" % w, pg.locator('#market-tape tbody tr').count()==1 and 'Venta' in pg.inner_text('#market-tape tbody'))
+                    pg.fill('.market-min','200')
+                    check("tape_min_filter_%d" % w, 'Sin resultados' in pg.inner_text('#market-tape tbody'))
+                    pg.click('.market-pause')
+                    check("tape_pause_%d" % w, pg.locator('.market-pause').get_attribute('aria-pressed')=='true')
+                    pg.click('[data-market-tab=traders]')
+                    check("tape_traders_%d" % w, '25.00' in pg.inner_text('#market-tape tbody') and '100.00' in pg.inner_text('#market-tape tbody'))
+                    pg.click('[data-market-tab=holders]')
+                    check("tape_holders_unknown_%d" % w, 'Holders no disponibles' in pg.inner_text('#market-tape tbody'))
+                    pg.click('[data-market-tab=trades]')
+                    pg.fill('.market-min','0')
+                    pg.select_option('.market-side','all')
+                    check("tape_no_overflow_%d" % w, pg.evaluate("document.documentElement.scrollWidth")<=w)
                     shot(pg,"report_visuals_%d" % w)
                     # Exercise English mode on the rendered report, including async translation.
                     ctx.add_init_script("localStorage.setItem('pbs_lang',JSON.stringify('en'))")

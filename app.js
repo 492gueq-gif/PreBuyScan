@@ -449,6 +449,7 @@ function chartSection(pair,defer){
 }
 
 let lastRes=null;
+let stopMarket=()=>{};
 const linkFor=t=>location.origin+location.pathname+"?t="+t;
 function flash(m){const e=$("#out .shmsg");if(!e)return;if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent="";},3000);}}
 async function copyLink(){try{await navigator.clipboard.writeText(linkFor(last.token));flash("Enlace copiado");}catch(e){prompt("Copia el enlace:",linkFor(last.token));}}
@@ -912,7 +913,7 @@ function render(token,res){
    <div class="panes">
     <div class="pane on" data-pane="resumen">
      ${stats.length?`<dl class="stats a-stats">${stats.map(s=>`<div class="stat"><dt>${s[0]}</dt><dd>${s[1]}${s[2]}</dd></div>`).join("")}</dl>`:""}
-     ${pair?`<section class="card a-chart">${chartSection(pair).replace(/^<section>/,"").replace(/<\/section>$/,"")}</section>`:""}
+     ${pair?`<section class="card a-chart">${chartSection(pair).replace(/^<section>/,"").replace(/<\/section>$/,"")}<div id="market-tape" class="market-tape"></div></section>`:""}
     </div>
     <div class="pane" data-pane="seguridad">
      <section class="card a-sec"><h3>Seguridad del contrato</h3><ul class="secrows">${sr.map(r=>`<li><i class="s-${r[2]}">${ICON[r[2]]}</i><span class="k">${esc(r[0])}</span><span class="val s-${r[2]}">${esc(r[1])}</span></li>`).join("")}</ul>${sizes}</section>
@@ -936,6 +937,8 @@ function render(token,res){
    <div class="note">${notChecked.length?"No revisado: "+esc(notChecked.join("; "))+". ":""}Liquidez bloqueada en contratos de terceros: no se verifica hasta cuándo.<br>Revisado ${res.block?"en el bloque "+res.block.toLocaleString("es-MX")+" · ":""}${esc(new Date(res.scannedAt||Date.now()).toLocaleString("es-MX"))} · algoritmo ${esc(res.algo||ALGO_VERSION)} · <a href="#metodo" data-nav="method">cómo calculamos</a>.</div>
   </div>`;
   bindSim($("#out"),res);autoMap();animateRings();
+  stopMarket();
+  stopMarket=window.PBLive&&pair?PBLive.mount($("#market-tape"),{token,pool:pair.pairAddress,holders:H,fetchJSON:timed,isActive:()=>document.body.dataset.view==="result"}):()=>{};
   addHistory({t:token,name,sym,img,score,v:cls,at:Date.now(),type:"token",algo:ALGO_VERSION,conf:conf.score});
 }
 // ---------- wallet profile ----------
@@ -1118,7 +1121,7 @@ async function analyze(raw){
   document.querySelectorAll(".addr-in").forEach(i=>{i.value=token;});
   setView("result");
   if(!/^0x[0-9a-f]{40}$/.test(token)){$("#out").innerHTML=`<section class="card"><div class="empty">Esa dirección no es válida. Debe empezar con 0x y tener 40 caracteres hexadecimales después.</div></section>`;return;}
-  if(running)return;running=true;stageIdx=0;shareSet=null;
+  if(running)return;stopMarket();running=true;stageIdx=0;shareSet=null;
   document.querySelectorAll(".go").forEach(b=>b.disabled=true);
   $("#out").innerHTML=`<section class="card"><div class="scanwrap">${scanRing()}<div class="grow"><div class="busy"><span>Revisando ${esc(short(token))}…</span></div><ul class="stages"></ul></div></div><div class="tnote">Simulamos la compra y la venta, revisamos el contrato, el creador, la liquidez, los snipers y los holders. Tarda de 20 a 60 segundos.</div></section>`;
   bindRing();paintStages();

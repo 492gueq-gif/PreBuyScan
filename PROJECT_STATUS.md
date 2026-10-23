@@ -95,3 +95,9 @@ Al terminar el análisis se carga el gráfico también en móvil y arranca el ma
 ## Explicación de la puntuación
 
 Franja debajo del marcador y antes de las métricas: «¿Por qué recibe esta puntuación?». Usa hasta tres hallazgos actuales, prioriza riesgo alto sobre precaución y explica los topes existentes de 39/79 sin cambiar el cálculo. Pendientes y errores se identifican como falta de datos, nunca como vulnerabilidades probadas. No evaluable y sin alertas tienen mensajes propios. Shell `pbs-shell-v14`. Pendiente de CI visual y publicación.
+
+## Tabla de operaciones del par
+
+`live.js`: menú Transacciones / Top traders / Holders debajo del gráfico, consulta pública de GeckoTerminal cada 30 segundos con la capa de red existente. Tipo, monto USD, precio del token, hora, wallet y enlace a Blockscout. Filtro compra/venta y mínimo USD, pausa/reanudación, mensaje de error y última consulta correcta. No se consulta en pestañas ocultas ni fuera del reporte; se descartan resultados de reportes retirados.
+
+Dirección y precio se obtienen de las direcciones from/to del token, evitando invertir compra/venta en pools con orden distinto. Máximo 100 operaciones de la respuesta, sin prometer historial completo. Top traders = volumen de esta muestra, excluyendo datos anómalos y montos desconocidos; no PnL. Holders = captura del análisis, no consulta continua. No es un libro de órdenes ni un WebSocket. Shell v15. Pendiente CI visual y publicación.
