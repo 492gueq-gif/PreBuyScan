@@ -43,7 +43,7 @@
       ["Datos de mercado", 15, !!pair && !res.marketInconsistent],
       ["Venta simulada", 20, has(/^(La venta simulada funciona|La venta simulada falla|Pérdida (muy )?alta al vender|Solo se puede vender hasta|La venta falla si esperas|No deja vender en el mismo bloque)/)],
       ["Código del contrato", 15, !has(/^(Contrato no revisado|No hay contrato)/)],
-      ["Dueño del contrato", 5, has(/^(Propiedad renunciada|El contrato tiene dueño activo|El contrato tiene administradores)/)],
+      ["Dueño del contrato", 5, has(/^(Propiedad renunciada|El contrato tiene dueño activo|El contrato tiene administradores|Sin dueño ni administradores)/)],
       ["Creador identificado", 10, !!(cr && cr.creator)],
       ["Historial del creador", 10, !!(cr && cr.creator) && !has(/^(Historial del creador (no disponible|incompleto)|Historial incompleto en la base|Creador no identificado)/)],
       ["Control de la liquidez", 10, !has(/^(Control de la liquidez no revisado|No sabemos quién tiene la liquidez|Liquidez en un contrato$)/) && !!(cr && cr.creator)],

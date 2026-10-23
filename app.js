@@ -155,20 +155,22 @@ async function inspect(token,onPartial){
     let fake=PBRisk.fakeVolume(vol.h24,h24.buys,h24.sells,gtMain?(gtMain.buyers||0)+(gtMain.sellers||0):null,"par principal");
     if(!fake&&gtPools)for(const gp of gtPools.slice().sort((a,b)=>(b.vol24||0)-(a.vol24||0))){const f=PBRisk.fakeVolume(gp.vol24,gp.buys,gp.sells,(gp.buyers||0)+(gp.sellers||0),gp.name);if(f){fake=f;fake.src="GeckoTerminal (todos los pools del token)";break;}}
     if(fake)add(fake);
-    if((h24.buys||0)>=20&&(h24.sells||0)===0)add({s:"high",t:"Nadie ha vendido",d:num(h24.buys)+" compras y 0 ventas en 24 h: señal clásica de token que no deja vender (honeypot)."});
-    else if((h24.buys||0)>0&&(h24.sells||0)/(h24.buys||1)<0.15)add({s:"warn",t:"Muy pocas ventas",d:"Solo "+num(h24.sells)+" ventas frente a "+num(h24.buys)+" compras en 24 h."});
-    else if((h24.sells||0)>0&&fake&&fake.s==="high")add({s:"unk",t:"Ventas no confiables",d:"El par reporta "+num(h24.sells)+" ventas, pero su volumen es anómalo: no sirven como prueba de que se pueda vender."});
-    else if((h24.sells||0)>0)add({s:"ok",t:"Hay ventas de otros usuarios",d:num(h24.sells)+" ventas en 24 h. Que otros vendan no garantiza que tú puedas."});
     // Every pool together (GeckoTerminal): totals and risky secondary pools.
+    let hollowHigh=false;
     if(gtPools&&gtPools.length){
       const mp=PBRisk.multiPool(gtPools,pair.pairAddress);
       facts["Pools del token"]=num(mp.n)+" · liquidez total "+usd(mp.totalLiq)+" · volumen 24 h "+usd(mp.totalVol);
-      mp.findings.forEach(add);
+      mp.findings.forEach(add);hollowHigh=mp.findings.some(f=>f.s==="high"&&/^Volumen sin liquidez/.test(f.t));
     }
+    if((h24.buys||0)>=20&&(h24.sells||0)===0)add({s:"high",t:"Nadie ha vendido",d:num(h24.buys)+" compras y 0 ventas en 24 h: señal clásica de token que no deja vender (honeypot)."});
+    else if((h24.buys||0)>0&&(h24.sells||0)/(h24.buys||1)<0.15)add({s:"warn",t:"Muy pocas ventas",d:"Solo "+num(h24.sells)+" ventas frente a "+num(h24.buys)+" compras en 24 h."});
+    else if((h24.sells||0)>0&&((fake&&fake.s==="high")||hollowHigh))add({s:"unk",t:"Ventas no confiables",d:"El par reporta "+num(h24.sells)+" ventas, pero el volumen del token es anómalo: no sirven como prueba de que se pueda vender."});
+    else if((h24.sells||0)>0)add({s:"ok",t:"Hay ventas de otros usuarios",d:num(h24.sells)+" ventas en 24 h. Que otros vendan no garantiza que tú puedas."});
     // Two independent sources must roughly agree.
     const dexLiq=allPairs.reduce((t,p)=>t+(p.liquidity?.usd||0),0);
     const mm=gtPools?PBRisk.sourceMismatch({liq:dexLiq,price:Number(pair.priceUsd)||null},{liq:gtPools.reduce((t,p)=>t+(p.liq||0),0),price:gtMain?gtMain.price:null,poolFound:!!gtMain}):null;
-    if(mm){add(mm);marketInconsistent=true;}
+    if(mm){add(mm);marketInconsistent=true;
+      const la=checks.find(c=>c.t==="Liquidez aceptable");if(la){la.s="unk";la.t="Liquidez no confirmada";la.d="DexScreener reporta "+usd(liq)+", pero GeckoTerminal no lo confirma: no cuentes con esa liquidez para vender.";}}
   }else if(!checks.length){add({s:"high",t:"Sin mercado en DexScreener",d:"No hay pares de este token en Robinhood Chain: no se puede comprar ni vender de forma normal."});}
 
   if(onPartial&&pair){try{onPartial({pair,facts,pairs:allPairs});}catch(e){}}
@@ -269,7 +271,9 @@ async function inspect(token,onPartial){
       const via=k=>abiRisk[k]?"Función "+abiRisk[k].slice(0,3).join(", ")+" en el código verificado":"Función detectada en el código del contrato (búsqueda por huella; puede haber falsos positivos)";
       let admins=null;
       if(owner===null&&ctr.roles&&ctr.roles.admins&&ctr.roles.admins.length)admins=ctr.roles.admins;
-      if(owner===null&&!ctr.roles)add({s:"unk",t:"Dueño del contrato no identificado",d:"El contrato no expone owner(), getOwner() ni admin(), y no usa roles estándar (AccessControl)."+(src?" Revisa el código verificado.":"")});
+      const abiAdmin=src&&src.abi.some(f=>f&&f.type==="function"&&/^(owner|getOwner|admin|transferOwnership|renounceOwnership|setOwner|changeOwner|setAdmin|changeAdmin|grantRole|hasRole|upgradeTo|upgradeToAndCall)$/i.test(f.name||""));
+      if(owner===null&&!ctr.roles&&src&&!abiAdmin&&!P)add({s:"ok",t:"Sin dueño ni administradores",d:"El código verificado no tiene funciones de dueño, roles ni actualización: nadie puede cambiar las reglas del token después del lanzamiento."});
+      else if(owner===null&&!ctr.roles)add({s:"unk",t:"Dueño del contrato no identificado",d:"El contrato no expone owner(), getOwner() ni admin(), y no usa roles estándar (AccessControl)."+(src?" Revisa el código verificado.":"")});
       else if(owner===null&&admins)add({s:cats.length?"high":"warn",t:"El contrato tiene administradores (roles)",d:"Usa AccessControl: "+admins.map(short).join(", ")+(ctr.roles.count>admins.length?" y "+(ctr.roles.count-admins.length)+" más":"")+" tienen el rol de administrador."+(cats.length?" Combinado con las funciones de abajo, pueden cambiar las reglas.":"")});
       else if(owner===null)ctr.rolesPending=true;      // resolved with the creator below
       else if(renounced)add({s:"ok",t:"Propiedad renunciada",d:(ctr.ownerVia||"owner()")+" es la dirección cero."+(ctr.roles?" Ojo: el contrato también usa roles; pueden seguir activos.":" Ojo: otros roles pueden seguir activos.")});
@@ -356,7 +360,8 @@ async function inspect(token,onPartial){
       else add(explorerMiss(cr,"reputation","Historial del creador no disponible","No se pudo consultar el historial de "+short(D)+"."));
     }
     const lp=cr.lp;
-    if(!lp)add(explorerMiss(cr,"lp","Control de la liquidez no revisado","No se pudo consultar quién tiene la liquidez del par."));
+    if(!lp&&!pair){}            // no market: there is no pool whose liquidity could be checked
+    else if(!lp)add(explorerMiss(cr,"lp","Control de la liquidez no revisado","No se pudo consultar quién tiene la liquidez del par."));
     else if(lp.kind==="v2"){
       if(lp.creatorShare>=50)add({s:"high",t:"El creador puede retirar la liquidez",d:"Tiene "+lp.creatorShare.toFixed(1)+" % de los tokens LP del par en su wallet, sin bloqueo: puede sacar la liquidez cuando quiera (rug pull)."});
       else if(lp.burned>=90)add({s:"ok",t:"Liquidez quemada",d:lp.burned.toFixed(1)+" % de los tokens LP están en una dirección de quemado: nadie puede retirarla."});
@@ -389,7 +394,7 @@ async function inspect(token,onPartial){
   if(ctr&&ctr.rolesPending){const keep=cat;cat="Contrato";add({s:"unk",t:"Roles de administración sin titular visible",d:"El contrato usa AccessControl pero no lista a sus administradores y no pudimos identificar al creador."});cat=keep;}
   cat="Lanzamiento";
   const S=cr&&cr.snipers;
-  if(!S){if(cr&&cr.creator)add(explorerMiss(cr,"snipers","Snipers no revisados","No se pudo consultar quién compró en el lanzamiento."));}
+  if(!S){if(cr&&cr.creator&&pair)add(explorerMiss(cr,"snipers","Snipers no revisados","No se pudo consultar quién compró en el lanzamiento."));}
   else if(S.n===0)add({s:"ok",t:"Sin snipers detectados",d:"Nadie más compró en el primer minuto de operaciones."});
   else{
     if(S.held>=20)add({s:"high",t:"Los snipers aún tienen "+S.held+" %",d:S.n+" wallets compraron en el primer minuto y siguen con "+S.held+" % del suministro: pueden vender de golpe."});
@@ -409,7 +414,8 @@ async function inspect(token,onPartial){
     if(H.top10>50)add({s:"high",t:"Muy concentrado: 10 wallets tienen "+H.top10+" %",d:"Sin contar pools ni quemado. Pocas wallets pueden tirar el precio."});
     else if(H.top10>30)add({s:"warn",t:"Concentrado: 10 wallets tienen "+H.top10+" %",d:"Sin contar pools ni quemado."});
     else add({s:"ok",t:"Holders repartidos",d:"Las 10 wallets más grandes tienen "+H.top10+" % (sin pools ni quemado)."});
-    const cl=PBRisk.clonedBalances(H.list);if(cl){add(cl.finding);facts["Saldos clonados"]=cl.n+" wallets";}
+    const cl=PBRisk.clonedBalances(H.list);if(cl){add(cl.finding);facts["Saldos clonados"]=cl.n+" wallets";
+      const hr=checks.find(c=>c.t==="Holders repartidos");if(hr){hr.s="unk";hr.t="Reparto de holders engañoso";hr.d="Las 10 wallets más grandes tienen "+H.top10+" %, pero muchas tienen el mismo saldo: el reparto puede ser de una sola persona.";}}
     if(big&&big.pct>15&&!(cr.creator&&big.addr===cr.creator.deployer))add({s:"warn",t:"Una wallet tiene "+big.pct+" %",d:short(big.addr)+(big.contract?" (contrato"+(big.name?": "+big.name:"")+")":"")+" guarda una parte grande del suministro."});
   }
   const fb=window.PBSellSim&&window.PBSellSim.usage?Object.entries(window.PBSellSim.usage.fallback):[];

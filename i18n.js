@@ -82,7 +82,7 @@
     "El creador guarda mucho del suministro": "The creator keeps a lot of the supply", "El creador guarda una parte importante": "The creator keeps a significant share", "El creador ya vendió": "The creator already sold",
     "Sin snipers detectados": "No snipers detected", "Los snipers ya casi no tienen tokens": "Snipers hold almost nothing now", "Snipers no revisados": "Snipers not checked",
     "Un comprador del lanzamiento lo fondeó el creador": "A launch buyer was funded by the creator", "Venta grande reciente": "Large recent sale",
-    "Holders repartidos": "Holders spread out", "Holders no revisados": "Holders not checked"
+    "Holders repartidos": "Holders spread out", "Reparto de holders engañoso": "Misleading holder spread", "Liquidez no confirmada": "Liquidity not confirmed", "Sin dueño ni administradores": "No owner or administrators", "Holders no revisados": "Holders not checked"
   };
   const PATTERNS = [
     // dynamic titles
