@@ -807,6 +807,10 @@ async function inspect(token,onPartial){
     const pairs=await timed(DEX+token);
     if(Array.isArray(pairs)&&pairs.length){pairsFound=pairs.length;allPairs=pairs;pair=pairs.slice().sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];}
   }catch(e){add({s:"unk",err:true,t:"Datos de mercado no disponibles",d:"No se pudo consultar DexScreener desde este navegador."});}
+  // The explorer section (creator, liquidity, snipers, holders) is the slowest part and only needs the
+  // pair: start it now so it runs while the sale is simulated and the contract is read.
+  const exBudget=nextExplorerBudget||(window.PBCreator&&window.PBCreator.BUDGET_MS)||60000;nextExplorerBudget=0;
+  let crP=null;if(window.PBCreator){crP=window.PBCreator.analyze(token,pair,allPairs,{budgetMs:exBudget});crP.catch(()=>{});}
   if(pair){
     const liq=pair.liquidity?.usd;liqUsd=liq||null;const fdv=pair.fdv??pair.marketCap,ageH=pair.pairCreatedAt?(Date.now()-pair.pairCreatedAt)/3.6e6:null;
     const h24=pair.txns?.h24||{}, h1=pair.txns?.h1||{};
@@ -928,11 +932,8 @@ async function inspect(token,onPartial){
   if(!simDone)notChecked.push("si se puede vender (simulación no disponible para este par)");
   // Creator, liquidity control and holders (explorer data)
   let DBC=null;try{DBC=await dbP;}catch(e){}
-  let cr=null;step("Revisando creador, liquidez, snipers y holders (hasta "+Math.round((nextExplorerBudget||(window.PBCreator&&window.PBCreator.BUDGET_MS)||60000)/1000)+" s)…");
-  if(window.PBCreator){
-    const budgetMs=nextExplorerBudget||window.PBCreator.BUDGET_MS;nextExplorerBudget=0;
-    try{cr=await window.PBCreator.analyze(token,pair,allPairs,{budgetMs});}catch(e){cr=null;}
-  }
+  let cr=null;step("Revisando creador, liquidez, snipers y holders (hasta "+Math.round(exBudget/1000)+" s)…");
+  if(crP){try{cr=await crP;}catch(e){cr=null;}}
   cat="Creador y liquidez";
   if(!cr||!cr.creator){add({s:"unk",t:"Creador no identificado",d:"El explorador de Robinhood Chain no respondió o no tiene el origen de este contrato."});}
   else{
@@ -1029,7 +1030,7 @@ function chartSection(pair){
   const pool=String(pair.pairAddress).toLowerCase();
   if(!/^0x[0-9a-f]{40}([0-9a-f]{24})?$/.test(pool))return "";
   const u="https://www.geckoterminal.com/robinhood/pools/"+pool+"?embed=1&info=0&swaps=0&grayscale=0&light_chart="+(dark?"0":"1");
-  return `<section><h3>Gráfico</h3><div class="chart"><iframe src="${esc(u)}" title="Gráfico de precio en GeckoTerminal" referrerpolicy="no-referrer" allow="clipboard-write"></iframe></div>
+  return `<section><h3>Gráfico</h3><div class="chart"><iframe src="${esc(u)}" loading="lazy" title="Gráfico de precio en GeckoTerminal" referrerpolicy="no-referrer" allow="clipboard-write"></iframe></div>
     <div class="tnote">Gráfico en vivo de GeckoTerminal del par principal. <a href="https://www.geckoterminal.com/robinhood/pools/${esc(pool)}" target="_blank" rel="noopener">Abrir en GeckoTerminal</a>${pair.url?` · <a href="${esc(pair.url)}" target="_blank" rel="noopener">DexScreener</a>`:""}.</div></section>`;
 }
 

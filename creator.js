@@ -54,8 +54,10 @@
   // Hard time budget for the whole explorer section: a slow or rate-limited explorer must never
   // freeze the report. Past the deadline every request fails fast and the check says the time ran out.
   let deadline = Infinity;
-  async function getJSON(url, ms = 10000) {
-    for (let attempt = 0; attempt < 3; attempt++) {
+  // opts.once: one attempt, no retry on 429 (the legacy explorer API rate-limits per IP after a few
+  // calls; retrying only burns the quota). Callers then fall back to the v2 API or the RPC.
+  async function getJSON(url, ms = 10000, opts = {}) {
+    for (let attempt = 0; attempt < (opts.once ? 1 : 3); attempt++) {
       if (Date.now() > deadline) throw new Error("time budget");
       const wait = 250 - (Date.now() - last); if (wait > 0) await pause(wait); last = Date.now();
       ms = Math.max(1000, Math.min(ms, deadline - Date.now()));
@@ -63,6 +65,7 @@
       const t = c ? setTimeout(() => c.abort(), ms) : null;
       try {
         const r = await fetch(url, { signal: c ? c.signal : undefined });
+        if (opts.once && r.status === 429) throw Object.assign(new Error("HTTP 429"), { final: true, status: 429 });
         if (r.status === 429 || r.status >= 500) { await pause(1000 * (attempt + 1)); continue; }
         if (!r.ok) throw Object.assign(new Error("HTTP " + r.status), { final: true });
         return await r.json();
@@ -86,7 +89,7 @@
   async function findCreator(token) {
     const a = await getJSON(BS + "/v2/addresses/" + token);
     const txh = a.creation_transaction_hash || a.creation_tx_hash;
-    let deployer = lc(a.creator_address_hash), factory = null, method = null, createdAt = null;
+    let deployer = lc(a.creator_address_hash), factory = null, method = null, createdAt = null, createdBlock = null;
     if (txh) {
       try {
         const tx = await getJSON(BS + "/v2/transactions/" + txh);
@@ -94,21 +97,40 @@
         if (tx.to && tx.to.hash && lc(tx.to.hash) !== lc(token)) factory = lc(tx.to.hash);
         method = (tx.raw_input || "").slice(0, 10) || null;
         createdAt = tx.timestamp ? Date.parse(tx.timestamp) : null;
+        createdBlock = tx.block_number != null ? Number(tx.block_number) : tx.block != null ? Number(tx.block) : null;
       } catch (e) { /* keep creator_address_hash */ }
     }
-    return deployer ? { deployer, factory, method, txh: lc(txh), createdAt, verified: !!a.is_verified, tokenName: a.name || null } : null;
+    return deployer ? { deployer, factory, method, txh: lc(txh), createdAt, createdBlock, verified: !!a.is_verified, tokenName: a.name || null } : null;
+  }
+
+  const fromV2Tx = t => ({ hash: lc(t.hash), from: lc(t.from && t.from.hash), to: lc(t.to && t.to.hash), value: t.value || "0",
+    contractAddress: lc(t.created_contract && t.created_contract.hash), input: t.raw_input || "", methodId: "",
+    isError: t.status === "error" ? "1" : "0", timeStamp: String(Math.floor((Date.parse(t.timestamp) || 0) / 1000)) });
+  async function creatorHistory(addr, pages = 3) {
+    try {
+      const d = await getJSON(BS + "?module=account&action=txlist&address=" + addr + "&sort=desc&page=1&offset=200", 20000, { once: true });
+      if (Array.isArray(d.result)) return { txs: d.result, truncated: d.result.length >= 200, source: "legacy" };
+      if (d.message && /no transactions/i.test(d.message)) return { txs: [], truncated: false, source: "legacy" };
+    } catch (e) { /* fall back to v2 */ }
+    const txs = []; let q = "";
+    for (let i = 0; i < pages; i++) {
+      const j = await getJSON(BS + "/v2/addresses/" + addr + "/transactions" + q, 15000);
+      txs.push(...(j.items || []).map(fromV2Tx));
+      if (!j.next_page_params) return { txs, truncated: false, source: "v2" };
+      q = "?" + new URLSearchParams(j.next_page_params).toString();
+    }
+    return { txs, truncated: true, source: "v2" };
   }
 
   async function reputation(token, cr) {
     const out = { launches: [], others: 0, dead: 0, alive: 0, unknown: 0, funder: null, fundEth: null, firstSeen: null, truncated: false };
     // Busy wallets make the explorer slow: try a big page, then fall back to a smaller one.
-    let desc = null, size = 0;
-    for (const n of [200, 50]) {
-      try { desc = await getJSON(BS + "?module=account&action=txlist&address=" + cr.deployer + "&sort=desc&page=1&offset=" + n, 20000); size = n; break; }
-      catch (e) { if (n === 50) throw e; }
-    }
-    const txs = Array.isArray(desc.result) ? desc.result : [];
-    out.txCount = txs.length; out.truncated = txs.length >= size;
+    // First funding runs in parallel (v2). History: one legacy call (fast, 200 txs) and, if the
+    // legacy API is rate-limited or fails, the v2 API (not rate-limited the same way, 50 per page).
+    const fundP = firstFunder(cr.deployer); fundP.catch(() => {});
+    const h = await creatorHistory(cr.deployer);
+    const txs = h.txs;
+    out.txCount = txs.length; out.truncated = h.truncated; out.historySource = h.source;
     const direct = txs.filter(t => t.contractAddress && lc(t.contractAddress) !== lc(token) && t.isError !== "1").map(t => ({ addr: lc(t.contractAddress), hash: lc(t.hash) }));
     let viaFactory = [];
     if (cr.factory && cr.method) {
@@ -116,14 +138,14 @@
         && lc(t.hash) !== cr.txh && t.isError !== "1").map(t => ({ addr: null, hash: lc(t.hash) }));
     }
     // Resolve which token each factory launch created (newest first, capped to keep the scan quick).
-    for (const l of viaFactory.slice(0, 10)) {
+    await Promise.all(viaFactory.slice(0, 10).map(async l => {
       try {
         const tt = await getJSON(BS + "/v2/transactions/" + l.hash + "/token-transfers?type=ERC-20");
         const items = tt.items || [];
         const mint = items.find(i => i.from && lc(i.from.hash) === ZERO) || items.find(i => tokenAddr(i.token) !== WETH);
         if (mint) l.addr = tokenAddr(mint.token);
       } catch (e) { /* stays unknown */ }
-    }
+    }));
     const all = [...direct, ...viaFactory];
     out.others = all.length;
     const known = [...new Set(all.map(l => l.addr).filter(a => a && a !== lc(token)))];
@@ -140,14 +162,13 @@
       if (v < 1000) out.dead++; else out.alive++;
     }
     out.launches = all.slice(0, 12);
-    // First funding and wallet age
-    try {
-      const asc = await getJSON(BS + "?module=account&action=txlist&address=" + cr.deployer + "&sort=asc&page=1&offset=10");
-      const first = (asc.result || [])[0];
-      if (first) out.firstSeen = Number(first.timeStamp) * 1000;
-      const fund = (asc.result || []).find(t => lc(t.to) === cr.deployer && BigInt(t.value || "0") > 0n);
-      if (fund) { out.funder = lc(fund.from); out.fundEth = Number(BigInt(fund.value) / 10n ** 12n) / 1e6; }
-    } catch (e) { /* optional */ }
+    // First funding and wallet age: the oldest transaction seen (only when the whole history was read)
+    // and the first incoming ETH.
+    const oldest = !out.truncated && txs.length ? Math.min(...txs.map(t => Number(t.timeStamp) * 1000).filter(x => x > 0)) : null;
+    let fund = null; try { fund = await fundP; } catch (e) { /* optional */ }
+    if (fund && fund.funder) { out.funder = fund.funder; if (fund.value) out.fundEth = Number(BigInt(fund.value) / 10n ** 12n) / 1e6; }
+    const seen = [oldest, fund && fund.ts].filter(x => x && isFinite(x));
+    out.firstSeen = seen.length ? Math.min(...seen) : null;
     return out;
   }
 
@@ -281,11 +302,11 @@
     if (j.next_page_params) return { funder: null, established: true };
     const inc = (j.items || []).filter(t => t.from && t.from.hash && lc(t.from.hash) !== a && BigInt(t.value || "0") > 0n);
     const ts = t => (t && t.timestamp ? Date.parse(t.timestamp) : null);
-    if (inc.length) { const t = inc[inc.length - 1]; return { funder: lc(t.from.hash), ts: ts(t) }; }
+    if (inc.length) { const t = inc[inc.length - 1]; return { funder: lc(t.from.hash), ts: ts(t), value: t.value || null }; }
     const it = await getJSON(BS + "/v2/addresses/" + a + "/internal-transactions?filter=to", 10000);
     const ii = (it.items || []).filter(t => t.from && t.from.hash && BigInt(t.value || "0") > 0n);
     const t = ii[ii.length - 1];
-    return { funder: t ? lc(t.from.hash) : null, ts: ts(t), viaContract: !!t };
+    return { funder: t ? lc(t.from.hash) : null, ts: ts(t), value: t ? t.value || null : null, viaContract: !!t };
   }
 
   // ---------- launch snipers ----------
@@ -294,19 +315,62 @@
   const ROUTERS = new Set(["0x89e5db8b5aa49aa85ac63f691524311aeb649eba", "0xcaf681a66d020601342297493863e78c959e5cb2",
     "0x8876789976decbfcbbbe364623c63652db8c0904", "0x204faca1764b154221e35c0d20abb3c525710498"]);
   const SNIPE_WINDOW_S = 60;
+  const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+  const hex = n => "0x" + BigInt(n).toString(16);
+  // Launch buys straight from the chain (Transfer logs of the token around the pair's creation).
+  // The block range is estimated from the token's creation block and verified with real block
+  // timestamps: if it does not cover [pair creation, +60 s] the function gives up (caller falls back),
+  // so a wrong range can never produce a false "no snipers".
+  async function launchBuysRpc(token, pair, cr, isBuy) {
+    if (!cr || cr.createdBlock == null || !cr.createdAt || !pair || !pair.pairCreatedAt) throw new Error("no creation block");
+    const blk = {}; const tsOf = async n => { n = Number(n); if (blk[n] == null) { const b = await rpc("eth_getBlockByNumber", [hex(n), false]); blk[n] = Number(BigInt(b.timestamp)); } return blk[n]; };
+    const head = Number(BigInt(await rpc("eth_blockNumber", [])));
+    const b0 = Number(cr.createdBlock), t0 = await tsOf(b0), th = await tsOf(head);
+    const rate = (head - b0) / Math.max(1, th - t0);                       // blocks per second (average)
+    const pairS = Math.max(t0, Math.floor(pair.pairCreatedAt / 1000));
+    const est = b0 + Math.floor((pairS - t0) * rate), m = Math.ceil(15 * 60 * rate);
+    const lo = Math.max(b0, est - m), hi = Math.min(head, est + m);
+    if (await tsOf(lo) > pairS || await tsOf(hi) < pairS + SNIPE_WINDOW_S) throw new Error("range does not cover the launch");
+    const logs = await rpc("eth_getLogs", [{ address: token, topics: [TRANSFER], fromBlock: hex(lo), toBlock: hex(hi) }]);
+    if (!Array.isArray(logs)) throw new Error("logs");
+    const tr = logs.filter(l => l.topics && l.topics.length === 3).map(l => ({ from: "0x" + l.topics[1].slice(-40), to: "0x" + l.topics[2].slice(-40),
+      value: BigInt(l.data && l.data !== "0x" ? l.data : "0x0").toString(), block: parseInt(l.blockNumber, 16), idx: parseInt(l.logIndex, 16) }))
+      .sort((a, b) => a.block - b.block || a.idx - b.idx);
+    const buys = tr.filter(isBuy);
+    if (!buys.length) {
+      // No buy in the window around the estimated creation: only trust that if the pair really started there.
+      if (await tsOf(lo) <= pairS && await tsOf(hi) >= pairS + 600) return { buys: [], any: false, truncated: false, source: "rpc" };
+      throw new Error("no buys in range");
+    }
+    const start = Math.min(await tsOf(buys[0].block), pairS);
+    const out = []; let distinct = 0, lastBlock = -1, truncated = false;
+    for (const t of buys) {
+      if (t.block !== lastBlock) { if (++distinct > 40) { truncated = true; break; } lastBlock = t.block; }
+      if (await tsOf(t.block) > start + SNIPE_WINDOW_S) break;
+      out.push({ to: t.to, value: t.value });
+    }
+    return { buys: out, any: true, truncated, source: "rpc" };
+  }
   async function snipers(token, pair, pairs, cr, repP) {
     if (!pair || !pair.pairCreatedAt) return null;
     const pools = new Set([V4_PM, ...(pairs || []).map(p => lc(p.pairAddress)).filter(a => /^0x[0-9a-f]{40}$/.test(a))]);
-    const j = await getJSON(BS + "?module=account&action=tokentx&contractaddress=" + token + "&sort=asc&page=1&offset=200", 15000);
-    const tx = Array.isArray(j.result) ? j.result : [];
-    const buys = tx.filter(t => pools.has(lc(t.from)) && !pools.has(lc(t.to)) && !BURN.has(lc(t.to)) && !ROUTERS.has(lc(t.to)) && lc(t.to) !== lc(token));
-    if (!buys.length) return { n: 0, wallets: [] };
-    const start = Math.min(Number(buys[0].timeStamp), Math.floor(pair.pairCreatedAt / 1000));
-    const got = {};
-    for (const t of buys) {
-      if (Number(t.timeStamp) > start + SNIPE_WINDOW_S) break;
-      const a = lc(t.to); got[a] = (got[a] || 0n) + BigInt(t.value || "0");
+    const isBuy = t => pools.has(lc(t.from)) && !pools.has(lc(t.to)) && !BURN.has(lc(t.to)) && !ROUTERS.has(lc(t.to)) && lc(t.to) !== lc(token);
+    let L = null;
+    // The launch is the first pool's creation, not necessarily the main (most liquid) pair's.
+    const launchMs = Math.min(pair.pairCreatedAt, ...(pairs || []).map(p => p.pairCreatedAt).filter(x => x > 0));
+    try { L = await launchBuysRpc(token, { pairCreatedAt: launchMs }, cr, isBuy); } catch (e) { L = null; }
+    if (!L) {
+      // Fallback: legacy explorer API (one attempt; it rate-limits per IP).
+      const j = await getJSON(BS + "?module=account&action=tokentx&contractaddress=" + token + "&sort=asc&page=1&offset=200", 15000, { once: true });
+      if (!Array.isArray(j.result)) throw new Error("unavailable");
+      const tx = j.result, buys = tx.filter(isBuy);
+      const start = buys.length ? Math.min(Number(buys[0].timeStamp), Math.floor(launchMs / 1000)) : 0;
+      L = { buys: buys.filter(t => Number(t.timeStamp) <= start + SNIPE_WINDOW_S).map(t => ({ to: lc(t.to), value: t.value })),
+            any: buys.length > 0, truncated: tx.length >= 200 && Number(tx[tx.length - 1].timeStamp) <= start + SNIPE_WINDOW_S, source: "legacy" };
     }
+    if (!L.any) return { n: 0, wallets: [], source: L.source };
+    const got = {};
+    for (const t of L.buys) { const a = lc(t.to); got[a] = (got[a] || 0n) + BigInt(t.value || "0"); }
     const deployer = cr && cr.deployer;
     let list = Object.entries(got).map(([addr, amt]) => ({ addr, amt })).sort((a, b) => (b.amt > a.amt ? 1 : -1)).slice(0, 15);
     const supply = words(await call(token, "0x18160ddd"))[0] || 0n;
@@ -335,7 +399,7 @@
     const held = others.reduce((t, w) => t + (w.pct || 0), 0);
     return { n: others.length, wallets: list, held: Math.round(held * 100) / 100,
       linked: others.filter(w => w.linked).length, shared: Math.max(0, ...Object.values(byFunder).map(v => v.length)),
-      creatorBought: list.find(w => w.creator) || null, windowS: SNIPE_WINDOW_S, truncated: tx.length >= 200 && Number(tx[tx.length - 1].timeStamp) <= start + SNIPE_WINDOW_S };
+      creatorBought: list.find(w => w.creator) || null, windowS: SNIPE_WINDOW_S, truncated: L.truncated, source: L.source };
   }
 
   // ---------- holder concentration ----------
@@ -365,6 +429,26 @@
     if (!hits.length) return null;
     return hits.some(e => /time budget/.test(String(e))) ? "timeout" : "provider";
   }
+  // Short-lived per-browser cache of explorer results: a re-scan of the same token (very common) is
+  // instant instead of repeating ~15 slow explorer calls. Only successful results are stored; the
+  // creation of a token never changes, the rest expire quickly. Storage failures are ignored.
+  const TTL = { creator: 7 * 864e5, reputation: 15 * 6e4, lp: 5 * 6e4, holders: 5 * 6e4, snipers: 10 * 6e4 };
+  const enc = v => JSON.stringify(v, (k, x) => typeof x === "bigint" ? { __big: x.toString() } : x);
+  const dec = t => JSON.parse(t, (k, x) => x && typeof x === "object" && typeof x.__big === "string" ? BigInt(x.__big) : x);
+  function cacheGet(kind, key, now) {
+    try {
+      const raw = root.localStorage && root.localStorage.getItem("pbs-ex:" + kind + ":" + key); if (!raw) return undefined;
+      const e = dec(raw); if (!e || now - e.at > TTL[kind] || e.at > now) return undefined; return e.v;
+    } catch (x) { return undefined; }
+  }
+  function cacheSet(kind, key, v, now) {
+    if (v == null) return;
+    try { root.localStorage && root.localStorage.setItem("pbs-ex:" + kind + ":" + key, enc({ at: now, v })); } catch (x) { /* full or blocked */ }
+  }
+  async function cached(kind, key, fn, now = Date.now()) {
+    const hit = cacheGet(kind, key, now); if (hit !== undefined) return hit;
+    const v = await fn(); cacheSet(kind, key, v, Date.now()); return v;
+  }
   const msg = (k, e) => k + ": " + ((e && e.message) || "error");
   const within = (p, ms) => { p.catch(() => {}); return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("time budget")), ms))]); };
   async function analyze(token, pair, pairs, opts = {}) {
@@ -374,14 +458,14 @@
     const exclude = new Set([V4_PM, ...(pairs || []).map(p => lc(p.pairAddress)).filter(a => /^0x[0-9a-f]{40}$/.test(a))]);
     const left = () => Math.max(500, deadline - Date.now());
     // Holders and creator lookups run in parallel; each part fails on its own.
-    const hP = within(holders(token, exclude), left()).then(v => { out.holders = v; }, e => out.errors.push(msg("holders", e)));
-    try { out.creator = await within(findCreator(token), left()); } catch (e) { out.errors.push(msg("creator", e)); }
+    const hP = within(cached("holders", token, () => holders(token, exclude)), left()).then(v => { out.holders = v; }, e => out.errors.push(msg("holders", e)));
+    try { out.creator = await within(cached("creator", token, () => findCreator(token)), left()); } catch (e) { out.errors.push(msg("creator", e)); }
     const jobs = [hP];
     if (out.creator) {
-      const repP = reputation(token, out.creator);
+      const repP = cached("reputation", token, () => reputation(token, out.creator)); repP.catch(() => {});
       jobs.push(within(repP, left()).then(v => { out.rep = v; }, e => out.errors.push("reputation: " + (e && e.message))));
-      jobs.push(within(snipers(token, pair, pairs, out.creator, within(repP, left())), left()).then(v => { out.snipers = v; }, e => out.errors.push("snipers: " + (e && e.message))));
-      if (pair) jobs.push(within(liquidityControl(pair, out.creator.deployer), left()).then(v => { out.lp = v; }, () => out.errors.push("lp")));
+      jobs.push(within(cached("snipers", token, () => snipers(token, pair, pairs, out.creator, within(repP, left()))), left()).then(v => { out.snipers = v; }, e => out.errors.push("snipers: " + (e && e.message))));
+      if (pair) jobs.push(within(cached("lp", token + ":" + lc(pair.pairAddress), () => liquidityControl(pair, out.creator.deployer)), left()).then(v => { out.lp = v; }, () => out.errors.push("lp")));
     }
     await Promise.all(jobs);
     if (out.creator && out.holders) {
@@ -392,8 +476,8 @@
     return out;
   }
 
-  const api = { analyze, failReason, BUDGET_MS, RETRY_BUDGET_MS, keccak, findCreator, reputation, liquidityControl, holders, snipers,
-    _get: getJSON, _firstFunder: firstFunder, _call: call, _rpc: rpc, _words: words, _budget: ms => { deadline = Date.now() + ms; } };
+  const api = { analyze, failReason, cached, _cacheGet: cacheGet, TTL, BUDGET_MS, RETRY_BUDGET_MS, keccak, findCreator, reputation, liquidityControl, holders, snipers,
+    _get: getJSON, _firstFunder: firstFunder, _launchBuysRpc: launchBuysRpc, _creatorHistory: creatorHistory, _call: call, _rpc: rpc, _words: words, _budget: ms => { deadline = Date.now() + ms; } };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PBCreator = api;
 })(typeof window !== "undefined" ? window : globalThis);

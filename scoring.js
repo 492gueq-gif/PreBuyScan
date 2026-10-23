@@ -12,7 +12,7 @@
  */
 (function (root) {
   "use strict";
-  const ALGO_VERSION = "2026.10.23-1";
+  const ALGO_VERSION = "2026.10.23-2";
   const LABEL = { high: "Riesgo alto", warn: "Precaución", ok: "Bien", unk: "Sin datos", err: "Error técnico" };
   const WEIGHT = { high: 25, warn: 10, unk: 5, ok: 0 };
 
@@ -69,8 +69,12 @@
     if (!checks.length || (failed("Datos de mercado no disponibles") && failed("Contrato no revisado")))
       return { key: "connection_error", label: "Error de conexión", detail: "No se pudo consultar ni el mercado ni la cadena. El resultado no es una evaluación." };
     if (cov.errors) return { key: "partial", label: "Análisis parcial", detail: cov.errors + " comprobación(es) con error técnico: reintentar puede cambiar el resultado." };
-    if (cov.done < cov.total) return { key: "partial", label: "Análisis parcial", detail: (cov.total - cov.done) + " comprobación(es) sin resultado concluyente." };
-    return { key: "complete", label: "Análisis completado", detail: "Todas las comprobaciones dieron un resultado." };
+    // Every check ran. Some can end without a conclusion (e.g. owner not identifiable): that is a
+    // finished analysis with lower coverage, not a partial one; coverage and each pill say so.
+    const inconclusive = cov.total - cov.done;
+    if (inconclusive) return { key: "complete", label: "Análisis completado", inconclusive,
+      detail: "Todas las comprobaciones corrieron; " + inconclusive + " sin resultado concluyente (cuentan como «sin datos»)." };
+    return { key: "complete", label: "Análisis completado", inconclusive: 0, detail: "Todas las comprobaciones dieron un resultado." };
   }
   const api = { ALGO_VERSION, LABEL, WEIGHT, stateOf, labelOf, scoreOf, verdictOf, confidenceOf, coverageOf, isEvaluable, analysisStateOf };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
