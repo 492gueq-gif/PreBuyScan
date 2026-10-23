@@ -320,6 +320,8 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 .chart{position:relative}
 .chart::before{content:"Cargando gráfico…";position:absolute;top:50%;left:0;right:0;text-align:center;color:var(--dim);font-size:.85rem;pointer-events:none}
 .chart iframe{position:relative}
+.chart.chart-wait{display:grid;place-items:center;min-height:120px;text-align:center;color:var(--dim);font-size:.85rem}
+.chart.chart-wait::before{content:none}
 @media (max-width:520px){.ring{width:104px;height:104px}.ring .v b{font-size:1.8rem}.list li{padding:10px 12px;gap:10px}.list li .pill{font-size:.68rem;padding:3px 7px}}
 @media (min-width:1100px){
   .rtop{grid-template-columns:minmax(0,1.1fr) auto minmax(0,1fr)}
@@ -1024,13 +1026,19 @@ const {scoreOf,verdictOf,confidenceOf}=window.PBScore; // scoring.js (tested in 
 let last=null;
 const safeUrl=u=>{try{const x=new URL(u);return x.protocol==="https:"||x.protocol==="http:"?x.href:null;}catch(e){return null;}};
 const SOCIAL={twitter:"X / Twitter",telegram:"Telegram",discord:"Discord",tiktok:"TikTok",instagram:"Instagram",youtube:"YouTube",facebook:"Facebook",reddit:"Reddit",github:"GitHub",medium:"Medium"};
-function chartSection(pair){
+// The GeckoTerminal embed is a full app (~300 requests, trackers, heavy JS). It never loads while a
+// scan is running, and on phones only when asked, so it cannot slow the analysis or the scrolling.
+function chartSection(pair,defer){
   if(!pair||!pair.pairAddress)return "";
   const dark=document.documentElement.dataset.theme==="dark"||(!document.documentElement.dataset.theme&&matchMedia("(prefers-color-scheme: dark)").matches);
   const pool=String(pair.pairAddress).toLowerCase();
   if(!/^0x[0-9a-f]{40}([0-9a-f]{24})?$/.test(pool))return "";
   const u="https://www.geckoterminal.com/robinhood/pools/"+pool+"?embed=1&info=0&swaps=0&grayscale=0&light_chart="+(dark?"0":"1");
-  return `<section><h3>Gráfico</h3><div class="chart"><iframe src="${esc(u)}" loading="lazy" title="Gráfico de precio en GeckoTerminal" referrerpolicy="no-referrer" allow="clipboard-write"></iframe></div>
+  if(defer==null)defer=matchMedia("(max-width: 760px)").matches;
+  const frame=`<iframe src="${esc(u)}" loading="lazy" title="Gráfico de precio en GeckoTerminal" referrerpolicy="no-referrer" allow="clipboard-write"></iframe>`;
+  const body=defer==="scan"?`<div class="chart chart-wait"><span>El gráfico se carga al terminar el análisis.</span></div>`
+    :defer?`<div class="chart chart-wait"><button type="button" class="btn2" data-chart="${esc(u)}">Ver gráfico</button></div>`:`<div class="chart">${frame}</div>`;
+  return `<section><h3>Gráfico</h3>${body}
     <div class="tnote">Gráfico en vivo de GeckoTerminal del par principal. <a href="https://www.geckoterminal.com/robinhood/pools/${esc(pool)}" target="_blank" rel="noopener">Abrir en GeckoTerminal</a>${pair.url?` · <a href="${esc(pair.url)}" target="_blank" rel="noopener">DexScreener</a>`:""}.</div></section>`;
 }
 
@@ -1543,6 +1551,8 @@ $("#out").addEventListener("click",async e=>{
   const t=e.target.closest(".rtabs [data-tab]");
   if(t){const k=t.dataset.tab;$("#out").querySelectorAll(".rtabs [data-tab]").forEach(b=>b.setAttribute("aria-selected",b===t));
     $("#out").querySelectorAll(".pane").forEach(p=>p.classList.toggle("on",p.dataset.pane===k));return;}
+  const cb=e.target.closest("[data-chart]");
+  if(cb){const w=cb.parentElement;w.classList.remove("chart-wait");w.innerHTML=`<iframe src="${esc(cb.dataset.chart)}" title="Gráfico de precio en GeckoTerminal" referrerpolicy="no-referrer" allow="clipboard-write"></iframe>`;return;}
   const b=e.target.closest("[data-act]");if(!b||!last)return;
   const act=b.dataset.act;
   if(act==="copyaddr"){try{await navigator.clipboard.writeText(last.token);flash("Dirección copiada");}catch(err){prompt("Copia la dirección:",last.token);}return;}
@@ -1629,7 +1639,7 @@ function renderPartial(token,{pair,facts}){
     <div class="grow"><div class="busy" style="padding:0 0 8px"><span>Simulando compra y venta…</span></div><ul class="stages"></ul></div>
    </div></section>
    <dl class="stats">${stats.map(st=>`<div class="stat"><dt>${st[0]}</dt><dd>${st[1]}${st[2]}</dd></div>`).join("")}</dl>
-   <section class="card">${chartSection(pair).replace(/^<section>/,"").replace(/<\/section>$/,"")}</section>
+   <section class="card">${chartSection(pair,"scan").replace(/^<section>/,"").replace(/<\/section>$/,"")}</section>
   </div>`;
   bindRing();paintStages();
 }

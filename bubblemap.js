@@ -324,13 +324,15 @@
     if (still) { sim.stop(); for (let i = 0; i < 300; i++) sim.tick(); paint(); fit(0); }
     else { sim.on("tick", () => {}); let fitted = false; sim.on("end", () => { if (!fitted) { fitted = true; fit(700); } }); setTimeout(() => { if (!fitted) { fitted = true; fit(700); } }, 2600); }
 
-    let raf = 0;
+    let raf = 0, onScreen = true;
+    // Off-screen maps do not animate (a phone keeps its frame budget for scrolling).
+    try { new IntersectionObserver(es => { onScreen = es.some(e => e.isIntersecting); }).observe(el); } catch (e) { /* old browser: always on */ }
     function loop() {
       cancelAnimationFrame(raf);
       const stepF = () => {
         if (!el.isConnected) return;
         raf = requestAnimationFrame(stepF);
-        if (document.hidden) return;
+        if (document.hidden || !onScreen) return;
         view.t += 0.016 * (0.6 + view.act * 2.4);
         const want = view.drag ? 0 : view.active;
         view.act += (want - view.act) * 0.06;
