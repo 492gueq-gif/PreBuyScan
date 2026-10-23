@@ -474,6 +474,42 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
   .a-chart .chart{flex:1;display:flex;flex-direction:column}
   .a-chart .chart iframe{flex:1;min-height:420px}
 }
+
+/* ---------- animated final score ring ---------- */
+.ring.live{--c:var(--unk);--tx:0deg;--ty:0deg;width:200px;height:200px;border-radius:50%;cursor:pointer;outline:none;
+  transform:perspective(500px) rotateX(var(--tx)) rotateY(var(--ty));transition:transform .15s ease-out}
+.ring.live.lr-ok{--c:var(--ok)}.ring.live.lr-warn{--c:var(--warn)}.ring.live.lr-high{--c:var(--high)}
+.ring.live:focus-visible{box-shadow:0 0 0 3px var(--c)}
+.ring.live svg{transform:none;overflow:visible;position:relative}
+.ring.live .lr-track{stroke:var(--sheet2)}
+.ring.live .lr-prog{stroke:var(--c);transform:rotate(-90deg);transform-origin:60px 60px;transition:stroke-dashoffset 1.4s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 7px var(--c))}
+.ring.live .lr-spin{transform-origin:60px 60px;animation:spin 2.4s linear infinite}.ring.live .lr-spin circle{stroke:var(--c)}
+.ring.live .lr-spin2{transform-origin:60px 60px;animation:spin 14s linear infinite reverse}.ring.live .lr-spin2 circle{stroke:var(--c)}
+.ring.live .lr-ticks{stroke:var(--line2);transform-origin:60px 60px;animation:spin 20s linear infinite}
+.ring.live .lr-spark{fill:var(--c);opacity:0;animation:lrSpark 2.8s ease-in-out infinite}
+.ring.live .lr-halo{position:absolute;inset:8%;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 30%,transparent),transparent 70%);animation:srPulse 2.6s ease-in-out infinite}
+.ring.live .lr-ripple{position:absolute;inset:6%;border-radius:50%;border:2px solid var(--c);opacity:0;pointer-events:none}
+.ring.live.done .lr-ripple{animation:lrRipple 3.2s ease-out infinite}.ring.live.done .lr-ripple.r2{animation-delay:1.6s}
+.ring.live.lr-high.done .lr-ripple{animation-duration:1.5s}.ring.live.lr-high.done .lr-ripple.r2{animation-delay:.75s}
+.ring.live.lr-high .lr-halo{animation:lrAlarm 1.1s ease-in-out infinite}
+.ring.live.lr-high .lr-spin{animation-duration:1.2s}
+.ring.live.lr-ok .lr-spin{animation-duration:3.6s}
+.ring.live .v b{font-size:3rem;color:var(--ink)}.ring.live .v b small{font-size:1rem}
+.ring.live .v .lr-num{font-size:inherit;font-weight:inherit;margin:0;color:inherit;display:inline;font-variant-numeric:tabular-nums}
+.ring.live .v .lr-lbl{color:var(--c);font-size:.9rem;font-weight:800;margin-top:6px;letter-spacing:.02em}
+.ring.live.done .v b{animation:lrPop .45s cubic-bezier(.2,1.6,.4,1)}
+.ring.live.burst .lr-prog{animation:lrBurst .6s ease-out}
+.ring.live:hover .lr-spin{animation-duration:.9s}
+@keyframes lrSpark{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1.4)}}
+@keyframes lrRipple{0%{transform:scale(.92);opacity:.7}100%{transform:scale(1.35);opacity:0}}
+@keyframes lrAlarm{0%,100%{opacity:.55;transform:scale(.94)}50%{opacity:1;transform:scale(1.12)}}
+@keyframes lrPop{0%{transform:scale(.85)}100%{transform:scale(1)}}
+@keyframes lrBurst{0%{filter:drop-shadow(0 0 4px var(--c))}40%{filter:drop-shadow(0 0 22px var(--c)) brightness(1.6)}100%{filter:drop-shadow(0 0 7px var(--c))}}
+.ring.live .lr-spark{transform-box:fill-box;transform-origin:center}
+@media (min-width:1100px){.ring.live{width:230px;height:230px}.ring.live .v b{font-size:3.4rem}}
+@media (max-width:520px){.ring.live{width:170px;height:170px}.ring.live .v b{font-size:2.6rem}}
+@media (max-width:1099px){.rtop .ring.live{grid-column:1 / -1;justify-self:center;margin:4px auto}}
+@media (prefers-reduced-motion:reduce){.ring.live *{animation:none!important;transition:none!important}}
 </style></head><body data-view="home">
 <script>try{const t=localStorage.getItem("pbs_theme");const pref=t?JSON.parse(t):"dark";const dark=pref==="auto"?matchMedia("(prefers-color-scheme: dark)").matches:pref!=="light";document.documentElement.dataset.theme=dark?"dark":"light";}catch(e){document.documentElement.dataset.theme="dark";}</script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -1416,7 +1452,7 @@ function render(token,res){
       ${tagList(pair,cr)}
       ${links.length?`<div class="links" style="margin-top:10px">${links.map(l=>`<a class="btn2 sm" href="${esc(l.u)}" target="_blank" rel="noopener noreferrer nofollow">${esc(l.t)} ↗</a>`).join("")}</div>`:`<div class="disc" style="margin-top:8px">Sin web ni redes registradas en DexScreener.</div>`}
     </div>
-    <div class="ring" role="img" aria-label="Puntuación ${score} de 100, ${ringLbl}">${ringSvg(score,cls)}<div class="v"><b>${score}<small>/100</small></b><span class="s-${cls}">${ringLbl}</span></div></div>
+    ${liveRing(score,cls,ringLbl)}
     <ul class="hl">${hl.map(c=>`<li><i class="${c.s}">${ICON[c.s]}</i><span>${esc(c.t)}</span></li>`).join("")}<li style="color:var(--muted);font-size:.78rem">${["high","warn","ok","unk"].filter(k=>n(k)).map(k=>n(k)+" "+lbl[k].toLowerCase()).join(" · ")}</li>
      <li class="confline"><span>Confianza de los datos</span><span class="confbar"><i class="fill ${confCls}" style="width:${conf.score}%"></i></span><b class="s-${confCls}">${conf.score} %</b></li></ul>
    </div>
@@ -1446,7 +1482,7 @@ function render(token,res){
    </div>
    <div class="note">${notChecked.length?"No revisado: "+esc(notChecked.join("; "))+". ":""}Liquidez bloqueada en contratos de terceros: no se verifica hasta cuándo.<br>Revisado ${res.block?"en el bloque "+res.block.toLocaleString("es-MX")+" · ":""}${esc(new Date(res.scannedAt||Date.now()).toLocaleString("es-MX"))} · algoritmo ${esc(res.algo||ALGO_VERSION)} · <a href="#metodo" data-nav="method">cómo calculamos</a>.</div>
   </div>`;
-  bindSim($("#out"),res);autoMap();
+  bindSim($("#out"),res);autoMap();animateRings();
   addHistory({t:token,name,sym,img,score,v:cls,at:Date.now(),type:"token",algo:ALGO_VERSION,conf:conf.score});
 }
 // ---------- wallet profile ----------
@@ -1469,7 +1505,7 @@ function renderProfile(addr,p){
    <section class="card"><div class="rtop">
     <div class="ident"><span class="ticon ph">W</span><div style="min-width:0"><h2>${esc(title)}</h2><span class="addr">${esc(short(addr))}<button type="button" data-act="copyaddr" aria-label="Copiar dirección">⧉</button></span>
      <div class="tags"><span class="tag">Robinhood Chain</span><span class="tag">${p.platform?"Plataforma / servicio":"Wallet"}</span></div></div></div>
-    <div class="ring" role="img" aria-label="Puntuación ${score} de 100">${ringSvg(score,cls)}<div class="v"><b>${score}<small>/100</small></b><span class="s-${cls}">${ringLbl}</span></div></div>
+    ${liveRing(score,cls,ringLbl)}
     <ul class="hl">${last.checks.slice(0,5).map(c=>`<li><i class="${c.s}">${ICON[c.s]}</i><span>${esc(c.t)}</span></li>`).join("")}</ul>
    </div></section>
    <dl class="stats">${stats.map(s=>`<div class="stat"><dt>${s[0]}</dt><dd>${s[1]}</dd></div>`).join("")}</dl>
@@ -1478,6 +1514,7 @@ function renderProfile(addr,p){
    ${p.funded.length?`<section class="card"><h3>Wallets que fondeó</h3><div class="tnote" style="padding-top:0">${p.funded.slice(0,20).map(link).join(" · ")}${p.funded.length>20||p.fundedMore?" …":""}<br>De ${p.fundedSample} revisadas, ${p.fundedFresh} recibieron de esta wallet su primer ETH.</div></section>`:""}
    ${p.traded.length?`<section class="card"><h3>Tokens con los que operó hace poco</h3><div class="tw"><table class="tt"><thead><tr><th>Token</th><th>Último movimiento</th><th>Estado</th></tr></thead><tbody>${p.traded.map(t=>{const x=st(t.liq);return `<tr><td class="w">${link(t.token)}${t.symbol?" "+esc(t.symbol):""}</td><td>${t.dir}${t.ts?" · "+new Date(t.ts).toLocaleDateString("es-MX",{day:"numeric",month:"short"}):""}</td><td class="${x[0]}">${x[1]}</td></tr>`;}).join("")}</tbody></table></div></section>`:""}
    <div class="note">${p.partial.length?"No revisado: "+esc(p.partial.join(", "))+". ":""}Datos públicos del explorador, la RPC y DexScreener. Un perfil limpio no garantiza nada.</div></div>`;
+  animateRings();
   addHistory({t:addr,name:"Wallet "+short(addr),sym:"W",img:null,score,v:cls,at:Date.now(),type:"wallet"});
 }
 
@@ -1498,6 +1535,28 @@ $("#out").addEventListener("click",async e=>{
 
 const STAGES=[["Mercado y gráfico",/^Revisando 0x/],["Venta simulada",/^Simulando compra/],["Venta con montos mayores",/^Simulando montos/],["Operaciones recientes",/^Revisando operaciones/],["Contrato",/^Revisando el contrato/],["Creador, liquidez, snipers y holders",/^Revisando creador/]];
 let stageIdx=0;
+function liveRing(score,cls,lbl){const c=(2*Math.PI*52).toFixed(1),off=(2*Math.PI*52*(1-Math.max(0,Math.min(100,score))/100)).toFixed(1);
+  const sparks=Array.from({length:8},(_,i)=>{const a=i/8*Math.PI*2;return `<circle class="lr-spark" cx="${(60+Math.cos(a)*60).toFixed(1)}" cy="${(60+Math.sin(a)*60).toFixed(1)}" r="1.8" style="animation-delay:${(i*0.35).toFixed(2)}s"/>`;}).join("");
+  return `<div class="ring live lr-${cls}" role="img" tabindex="0" aria-label="Puntuación ${score} de 100, ${esc(lbl)}" data-score="${score}">
+   <div class="lr-halo"></div><div class="lr-ripple"></div><div class="lr-ripple r2"></div>
+   <svg viewBox="0 0 120 120" aria-hidden="true">
+    <circle class="lr-track" cx="60" cy="60" r="52" fill="none" stroke-width="9"/>
+    <circle class="lr-prog" cx="60" cy="60" r="52" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c}" data-off="${off}"/>
+    <g class="lr-spin"><circle cx="60" cy="60" r="52" fill="none" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="18 309"/></g>
+    <g class="lr-spin2"><circle cx="60" cy="60" r="58" fill="none" stroke-width="1.2" stroke-dasharray="2 9" opacity=".6"/></g>
+    <circle class="lr-ticks" cx="60" cy="60" r="43" fill="none" stroke-width="2" stroke-dasharray="1.5 5.2"/>
+    ${sparks}</svg>
+   <div class="v"><b><span class="lr-num">0</span><small>/100</small></b><span class="lr-lbl">${esc(lbl)}</span></div></div>`;}
+function animateRings(){document.querySelectorAll("#out .ring.live:not(.go)").forEach(el=>{
+  const still=matchMedia("(prefers-reduced-motion: reduce)").matches;const target=+el.dataset.score||0;const prog=el.querySelector(".lr-prog"),num=el.querySelector(".lr-num");
+  el.classList.add("go");
+  if(still){prog.setAttribute("stroke-dashoffset",prog.dataset.off);num.textContent=target;el.classList.add("done");return;}
+  requestAnimationFrame(()=>requestAnimationFrame(()=>prog.setAttribute("stroke-dashoffset",prog.dataset.off)));
+  const t0=performance.now(),D=1400;const tick=t=>{const k=Math.min(1,(t-t0)/D),e=1-Math.pow(1-k,3);num.textContent=Math.round(target*e);if(k<1)requestAnimationFrame(tick);else{el.classList.add("done");}};requestAnimationFrame(tick);
+  el.addEventListener("pointermove",e=>{const b=el.getBoundingClientRect();const x=(e.clientX-b.left)/b.width-.5,y=(e.clientY-b.top)/b.height-.5;el.style.setProperty("--ty",(x*24).toFixed(1)+"deg");el.style.setProperty("--tx",(-y*24).toFixed(1)+"deg");});
+  el.addEventListener("pointerleave",()=>{el.style.setProperty("--tx","0deg");el.style.setProperty("--ty","0deg");});
+  el.addEventListener("click",()=>{el.classList.remove("burst");void el.offsetWidth;el.classList.add("burst");});
+});}
 function scanRing(){const c=(2*Math.PI*52).toFixed(1);
   const blips=[[38,34],[84,44],[72,86],[34,76],[60,24]].map((b,i)=>`<circle class="sr-blip" cx="${b[0]}" cy="${b[1]}" r="2.4" fill="var(--accent)" style="animation-delay:${(i*0.56).toFixed(2)}s"/>`).join("");
   return `<div class="scanring" role="progressbar" tabindex="0" aria-label="Analizando" aria-valuemin="0" aria-valuemax="${STAGES.length}" aria-valuenow="0" title="Toca para ver en qué paso va">
