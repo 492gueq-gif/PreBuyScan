@@ -232,6 +232,9 @@ body[data-view="explore"] #v-explore,body[data-view="sim"] #v-sim,body[data-view
 .vh{display:flex;align-items:center;gap:10px}
 .vh h2{font-family:var(--display);font-size:1.25rem;margin:0}
 .filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+#v-explore > .filters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));width:100%;overflow:visible}
+#v-explore > .filters .chip{width:100%;min-width:0;padding:9px 4px;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:600px){#v-explore > .filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .acc .bars{display:grid;gap:8px;padding:0 16px}
 .bar{display:grid;grid-template-columns:8rem 1fr 3.2rem;gap:10px;align-items:center;font-size:.86rem}
 .track{height:10px;background:var(--sheet2);border-radius:6px;overflow:hidden}
