@@ -1,1 +1,2 @@
 {"candles": 935, "double": false, "entry": 0.347366244689774, "gem": false, "liq_7d": 47.879, "max_up_7d": 0.004063452384631017, "measured_at": 1792777840, "ret_7d": -0.28033554315364284, "spike5": false, "status": "entered", "token": "0x39dbed3a2bd333467115de45665cc57f813c4571"}
+{"candles": 935, "cohort": "h1", "double": false, "entry": 0.348362780033395, "gem": false, "liq_7d": 47.879, "max_up_7d": 0.0, "measured_at": 1792778514, "ret_7d": -0.2797870694976067, "spike5": false, "status": "entered", "token": "0x39dbed3a2bd333467115de45665cc57f813c4571"}
