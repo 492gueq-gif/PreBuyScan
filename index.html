@@ -157,6 +157,8 @@ body[data-view="result"] .home-only{display:none}
 .rtabs button{border:0;background:transparent;color:var(--muted);font-weight:700;font-size:.88rem;padding:11px 12px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
 .rtabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
 .panes{display:grid;gap:14px}
+/* Keep report detail cards at their content height beside the taller chart/map. */
+.panes .a-sec,.panes .a-info{align-self:start}
 .pane{display:none;gap:14px}
 .pane.on{display:grid}
 .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
