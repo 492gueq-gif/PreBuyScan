@@ -52,9 +52,18 @@ try:
                 sw = q.evaluate("document.documentElement.scrollWidth")
                 res[name]["scroll_width_%d" % w] = sw
                 q.screenshot(path=str(OUT / ("%s_%d.png" % (name.split()[0], w))), full_page=True); c2.close()
+        # English mode on a real report.
+        c3 = b.new_context(viewport={"width": 1440, "height": 900}, service_workers="block"); q = c3.new_page()
+        q.add_init_script("try{localStorage.setItem('pbs_lang','\"en\"')}catch(e){}")
+        q.goto("http://localhost:8830/?t=0x39dbed3a2bd333467115de45665cc57f813c4571"); q.wait_for_selector("#out .ring:not(.pending)", timeout=300000); q.wait_for_timeout(1500)
+        txt = q.inner_text("#out")
+        res["_english"] = dict(has_english=all(w in txt for w in ("Summary", "Findings")) and ("No alerts" in txt or "Caution" in txt or "High risk" in txt),
+                               spanish_left=sorted(set(w for w in ("Riesgo alto", "Precaución", "Hallazgos", "Resumen", "Liquidez aceptable", "La venta simulada funciona") if w in txt)))
+        q.screenshot(path=str(OUT / "PONS_en_1440.png"), full_page=True); c3.close()
         b.close()
 finally:
     srv.terminate()
 (OUT / "audit_cases.json").write_text(json.dumps(res, indent=1, ensure_ascii=False))
 for n, r in res.items():
+    if n.startswith("_"): print("::notice title=%s::%s" % (n, json.dumps(r, ensure_ascii=False))); continue
     print("::notice title=%s::%s" % (n, json.dumps(dict(verdict=r["verdict"], score=r["score"], conf=r["confidence"], secs=r["seconds"], exp=r["expectations"], sw=[r.get("scroll_width_360"), r.get("scroll_width_1440")], js=r["js_errors"][:3]), ensure_ascii=False)[:3800]))

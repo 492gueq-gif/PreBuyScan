@@ -9,6 +9,9 @@ Todas son públicas y sin claves. Ninguna credencial está en el frontend ni en 
 | DexScreener `api.dexscreener.com` | par principal, precio, liquidez, volumen, imagen y redes | `net.js`: timeout, 2 reintentos con backoff y jitter, `Retry-After` (máx 10 s), JSON validado | 30 s |
 | GeckoTerminal `api.geckoterminal.com` | pools nuevos y en tendencia, Alpha Radar, operaciones, OHLCV; gráfico incrustado | igual que DexScreener; Alpha Radar indica cuántas consultas fallaron y marca la lista como incompleta | 30 s (+ 60 s de lista) |
 | `raw.githubusercontent.com` (`creator-db/creators.json`) | historial de creadores (cada hora) | si falla, «Historial del creador no disponible» | navegador |
+| GeckoTerminal `tokens/{t}/pools` | todos los pools del token: multi-pool, volumen falso, comparación de fuentes | `net.js` (espaciado 2.1 s) | 30 s |
+| Blockscout `smart-contracts/{t}` | código verificado: ABI (funciones riesgosas por nombre, errores del contrato) | `creator.js` | no |
+| RPC de respaldo: `robinhood-rpc.publicnode.com`, `robinhood.drpc.org`, `robinhood.daybreak-rpc.network` | solo si la RPC oficial falla en transporte; las tres aceptan CORS y `eth_simulateV1` (probado el 23 oct); sus consultas de logs están limitadas | el reporte indica cuántas consultas salieron de cada una | nunca |
 
 ## Datos desactualizados y salud
 

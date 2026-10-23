@@ -127,7 +127,8 @@
     [/^Las 10 wallets más grandes tienen (.+) \(sin pools ni quemado\)\.$/, "The 10 largest wallets hold $1 (excluding pools and burn)."],
     [/^Sin contar pools ni quemado\. Pocas wallets pueden tirar el precio\.$/, "Excluding pools and burn. A few wallets can crash the price."],
     [/^No encontramos otros tokens creados por (.+) en todo su historial \((\d+) transacciones\)\.$/, "We found no other tokens created by $1 in its whole history ($2 transactions)."],
-    [/^Datos de mercado$/, "Market data"]
+    [/^Datos de mercado$/, "Market data"],
+    [/^\(n = (\d+); IC 95 %: (.+)\)$/, "(n = $1; 95 % CI: $2)"]
   ];
 
   function tr(text) {
