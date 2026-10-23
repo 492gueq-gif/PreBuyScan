@@ -31,9 +31,17 @@ try:
                 pg.add_init_script("window.__diagBudget=%s;" % (budget or "null") + HOOK)
                 t0 = time.time(); pg.goto(BASE + "?t=" + tok)
                 pg.wait_for_selector("#out .ring:not(.pending)", timeout=300000); pg.wait_for_timeout(2000)
+                probe = pg.evaluate("""async()=>{const cr=window.__cr;const out={};const BS='https://robinhoodchain.blockscout.com/api';
+                  const t=async(u)=>{const t0=performance.now();try{const r=await fetch(u);const x=await r.text();return [r.status,Math.round(performance.now()-t0),x.slice(0,160)];}catch(e){return ['ERR',Math.round(performance.now()-t0),String(e)];}};
+                  const a=await (await fetch(BS+'/v2/addresses/"""+tok+"""')).json();const d=(a.creator_address_hash||'').toLowerCase();out.deployer=d;
+                  out.txlist200=await t(BS+'?module=account&action=txlist&address='+d+'&sort=desc&page=1&offset=200');
+                  out.txlist50=await t(BS+'?module=account&action=txlist&address='+d+'&sort=desc&page=1&offset=50');
+                  out.tokentx=await t(BS+'?module=account&action=tokentx&contractaddress="""+tok+"""&sort=asc&page=1&offset=200');
+                  out.v2tx=await t(BS+'/v2/addresses/'+d+'/transactions');
+                  out.counters=await t(BS+'/v2/addresses/'+d+'/counters');return out;}""")
                 errpills = pg.eval_on_selector_all("#out .pill.err", "els=>els.map(e=>e.closest('li').querySelector('b').innerText)")
                 res.append(dict(token=tok, budget=budget, cpu=cpu, seconds=round(time.time()-t0,1), badge=pg.inner_text("#out .done"),
-                                tech_errors=errpills, cr=pg.evaluate("window.__cr"), http_failures=fails[:40], js_errors=errs[:5]))
+                                tech_errors=errpills, probe=probe, cr=pg.evaluate("window.__cr"), http_failures=fails[:40], js_errors=errs[:5]))
                 pg.screenshot(path=str(OUT / ("diag_%s_cpu%s.png" % (tok[:8], cpu))), full_page=True)
                 ctx.close()
         b.close()
@@ -41,5 +49,5 @@ finally:
     srv.terminate()
 (OUT / "diag.json").write_text(json.dumps(res, indent=1, ensure_ascii=False))
 for r in res:
-    print("::notice title=diag %s cpu%s::%s" % (r["token"][:8], r["cpu"], json.dumps({k: r[k] for k in ("seconds","badge","tech_errors","cr")}, ensure_ascii=False)[:3500]))
+    print("::notice title=diag %s cpu%s::%s" % (r["token"][:8], r["cpu"], json.dumps({k: r[k] for k in ("seconds","badge","tech_errors","cr","probe")}, ensure_ascii=False)[:3500]))
     print("::notice title=http %s cpu%s::%s" % (r["token"][:8], r["cpu"], json.dumps(r["http_failures"], ensure_ascii=False)[:3500]))

@@ -6,7 +6,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "out"; OUT.mkdir(exist_ok=True)
-VERSIONS = os.environ.get("DIAG_VERSIONS", "0cc79a8,HEAD").split(",")
+VERSIONS = os.environ.get("DIAG_VERSIONS", "HEAD").split(",")
 TOKENS = os.environ.get("DIAG_TOKENS", "0x39dbed3a2bd333467115de45665cc57f813c4571,0xD5f1afEA47b1A9eab414D2ee740cF1d6d039E725").split(",")
 dirs = {}
 for i, v in enumerate(VERSIONS):
