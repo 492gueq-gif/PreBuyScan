@@ -364,7 +364,12 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 .alphabox .alphaf{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:0 16px 6px}
 .alphaf label{display:grid;gap:4px;font-size:.76rem;color:var(--muted);font-weight:600}
 .alphaf input,.alphaf select{background:var(--sheet2);border:1px solid var(--line2);border-radius:10px;color:var(--ink);font-family:var(--mono);padding:8px 10px;font-size:.9rem}
-.sigs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.list li.al{flex-wrap:wrap}
+.sigs{display:flex;flex-wrap:wrap;gap:4px;flex-basis:100%;padding-left:calc(1.4rem + 48px)}
+.sig{white-space:nowrap}
+.alphaf input,.alphaf select{width:100%;min-width:0}
+.alphaf label{min-width:0}
+@media (max-width:520px){.alphabox .alphaf{grid-template-columns:1fr 1fr}.sigs{padding-left:0}}
 .sig{font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--ok-bg);color:var(--ok)}
 .sig.bad{background:var(--high-bg);color:var(--high)}.sig.dim{background:var(--unk-bg);color:var(--unk)}
 </style></head><body data-view="home">
@@ -1027,9 +1032,9 @@ function alphaEval(p,cfg){
 }
 function alphaRow(x,i){
   const blocked=x.q==="high";
-  return `<li data-scan="${esc(x.t)}"><span class="num" style="width:1.4rem;color:var(--muted)">${i+1}</span>${avatar(x.img,x.nm)}<div class="grow"><b>${esc(x.nm.slice(0,18))}</b><small>${usd(Math.round(x.liq))} liq. · ${usd(Math.round(x.vol1))} vol 1 h · ${x.tx1} tx · ${ageTxt(x.ageH)}</small>
-    <span class="sigs">${blocked?`<span class="sig bad">Riesgo alto: sin etiqueta favorable</span>`:x.sig.length?x.sig.map(z=>`<span class="sig">${esc(z)}</span>`).join(""):`<span class="sig dim">Sin señales extra</span>`}</span></div>
-    <div class="num">${fmtPrice(x.price)}</div><span class="pill ${x.q}">${lbl[x.q]}</span></li>`;
+  return `<li class="al" data-scan="${esc(x.t)}"><span class="num" style="width:1.4rem;color:var(--muted)">${i+1}</span>${avatar(x.img,x.nm)}<div class="grow"><b>${esc(x.nm.slice(0,18))}</b><small>${usd(Math.round(x.liq))} liq. · ${usd(Math.round(x.vol1))} vol 1 h · ${x.tx1} tx · ${ageTxt(x.ageH)}</small></div>
+    <div class="num">${fmtPrice(x.price)}</div><span class="pill ${x.q}">${lbl[x.q]}</span>
+    <div class="sigs">${blocked?`<span class="sig bad">Riesgo alto: sin etiqueta favorable</span>`:x.sig.length?x.sig.map(z=>`<span class="sig">${esc(z)}</span>`).join(""):`<span class="sig dim">Sin señales extra</span>`}</div></li>`;
 }
 async function loadAlpha(){
   const box=$("#explore-list");box.innerHTML=`<li class="busy" style="cursor:default">Buscando entre los pools nuevos y activos…</li>`;
