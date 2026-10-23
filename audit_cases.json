@@ -1,0 +1,624 @@
+{
+ "UHI": {
+  "verdict": "high",
+  "score": 0,
+  "confidence": 95,
+  "checks": [
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Mercado",
+    "t": "Liquidez aceptable",
+    "d": "$590,514 en el par principal."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Mercado",
+    "t": "Valoración muy alta frente a la liquidez",
+    "d": "El FDV es 62 veces la liquidez: el precio de pantalla no se puede realizar en tamaño."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Mercado",
+    "t": "Volumen inusualmente alto frente a la liquidez",
+    "d": "Volumen de 24 h 28 veces la liquidez: puede ser volumen inflado entre wallets del mismo dueño."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Mercado",
+    "t": "Hay ventas de otros usuarios",
+    "d": "27,211 ventas en 24 h. Que otros vendan no garantiza que tú puedas."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Mercado",
+    "t": "4 pools con comisión abusiva",
+    "d": "Hay pools de este token con comisión de 50.1 %, 80 %, 75 %, 25 %: quien compre o venda ahí pierde esa parte. Usa solo el pool principal."
+   },
+   {
+    "s": "high",
+    "err": false,
+    "c": "Mercado",
+    "t": "Volumen sin liquidez detrás",
+    "d": "2 pools mueven mucho más que su liquidez (p. ej. UHI / WETH: $16,508,934 en 24 h con $590,021 de liquidez), y son 100 % del volumen del token: el volumen que ves no es demanda real."
+   },
+   {
+    "s": "high",
+    "err": false,
+    "c": "Venta",
+    "t": "Solo se puede vender hasta ~0.022 ETH",
+    "d": "La venta simulada funciona con montos pequeños pero la venta falla desde 0.1 ETH. Monto máximo vendible encontrado: ~0.022 ETH (1,404 tokens)."
+   },
+   {
+    "s": "unk",
+    "err": false,
+    "c": "Contrato",
+    "t": "Dueño del contrato no identificado",
+    "d": "El contrato no expone owner(), getOwner() ni admin(), y no usa roles estándar (AccessControl). Revisa el código verificado."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Contrato",
+    "t": "Precio frágil: solo 0.8 % del suministro está en los pools",
+    "d": "El precio se forma con muy pocos tokens; el resto (99.2 %) está en wallets. Si una parte pequeña de eso se vende, el precio se desploma. El FDV de $36,590,115 no es realizable."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Contrato",
+    "t": "Sin funciones peligrosas comunes",
+    "d": "No se encontraron mint, lista negra, cambio de comisiones, pausa, límites ni cambio de saldos en el código verificado ni entre las variantes conocidas."
+   },
+   {
+    "s": "unk",
+    "err": false,
+    "c": "Creador y liquidez",
+    "t": "Wallet con actividad previa: revisar",
+    "d": "0x0c3b…c90e no creó otros tokens, pero ya había enviado 171 transacciones: no es una wallet nueva y limpia. Revisa en el explorador qué hizo antes."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Creador y liquidez",
+    "t": "Liquidez quemada",
+    "d": "100 % de la liquidez del pool está en una dirección de quemado."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Lanzamiento",
+    "t": "Los snipers ya casi no tienen tokens",
+    "d": "15 wallets compraron en el primer minuto; hoy tienen 0.66 % del suministro."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Lanzamiento",
+    "t": "Un comprador del lanzamiento llegó a tener 92.69 %",
+    "d": "0xc07d…aec6 compró 92.69 % del suministro en el primer minuto y ya vendió la mayor parte: quien entra así suele salir sobre las compras de la gente."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Lanzamiento",
+    "t": "6 snipers fondeados por la misma wallet",
+    "d": "Recibieron su primer ETH del mismo origen: probablemente son de una sola persona."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Holders",
+    "t": "Holders repartidos",
+    "d": "Las 10 wallets más grandes tienen 0.6 % (sin pools ni quemado)."
+   },
+   {
+    "s": "high",
+    "err": false,
+    "c": "Holders",
+    "t": "49 wallets con saldos casi idénticos",
+    "d": "49 holders tienen entre 0.06 % y 0.06 % del suministro cada uno (2.94 % en total). Saldos clonados suelen ser un airdrop o una sola persona repartida en muchas wallets que puede vender a la vez."
+   }
+  ],
+  "facts": {
+   "name": "Universal High Income (UHI)",
+   "Precio": "$0.03659",
+   "Liquidez": "$590,514",
+   "Valor total (FDV)": "$36,590,115",
+   "Capitalización": "$36,590,115",
+   "Edad del par": "4.3 días",
+   "Volumen 1 h / 24 h": "$728,189 / $16,607,401",
+   "Compras / ventas 1 h": "1,544 / 1,293",
+   "Compras / ventas 24 h": "33,852 / 27,211",
+   "Cambio 1 h / 6 h / 24 h": "-2.8 % · +0 % · +58.5 %",
+   "Web y redes": "web + 1 red(es)",
+   "Pares encontrados": "1",
+   "DEX": "uniswap v4",
+   "Pools del token": "12 · liquidez total $593,887 · volumen 24 h $16,587,295",
+   "Venta simulada (0.01 ETH)": "recuperas 100 %",
+   "Monto máximo vendible": "~0.022 ETH (1,404 tokens)",
+   "Tamaño del contrato": "1,923 bytes",
+   "Código verificado": "sí (Token)",
+   "Suministro total": "1,000,000,000",
+   "En los pools": "0.8 %",
+   "Creador": "0x0c3b…c90e",
+   "Fondeado por": "0x9199…15ac (0.009863 ETH)",
+   "Holders": "8,358",
+   "Saldos clonados": "49 wallets",
+   "RPC de respaldo": "robinhood-rpc.publicnode.com (1 consultas): la RPC oficial falló en esas consultas"
+  },
+  "sizes": [
+   {
+    "eth": 0.01,
+    "status": "round_trip_ok",
+    "ret": 0.9999,
+    "bought": 646184001831051,
+    "boughtRaw": "646184001831051162400",
+    "impact": 0
+   },
+   {
+    "eth": 0.1,
+    "status": "sell_failed",
+    "ret": null,
+    "bought": 6421953358597814,
+    "boughtRaw": "6421953358597814160614",
+    "revert": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000145452414e534645525f46524f4d5f4641494c4544000000000000000000000000",
+    "impact": 0.00617264735735823
+   },
+   {
+    "eth": 0.5,
+    "status": "sell_failed",
+    "ret": null,
+    "bought": 31918519550006450,
+    "boughtRaw": "31918519550006446420244",
+    "revert": "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000145452414e534645525f46524f4d5f4641494c4544000000000000000000000000",
+    "impact": 0.012091928628348958
+   }
+  ],
+  "explorer_errors": [],
+  "seconds": 34.4,
+  "js_errors": [],
+  "expectations": [
+   {
+    "expect": "saldos clonados",
+    "ok": true,
+    "found": [
+     "high: 49 wallets con saldos casi idénticos"
+    ]
+   },
+   {
+    "expect": "poco suministro en pools",
+    "ok": true,
+    "found": [
+     "warn: Precio frágil: solo 0.8 % del suministro está en los pools"
+    ]
+   },
+   {
+    "expect": "venta limitada con monto máximo",
+    "ok": true,
+    "found": [
+     "high: Solo se puede vender hasta ~0.022 ETH"
+    ]
+   }
+  ],
+  "scroll_width_360": 360,
+  "scroll_width_1440": 1440
+ },
+ "PONS": {
+  "verdict": "warn",
+  "score": 50,
+  "confidence": 65,
+  "checks": [
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Mercado",
+    "t": "Liquidez aceptable",
+    "d": "$2,556,890 en el par principal."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Mercado",
+    "t": "Valoración muy alta frente a la liquidez",
+    "d": "El FDV es 67 veces la liquidez: el precio de pantalla no se puede realizar en tamaño."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Mercado",
+    "t": "Operaciones repetidas por pocas wallets",
+    "d": "16,554 operaciones de solo 528 wallets en 24 h (PONS / USDG) (31 por wallet): típico de bots que inflan la actividad."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Mercado",
+    "t": "Hay ventas de otros usuarios",
+    "d": "467 ventas en 24 h. Que otros vendan no garantiza que tú puedas."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Mercado",
+    "t": "Datos inconsistentes entre fuentes",
+    "d": "Liquidez según DexScreener: $2,556,890; según GeckoTerminal: $9,334,463. Una de las dos fuentes está equivocada o el pool es irregular: confía menos en las cifras de mercado."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Venta",
+    "t": "La venta simulada funciona",
+    "d": "Simulamos comprar con 0.01 ETH y vender todo: recuperarías 98 % (incluye comisiones e impacto). No garantiza que siga así."
+   },
+   {
+    "s": "unk",
+    "err": false,
+    "c": "Contrato",
+    "t": "Dueño del contrato no identificado",
+    "d": "El contrato no expone owner(), getOwner() ni admin(), y no usa roles estándar (AccessControl). Revisa el código verificado."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Contrato",
+    "t": "Sin funciones peligrosas comunes",
+    "d": "No se encontraron mint, lista negra, cambio de comisiones, pausa, límites ni cambio de saldos en el código verificado ni entre las variantes conocidas."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Creador y liquidez",
+    "t": "No lanzó otros tokens",
+    "d": "No encontramos otros tokens creados por 0xb9f5…24b0 en todo su historial (14 transacciones)."
+   },
+   {
+    "s": "unk",
+    "err": false,
+    "c": "Creador y liquidez",
+    "t": "No sabemos quién tiene la liquidez",
+    "d": "El creador no tiene posiciones en este pool (V3), pero no pudimos verificar si el resto está bloqueado."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Lanzamiento",
+    "t": "Los snipers ya casi no tienen tokens",
+    "d": "2 wallets compraron en el primer minuto; hoy tienen 0 % del suministro."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Lanzamiento",
+    "t": "Un comprador del lanzamiento llegó a tener 6.8 %",
+    "d": "0xf89f…892a compró 6.8 % del suministro en el primer minuto y ya vendió la mayor parte: quien entra así suele salir sobre las compras de la gente."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Holders",
+    "t": "Holders repartidos",
+    "d": "Las 10 wallets más grandes tienen 23.87 % (sin pools ni quemado)."
+   }
+  ],
+  "facts": {
+   "name": "Pons (PONS)",
+   "Precio": "$0.2546",
+   "Liquidez": "$2,556,890",
+   "Valor total (FDV)": "$171,310,263",
+   "Capitalización": "$171,317,550",
+   "Edad del par": "101.9 días",
+   "Volumen 1 h / 24 h": "$2,012 / $187,929",
+   "Compras / ventas 1 h": "19 / 6",
+   "Compras / ventas 24 h": "637 / 467",
+   "Cambio 1 h / 6 h / 24 h": "-0.1 % · -1.1 % · +0.9 %",
+   "Web y redes": "web + 1 red(es)",
+   "Pares encontrados": "1",
+   "DEX": "uniswap v3",
+   "Pools del token": "20 · liquidez total $9,334,463 · volumen 24 h $9,269,905",
+   "Venta simulada (0.01 ETH)": "recuperas 98 %",
+   "Tamaño del contrato": "5,274 bytes",
+   "Código verificado": "sí (PonsLauncherToken)",
+   "Suministro total": "1,000,000,000",
+   "En los pools": "2.61 %",
+   "Máximo por operación": "2.2 % del suministro",
+   "Máximo por wallet": "2 % del suministro",
+   "Creador": "0xb9f5…24b0",
+   "Fondeado por": "0xedf3…9901 (0.000638 ETH)",
+   "Holders": "104,232"
+  },
+  "sizes": [
+   {
+    "eth": 0.01,
+    "status": "round_trip_ok",
+    "ret": 0.9801,
+    "bought": 93350131151251,
+    "boughtRaw": "93350131151251927268",
+    "impact": 0
+   },
+   {
+    "eth": 0.1,
+    "status": "round_trip_ok",
+    "ret": 0.9801,
+    "bought": 933429427915814,
+    "boughtRaw": "933429427915814084820",
+    "revert": null,
+    "impact": 7.70042803469595e-05
+   },
+   {
+    "eth": 0.5,
+    "status": "round_trip_ok",
+    "ret": 0.9801,
+    "bought": 4665550395798194,
+    "boughtRaw": "4665550395798194823956",
+    "revert": null,
+    "impact": 0.0004191020923551836
+   }
+  ],
+  "explorer_errors": [],
+  "seconds": 27.1,
+  "js_errors": [],
+  "expectations": [
+   {
+    "expect": "volumen anómalo",
+    "ok": true,
+    "found": [
+     "warn: Operaciones repetidas por pocas wallets"
+    ]
+   },
+   {
+    "expect": "dueño activo",
+    "ok": false,
+    "found": []
+   },
+   {
+    "expect": "lista negra",
+    "ok": false,
+    "found": []
+   }
+  ],
+  "scroll_width_360": 360,
+  "scroll_width_1440": 1440
+ },
+ "PAPER": {
+  "verdict": "high",
+  "score": 0,
+  "confidence": 50,
+  "checks": [
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Mercado",
+    "t": "Liquidez aceptable",
+    "d": "$10,575,157 en el par principal."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Mercado",
+    "t": "Sin web ni redes sociales registradas",
+    "d": "DexScreener no tiene web ni redes de este token. Los proyectos serios casi siempre las publican."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Mercado",
+    "t": "Hay ventas de otros usuarios",
+    "d": "1,957 ventas en 24 h. Que otros vendan no garantiza que tú puedas."
+   },
+   {
+    "s": "high",
+    "err": false,
+    "c": "Mercado",
+    "t": "Volumen sin liquidez detrás",
+    "d": "Un pool mueven mucho más que su liquidez (p. ej. PAPER / USDG: $21,003,677 en 24 h con $0 de liquidez), y son 100 % del volumen del token: el volumen que ves no es demanda real."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Mercado",
+    "t": "Datos inconsistentes entre fuentes",
+    "d": "Liquidez según DexScreener: $10,575,157; según GeckoTerminal: $0.013329. Una de las dos fuentes está equivocada o el pool es irregular: confía menos en las cifras de mercado."
+   },
+   {
+    "s": "unk",
+    "err": false,
+    "c": "Venta",
+    "t": "Venta no simulada",
+    "d": "Pool V4 contra un activo distinto de ETH/WETH; simulación no disponible."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Contrato",
+    "t": "El contrato tiene dueño activo",
+    "d": "Dueño (admin()): 0x010e02f119b8dc076c92c457b6d3416a25686c69."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Contrato",
+    "t": "Precio frágil: solo 0 % del suministro está en los pools",
+    "d": "El precio se forma con muy pocos tokens; el resto (100 %) está en wallets. Si una parte pequeña de eso se vende, el precio se desploma. El FDV de $10,525,370 no es realizable."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Contrato",
+    "t": "Sin funciones peligrosas comunes",
+    "d": "No se encontraron mint, lista negra, cambio de comisiones, pausa, límites ni cambio de saldos en el código verificado ni entre las variantes conocidas."
+   },
+   {
+    "s": "high",
+    "err": false,
+    "c": "Creador y liquidez",
+    "t": "El creador lanzó 15 tokens y 8 murieron",
+    "d": "De los que pudimos revisar, 8 de 10 ya no tienen liquidez (menos de $1,000). Patrón típico de quien lanza tokens en serie y los abandona."
+   },
+   {
+    "s": "unk",
+    "err": false,
+    "c": "Creador y liquidez",
+    "t": "No sabemos quién tiene la liquidez",
+    "d": "El creador no tiene posiciones en este pool (V4), pero no pudimos verificar si el resto está bloqueado."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Lanzamiento",
+    "t": "Los snipers ya casi no tienen tokens",
+    "d": "2 wallets compraron en el primer minuto; hoy tienen 0 % del suministro."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Lanzamiento",
+    "t": "Un comprador del lanzamiento llegó a tener 99.99 %",
+    "d": "0xa27b…ff5a compró 99.99 % del suministro en el primer minuto y ya vendió la mayor parte: quien entra así suele salir sobre las compras de la gente."
+   },
+   {
+    "s": "high",
+    "err": false,
+    "c": "Holders",
+    "t": "Muy concentrado: 10 wallets tienen 99.99 %",
+    "d": "Sin contar pools ni quemado. Pocas wallets pueden tirar el precio."
+   },
+   {
+    "s": "warn",
+    "err": false,
+    "c": "Holders",
+    "t": "Una wallet tiene 99.99 %",
+    "d": "0x0efb…7793 guarda una parte grande del suministro."
+   }
+  ],
+  "facts": {
+   "name": "Papertrade (PAPER)",
+   "Precio": "$0.0001052",
+   "Liquidez": "$10,575,157",
+   "Valor total (FDV)": "$10,525,370",
+   "Capitalización": "$10,525,370",
+   "Edad del par": "15.5 h",
+   "Volumen 1 h / 24 h": "$0 / $21,176,130",
+   "Compras / ventas 1 h": "0 / 0",
+   "Compras / ventas 24 h": "2,058 / 1,957",
+   "Cambio 1 h / 6 h / 24 h": "— · — · +952 %",
+   "Web y redes": "ninguna",
+   "Pares encontrados": "1",
+   "DEX": "uniswap v4",
+   "Pools del token": "2 · liquidez total $0.01332937 · volumen 24 h $21,003,677",
+   "Tamaño del contrato": "12,024 bytes",
+   "Código verificado": "sí (ClankerToken)",
+   "Suministro total": "100,000,000,000",
+   "En manos del dueño": "0 %",
+   "En los pools": "0 %",
+   "Creador": "0x010e…6c69",
+   "En la base de PreBuyScan": "2 tokens · 0 muertos · 2 pendientes",
+   "Fondeado por": "0x017c…095d (0.001 ETH)",
+   "Holders": "2,649"
+  },
+  "sizes": null,
+  "explorer_errors": [],
+  "seconds": 28.5,
+  "js_errors": [],
+  "expectations": [
+   {
+    "expect": "datos inconsistentes",
+    "ok": true,
+    "found": [
+     "warn: Datos inconsistentes entre fuentes"
+    ]
+   }
+  ],
+  "scroll_width_360": 360,
+  "scroll_width_1440": 1440
+ },
+ "MUERTO (GRUDGE)": {
+  "verdict": "high",
+  "score": 10,
+  "confidence": 40,
+  "checks": [
+   {
+    "s": "high",
+    "err": false,
+    "c": "Mercado",
+    "t": "Sin mercado en DexScreener",
+    "d": "No hay pares de este token en Robinhood Chain: no se puede comprar ni vender de forma normal."
+   },
+   {
+    "s": "unk",
+    "err": false,
+    "c": "Contrato",
+    "t": "Dueño del contrato no identificado",
+    "d": "El contrato no expone owner(), getOwner() ni admin(), y no usa roles estándar (AccessControl)."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Contrato",
+    "t": "Sin funciones peligrosas comunes",
+    "d": "No se encontraron mint, lista negra, cambio de comisiones, pausa, límites ni cambio de saldos entre las variantes conocidas."
+   },
+   {
+    "s": "ok",
+    "err": false,
+    "c": "Creador y liquidez",
+    "t": "No lanzó otros tokens",
+    "d": "No encontramos otros tokens creados por 0x3acd…7dbc en todo su historial (18 transacciones)."
+   },
+   {
+    "s": "unk",
+    "err": true,
+    "c": "Creador y liquidez",
+    "t": "Control de la liquidez no revisado",
+    "d": "No se pudo consultar quién tiene la liquidez del par."
+   },
+   {
+    "s": "high",
+    "err": false,
+    "c": "Creador y liquidez",
+    "t": "El creador guarda mucho del suministro",
+    "d": "Su wallet tiene 73.66 % de los tokens: puede venderlos de golpe."
+   },
+   {
+    "s": "unk",
+    "err": true,
+    "c": "Lanzamiento",
+    "t": "Snipers no revisados",
+    "d": "No se pudo consultar quién compró en el lanzamiento."
+   },
+   {
+    "s": "high",
+    "err": false,
+    "c": "Holders",
+    "t": "Muy concentrado: 10 wallets tienen 98.45 %",
+    "d": "Sin contar pools ni quemado. Pocas wallets pueden tirar el precio."
+   }
+  ],
+  "facts": {
+   "Tamaño del contrato": "10,606 bytes",
+   "Código verificado": "no",
+   "Suministro total": "10,000,000,000",
+   "En los pools": "0 %",
+   "Creador": "0x3acd…7dbc",
+   "Fondeado por": "0x04f7…e9d6 (2.31 ETH)",
+   "Holders": "13"
+  },
+  "sizes": null,
+  "explorer_errors": [],
+  "seconds": 18.5,
+  "js_errors": [],
+  "expectations": [
+   {
+    "expect": "riesgo alto",
+    "ok": true,
+    "found": "veredicto high"
+   }
+  ],
+  "scroll_width_360": 360,
+  "scroll_width_1440": 1440
+ }
+}
