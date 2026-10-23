@@ -204,7 +204,7 @@
       let later = null;
       if (o.delaySec) {
         const lb = await rpc("eth_getBlockByNumber", ["latest", false], o);
-        later = { time: "0x" + (BigInt(lb.timestamp) + BigInt(o.delaySec)).toString(16), number: "0x" + (BigInt(lb.number) + 2n).toString(16) };
+        later = { time: "0x" + (BigInt(lb.timestamp) + BigInt(o.delaySec)).toString(16) };   // block number: next one, assigned by the node
       }
       const sim = async (cs, split) => {
         const blocks = later && split ? [{ stateOverrides: base, calls: cs.slice(0, split) }, { blockOverrides: later, calls: cs.slice(split) }]
@@ -228,7 +228,9 @@
       out.boughtRaw = got.toString();
       // Second simulation: buy -> measure -> approve -> sell all -> measure.
       const all = calls.slice(); const mi = all.length; all.push(measure.before);
-      const sc = sellCalls(got); const si = all.length + sc.length - 1; all.push(...sc);
+      const bs = all.length; all.push(tx(token, balanceOf(token, ACTOR)));     // balance right before selling (debug/drift)
+      const sellAmt = o.sellBps ? got * BigInt(o.sellBps) / 10000n : got;
+      const sc = sellCalls(sellAmt); const si = all.length + sc.length - 1; all.push(...sc);
       const ma = all.length; all.push(measure.asset === "ETH" ? ethBalance() : tx(WETH, balanceOf(WETH, ACTOR)));
       const tAfter = all.length; all.push(tx(token, balanceOf(token, ACTOR)));
       const r = await sim(all, mi);
@@ -238,6 +240,7 @@
       out.sellGas = r[si] && r[si].gasUsed ? Number(BigInt(r[si].gasUsed)) : null;
       if (r[si] && r[si].status !== "0x1") out.revert = (r[si].error && (r[si].error.data || r[si].error.message)) || r[si].returnData || null;
       if (o.delaySec) out.delaySec = o.delaySec;
+      out.balBeforeSell = r[bs] && r[bs].status === "0x1" ? uint(r[bs].returnData).toString() : null;
       if (r[si].status !== "0x1") { out.status = "sell_failed"; out.detail = "La compra funcionó pero la venta falló: posible honeypot."; return out; }
       if (r[mi].status !== "0x1" || r[ma].status !== "0x1") { out.status = "unknown"; out.detail = "No se pudo medir lo recibido."; return out; }
       const received = uint(r[ma].returnData) - uint(r[mi].returnData);
