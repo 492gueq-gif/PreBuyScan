@@ -1,0 +1,21 @@
+name: Live speed diagnostic (temporary)
+on:
+  push:
+    branches: [diag/live]
+permissions:
+  contents: write
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
+      - run: python tests/diag_live.py
+      - if: always()
+        run: |
+          mkdir -p /tmp/o && cp -r out/. /tmp/o/ || true
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git checkout --orphan d && git rm -rfq . && git clean -fdxq && cp -r /tmp/o/. . && git add -A && git commit -qm diag && git push origin HEAD:refs/heads/ci/live-speed-${GITHUB_RUN_ID}
