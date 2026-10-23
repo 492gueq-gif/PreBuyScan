@@ -184,10 +184,19 @@
 
       // First simulation: the buy, to learn the exact amount received.
       const base = { [ACTOR]: { balance: "0x" + (BUY * 10n).toString(16) } };
-      const sim = async cs => {
-        const r = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: base, calls: cs }], validation: false }, "latest"], o);
-        if (!Array.isArray(r) || !r[0] || !Array.isArray(r[0].calls)) throw new Error("invalid simulation");
-        return r[0].calls;
+      // o.delaySec: the sell (everything after `split`) runs in a second simulated block that many
+      // seconds later, to detect time-based locks (sell only right after buying, or only after a cooldown).
+      let later = null;
+      if (o.delaySec) {
+        const lb = await rpc("eth_getBlockByNumber", ["latest", false], o);
+        later = { time: "0x" + (BigInt(lb.timestamp) + BigInt(o.delaySec)).toString(16), number: "0x" + (BigInt(lb.number) + 2n).toString(16) };
+      }
+      const sim = async (cs, split) => {
+        const blocks = later && split ? [{ stateOverrides: base, calls: cs.slice(0, split) }, { blockOverrides: later, calls: cs.slice(split) }]
+          : [{ stateOverrides: base, calls: cs }];
+        const r = await rpc("eth_simulateV1", [{ blockStateCalls: blocks, validation: false }, "latest"], o);
+        if (!Array.isArray(r) || r.length !== blocks.length || r.some(b => !b || !Array.isArray(b.calls))) throw new Error("invalid simulation");
+        return r.reduce((t, b) => t.concat(b.calls), []);
       };
       const first = await sim(calls);
       for (const k of ["wrap", "wapprove", "wpermit"]) if (k in idx && first[idx[k]].status !== "0x1") { out.status = "unknown"; out.detail = "Preparación de WETH simulada fallida."; return out; }
@@ -207,12 +216,13 @@
       const sc = sellCalls(got); const si = all.length + sc.length - 1; all.push(...sc);
       const ma = all.length; all.push(measure.asset === "ETH" ? ethBalance() : tx(WETH, balanceOf(WETH, ACTOR)));
       const tAfter = all.length; all.push(tx(token, balanceOf(token, ACTOR)));
-      const r = await sim(all);
+      const r = await sim(all, mi);
       for (let i = mi + 1; i < si; i++) {          // approvals before the sell
         if (!r[i] || r[i].status !== "0x1") { out.status = "unknown"; out.detail = "La aprobación simulada falló."; return out; }
       }
       out.sellGas = r[si] && r[si].gasUsed ? Number(BigInt(r[si].gasUsed)) : null;
       if (r[si] && r[si].status !== "0x1") out.revert = (r[si].error && (r[si].error.data || r[si].error.message)) || r[si].returnData || null;
+      if (o.delaySec) out.delaySec = o.delaySec;
       if (r[si].status !== "0x1") { out.status = "sell_failed"; out.detail = "La compra funcionó pero la venta falló: posible honeypot."; return out; }
       if (r[mi].status !== "0x1" || r[ma].status !== "0x1") { out.status = "unknown"; out.detail = "No se pudo medir lo recibido."; return out; }
       const received = uint(r[ma].returnData) - uint(r[mi].returnData);

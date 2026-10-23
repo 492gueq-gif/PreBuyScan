@@ -1,14 +1,103 @@
 {
- "uhi_holders": "https://robinhoodchain.blockscout.com/api/v2/tokens/0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94/holders",
- "uhi_token": "https://robinhoodchain.blockscout.com/api/v2/tokens/0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94",
- "uhi_sc": "https://robinhoodchain.blockscout.com/api/v2/smart-contracts/0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94",
- "uhi_addr": "https://robinhoodchain.blockscout.com/api/v2/addresses/0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94",
- "pons_sc": "https://robinhoodchain.blockscout.com/api/v2/smart-contracts/0x39dbed3a2bd333467115de45665cc57f813c4571",
- "pons_addr": "https://robinhoodchain.blockscout.com/api/v2/addresses/0x39dbed3a2bd333467115de45665cc57f813c4571",
- "paper_addr": "https://robinhoodchain.blockscout.com/api/v2/addresses/0x179b22557cd511124535e41cc0dacf845b650b07",
- "paper_sc": "https://robinhoodchain.blockscout.com/api/v2/smart-contracts/0x179b22557cd511124535e41cc0dacf845b650b07",
- "sigs": "https://api.openchain.xyz/signature-database/v1/lookup?filter=true&function=0x0861ac61,0x089fe6aa,0x12f16a07,0x3de35b79,0x536dac9b,0x53cd512a,0x665a11ca,0x66a88d96,0x70bffe1b,0x7284e416,0x791b98bc,0x8036d590,0x8c0b5e22,0xaa4bde28,0xabb1dc44,0xb8d8fbb4,0xbaed0765,0xd00efb2f,0xd5f39488,0xfb7f21eb,0xff8ea3e5,0x3c130d90",
- "drpc": {
+ "c0_chain": {
+  "url": "https://robinhood-rpc.publicnode.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 1,
+   "method": "eth_chainId",
+   "params": []
+  }
+ },
+ "c0_sim": {
+  "url": "https://robinhood-rpc.publicnode.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 2,
+   "method": "eth_simulateV1",
+   "params": [
+    {
+     "blockStateCalls": [
+      {
+       "calls": [
+        {
+         "from": "0x00000000000000000000000000000000a11ce008",
+         "to": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+         "data": "0x18160ddd"
+        }
+       ]
+      }
+     ],
+     "validation": false
+    },
+    "latest"
+   ]
+  }
+ },
+ "c0_logs": {
+  "url": "https://robinhood-rpc.publicnode.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 3,
+   "method": "eth_getLogs",
+   "params": [
+    {
+     "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+     "fromBlock": "0x5b00000",
+     "toBlock": "0x5b01000"
+    }
+   ]
+  }
+ },
+ "c1_chain": {
+  "url": "https://rpc.ordofi.network",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 1,
+   "method": "eth_chainId",
+   "params": []
+  }
+ },
+ "c1_sim": {
+  "url": "https://rpc.ordofi.network",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 2,
+   "method": "eth_simulateV1",
+   "params": [
+    {
+     "blockStateCalls": [
+      {
+       "calls": [
+        {
+         "from": "0x00000000000000000000000000000000a11ce008",
+         "to": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+         "data": "0x18160ddd"
+        }
+       ]
+      }
+     ],
+     "validation": false
+    },
+    "latest"
+   ]
+  }
+ },
+ "c1_logs": {
+  "url": "https://rpc.ordofi.network",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 3,
+   "method": "eth_getLogs",
+   "params": [
+    {
+     "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+     "fromBlock": "0x5b00000",
+     "toBlock": "0x5b01000"
+    }
+   ]
+  }
+ },
+ "c2_chain": {
   "url": "https://robinhood.drpc.org",
   "body": {
    "jsonrpc": "2.0",
@@ -17,8 +106,48 @@
    "params": []
   }
  },
- "thirdweb": {
-  "url": "https://4663.rpc.thirdweb.com",
+ "c2_sim": {
+  "url": "https://robinhood.drpc.org",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 2,
+   "method": "eth_simulateV1",
+   "params": [
+    {
+     "blockStateCalls": [
+      {
+       "calls": [
+        {
+         "from": "0x00000000000000000000000000000000a11ce008",
+         "to": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+         "data": "0x18160ddd"
+        }
+       ]
+      }
+     ],
+     "validation": false
+    },
+    "latest"
+   ]
+  }
+ },
+ "c2_logs": {
+  "url": "https://robinhood.drpc.org",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 3,
+   "method": "eth_getLogs",
+   "params": [
+    {
+     "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+     "fromBlock": "0x5b00000",
+     "toBlock": "0x5b01000"
+    }
+   ]
+  }
+ },
+ "c3_chain": {
+  "url": "https://robinhood-mainnet-rpc.blockreq.com/v1/rpc/public",
   "body": {
    "jsonrpc": "2.0",
    "id": 1,
@@ -26,7 +155,145 @@
    "params": []
   }
  },
- "rpc_official": {
+ "c3_sim": {
+  "url": "https://robinhood-mainnet-rpc.blockreq.com/v1/rpc/public",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 2,
+   "method": "eth_simulateV1",
+   "params": [
+    {
+     "blockStateCalls": [
+      {
+       "calls": [
+        {
+         "from": "0x00000000000000000000000000000000a11ce008",
+         "to": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+         "data": "0x18160ddd"
+        }
+       ]
+      }
+     ],
+     "validation": false
+    },
+    "latest"
+   ]
+  }
+ },
+ "c3_logs": {
+  "url": "https://robinhood-mainnet-rpc.blockreq.com/v1/rpc/public",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 3,
+   "method": "eth_getLogs",
+   "params": [
+    {
+     "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+     "fromBlock": "0x5b00000",
+     "toBlock": "0x5b01000"
+    }
+   ]
+  }
+ },
+ "c4_chain": {
+  "url": "https://api.blockvectra.com/v1/robinhood_mainnet/public",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 1,
+   "method": "eth_chainId",
+   "params": []
+  }
+ },
+ "c4_sim": {
+  "url": "https://api.blockvectra.com/v1/robinhood_mainnet/public",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 2,
+   "method": "eth_simulateV1",
+   "params": [
+    {
+     "blockStateCalls": [
+      {
+       "calls": [
+        {
+         "from": "0x00000000000000000000000000000000a11ce008",
+         "to": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+         "data": "0x18160ddd"
+        }
+       ]
+      }
+     ],
+     "validation": false
+    },
+    "latest"
+   ]
+  }
+ },
+ "c4_logs": {
+  "url": "https://api.blockvectra.com/v1/robinhood_mainnet/public",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 3,
+   "method": "eth_getLogs",
+   "params": [
+    {
+     "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+     "fromBlock": "0x5b00000",
+     "toBlock": "0x5b01000"
+    }
+   ]
+  }
+ },
+ "c5_chain": {
+  "url": "https://robinhood.daybreak-rpc.network",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 1,
+   "method": "eth_chainId",
+   "params": []
+  }
+ },
+ "c5_sim": {
+  "url": "https://robinhood.daybreak-rpc.network",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 2,
+   "method": "eth_simulateV1",
+   "params": [
+    {
+     "blockStateCalls": [
+      {
+       "calls": [
+        {
+         "from": "0x00000000000000000000000000000000a11ce008",
+         "to": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+         "data": "0x18160ddd"
+        }
+       ]
+      }
+     ],
+     "validation": false
+    },
+    "latest"
+   ]
+  }
+ },
+ "c5_logs": {
+  "url": "https://robinhood.daybreak-rpc.network",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 3,
+   "method": "eth_getLogs",
+   "params": [
+    {
+     "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+     "fromBlock": "0x5b00000",
+     "toBlock": "0x5b01000"
+    }
+   ]
+  }
+ },
+ "c6_chain": {
   "url": "https://rpc.mainnet.chain.robinhood.com",
   "body": {
    "jsonrpc": "2.0",
@@ -35,5 +302,44 @@
    "params": []
   }
  },
- "chainlist_rpcs": "https://raw.githubusercontent.com/ethereum-lists/chains/master/_data/chains/eip155-4663.json"
+ "c6_sim": {
+  "url": "https://rpc.mainnet.chain.robinhood.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 2,
+   "method": "eth_simulateV1",
+   "params": [
+    {
+     "blockStateCalls": [
+      {
+       "calls": [
+        {
+         "from": "0x00000000000000000000000000000000a11ce008",
+         "to": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+         "data": "0x18160ddd"
+        }
+       ]
+      }
+     ],
+     "validation": false
+    },
+    "latest"
+   ]
+  }
+ },
+ "c6_logs": {
+  "url": "https://rpc.mainnet.chain.robinhood.com",
+  "body": {
+   "jsonrpc": "2.0",
+   "id": 3,
+   "method": "eth_getLogs",
+   "params": [
+    {
+     "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+     "fromBlock": "0x5b00000",
+     "toBlock": "0x5b01000"
+    }
+   ]
+  }
+ }
 }
