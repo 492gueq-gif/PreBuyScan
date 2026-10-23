@@ -5,7 +5,7 @@
 <meta name="description" content="Escáner de tokens de Robinhood Chain: simula la venta, revisa contrato, creador, liquidez y holders. Scan before the scam.">
 <meta property="og:title" content="PreBuyScan · Scan before the scam">
 <meta property="og:description" content="Revisa un token de Robinhood Chain antes de comprar: venta simulada, contrato, creador, liquidez y holders.">
-<meta property="og:image" content="https://492gueq-gif.github.io/PreBuyScan/og.png">
+<meta property="og:image" content="https://492gueq-gif.github.io/PreBuyScan/og.png?v=2">
 <meta property="og:url" content="https://492gueq-gif.github.io/PreBuyScan/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#060b10">
@@ -87,7 +87,7 @@ main{padding:14px 16px 96px;display:grid;gap:16px;min-width:0}
 /* ---------- home ---------- */
 .hero{position:relative;overflow:hidden;border-radius:22px;border:1px solid var(--line);background:linear-gradient(180deg,var(--hero1),var(--hero2));padding:22px 18px 18px}
 .hero .globe{position:absolute;inset:-30% -20% auto -20%;height:340px;background:radial-gradient(closest-side,rgba(39,230,163,.35),rgba(19,182,200,.15) 55%,transparent 72%);filter:blur(2px);pointer-events:none}
-.hero .eye{position:relative;display:block;margin:6px auto 8px;width:96px;height:96px;border-radius:22px;filter:drop-shadow(0 0 22px rgba(39,230,163,.6))}
+.hero .eye{position:relative;display:block;margin:4px auto 10px;width:200px;height:200px;border-radius:24px;border:1px solid rgba(39,230,163,.25);box-shadow:0 0 40px rgba(39,230,163,.18)}
 .hero h1{position:relative;font-family:var(--display);font-weight:800;font-size:clamp(1.55rem,6vw,2.4rem);line-height:1.12;margin:0 0 8px;text-align:center;text-wrap:balance}
 .hero h1 em{font-style:normal;color:var(--accent)}
 .hero p{position:relative;margin:0 auto 16px;color:var(--muted);text-align:center;max-width:46ch}
@@ -281,7 +281,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
   .tabbar{display:none}
   .hero{padding:26px 30px;display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:20px;min-height:210px}
   .hero .globe{inset:-60% -10% -60% 45%;height:auto}
-  .hero .eye{grid-column:2;grid-row:1;margin:0 auto;width:150px;height:150px}
+  .hero .eye{grid-column:2;grid-row:1;margin:0 auto;width:270px;height:270px}
   .hero h1,.hero p{text-align:left;margin-left:0}
   .hero .htext{grid-column:1;grid-row:1}
   .hero form,.hero .trust,.mobile-only{display:none !important}
@@ -527,7 +527,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
     <div id="v-home" class="view">
       <section class="hero home-keep" aria-labelledby="hero-h">
         <div class="globe" aria-hidden="true"></div>
-        <img class="eye" src="logo-mark.png" alt="" width="150" height="150">
+        <img class="eye" src="logo-full.jpg" alt="PreBuyScan · Scan before the scam" width="640" height="640">
         <div class="htext">
           <h1 id="hero-h"><span class="mobile-only">Analiza cualquier token <em>antes de comprar</em></span><span class="desk-only">Inteligencia <em>antes de invertir.</em></span></h1>
           <p>Detecta estafas en tokens de Robinhood Chain: simula la venta, revisa el contrato, el creador, la liquidez y los holders. Pega una wallet para ver su perfil.</p>
@@ -977,9 +977,10 @@ function cardCanvas(){
   const W=1200,Hh=630,c=document.createElement("canvas");c.width=W;c.height=Hh;const g=c.getContext("2d");
   const col={high:"#ff5f6d",warn:"#ffb547",ok:"#27e6a3",unk:"#8ba1ae"}[last.v[0]];
   g.fillStyle="#060b10";g.fillRect(0,0,W,Hh);
-  g.fillStyle="#e3e9ed";g.font="800 44px Sora, Arial, sans-serif";g.fillText("PreBuy",60,90);
-  const pw=g.measureText("PreBuy").width;g.fillStyle="#27e6a3";g.fillText("Scan",60+pw,90);
-  g.fillStyle="#93a3ae";g.font="500 26px Manrope, Arial, sans-serif";g.fillText("Scan before the scam · Robinhood Chain",60,130);
+  const mk=$(".brand .mark");if(mk&&mk.complete&&mk.naturalWidth)try{g.drawImage(mk,60,42,96,96);}catch(e){}
+  g.fillStyle="#e3e9ed";g.font="800 44px Sora, Arial, sans-serif";g.fillText("PreBuy",176,90);
+  const pw=g.measureText("PreBuy").width;g.fillStyle="#27e6a3";g.fillText("Scan",176+pw,90);
+  g.fillStyle="#93a3ae";g.font="500 26px Manrope, Arial, sans-serif";g.fillText("Scan before the scam · Robinhood Chain",176,130);
   g.fillStyle="#e3e9ed";g.font="700 50px Sora, Arial, sans-serif";
   let name=last.name;while(g.measureText(name).width>760&&name.length>4)name=name.slice(0,-2);if(name!==last.name)name+="…";
   g.fillText(name,60,225);
