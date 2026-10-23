@@ -188,7 +188,7 @@ def main():
                         {s:'unk',t:'Venta no simulada',d:'fixture',c:'Venta'}],
                       facts:{name:'Fixture token'},notChecked:[],cr:{},pair:reportPair,pairs:[reportPair],
                       block:123,scannedAt:Date.parse('2026-10-23T00:00:00Z')})""")
-                    pg.wait_for_function("mapBuilds===1 && document.querySelector('#mapsvg')?.textContent==='Fixture map ready'")
+                    pg.locator("#mapsvg", has_text="Fixture map ready").wait_for(state="visible")
                     reason=pg.inner_text(".score-reason")
                     check("reason_priority_%d" % w, reason.index("Concentración crítica") < reason.index("Liquidez baja"))
                     check("reason_pending_not_risk_%d" % w, "no prueban una vulnerabilidad" in reason and "Venta no simulada" not in reason)
@@ -216,13 +216,13 @@ def main():
                     # Exercise English mode on the rendered report, including async translation.
                     ctx.add_init_script("localStorage.setItem('pbs_lang',JSON.stringify('en'))")
                     pg.reload()
-                    pg.wait_for_function("window.PBI18N && PBI18N.lang==='en'")
+                    pg.wait_for_selector("html[lang=en]")
                     pg.evaluate("""() => {setView('result'); render('""" + TOKEN + """',{
                       checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'}],
                       facts:{name:'English fixture'},notChecked:[],cr:{},pair:null,pairs:[]});}""")
                     # Translation is asynchronous (MutationObserver); wait for its actual result.
                     try:
-                        pg.wait_for_function("document.querySelector('#out').innerText.toLowerCase().includes('summary') && document.querySelector('#out').innerText.toLowerCase().includes('caution')", timeout=10000)
+                        pg.locator("#out .summary", has_text="Caution").wait_for(state="visible", timeout=10000)
                     except Exception:
                         pass  # record a failed assertion with the rendered text below
                     english_text=pg.inner_text("#out")
