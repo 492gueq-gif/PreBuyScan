@@ -33,7 +33,14 @@ with sync_playwright() as p:
         pg.wait_for_selector("#out .ring:not(.pending)", timeout=300000); tfull = time.time() - t1
         badge = pg.inner_text("#out .done")
         fps = pg.evaluate("""()=>new Promise(r=>{let f=0;const t0=performance.now();const tick=()=>{f++;if(performance.now()-t0<2000)requestAnimationFrame(tick);else r(Math.round(f/2));};requestAnimationFrame(tick);})""")
-        res.append(dict(cpu=cpu, dom_s=round(tdom, 1), boot_s=round(tboot, 1), load_s=round(tload, 1), long_tasks_home=long_tasks,
+        FPS = """()=>new Promise(r=>{let f=0;const t0=performance.now();const tick=()=>{f++;if(performance.now()-t0<2000)requestAnimationFrame(tick);else r(Math.round(f/2));};requestAnimationFrame(tick);})"""
+        ab = {}
+        pg.wait_for_timeout(3000); ab["base"] = pg.evaluate(FPS)
+        pg.evaluate("()=>document.querySelectorAll('*').forEach(e=>{if(e._pbStop)e._pbStop();})"); pg.wait_for_timeout(500); ab["map_stopped"] = pg.evaluate(FPS)
+        pg.evaluate("()=>document.querySelectorAll('iframe').forEach(f=>f.remove())"); pg.wait_for_timeout(500); ab["no_iframe"] = pg.evaluate(FPS)
+        pg.add_style_tag(content="*,*::before,*::after{animation-play-state:paused!important;animation:none!important}"); pg.wait_for_timeout(500); ab["no_css_anim"] = pg.evaluate(FPS)
+        ab["counts"] = pg.evaluate("()=>({svgNodes:document.querySelectorAll('#out svg *').length, maps:[...document.querySelectorAll('*')].filter(e=>e._pbStop).length, iframes:document.querySelectorAll('iframe').length})")
+        res.append(dict(ablation=ab, cpu=cpu, dom_s=round(tdom, 1), boot_s=round(tboot, 1), load_s=round(tload, 1), long_tasks_home=long_tasks,
                         first_s=round(tfirst, 1), full_s=round(tfull, 1), badge=badge, fps_report=fps, errors=errs[:5],
                         slow=sorted(slow, reverse=True)[:12], hosts={h: [n, round(t, 1), f] for h, (n, t, f) in sorted(hosts.items(), key=lambda x: -x[1][1])[:10]}))
         pg.screenshot(path=str(OUT / ("live_cpu%d.png" % cpu)))
