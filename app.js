@@ -691,11 +691,12 @@ function alphaRow(x,i){
     <div class="scores"><span class="alphab" title="Alpha Signal Score: actividad observada, no seguridad ni predicción">Actividad <b>${x.alpha}</b></span><span class="pill ${x.q}" title="Riesgo rápido con datos de mercado; el análisis completo es Risk Shield">Riesgo: ${lbl[x.q]}</span></div>
     <div class="sigs">${x.q==="high"?`<span class="sig bad">Riesgo alto: sin etiqueta favorable</span>`:""}${x.warn.map(z=>`<span class="sig bad">${esc(z)}</span>`).join("")}${lc}${!blocked&&x.sig.length?x.sig.map(z=>`<span class="sig">${esc(z)}</span>`).join(""):!x.warn.length&&x.q!=="high"?`<span class="sig dim">Sin señales extra</span>`:""}</div></li>`;
 }
+let exploreKind="new";
 async function loadAlpha(){
   const box=$("#explore-list");box.innerHTML=`<li class="busy" style="cursor:default">Buscando entre los pools nuevos y activos…</li>`;
   const cfg=alphaCfg();const f=$("#alpha-f");for(const k of Object.keys(cfg))if(f.elements[k])f.elements[k].value=cfg[k];
   try{
-    const pools=await alphaPools();const now=Date.now();const prev=store.get("pbs_alpha_liq",{});
+    const pools=await alphaPools();if(exploreKind!=="alpha")return;const now=Date.now();const prev=store.get("pbs_alpha_liq",{});
     const rows=pools.map(p=>{const a=p.attributes||{};return PBAlpha.evaluate(p,cfg,now,prev[String(a.address||"").toLowerCase()]||null);});
     // Remember liquidity per pool in this browser to show its change on the next visit.
     const next={};for(const x of rows)if(x&&x.pool&&x.liq>0)next[x.pool]={liq:x.liq,at:now};
@@ -706,17 +707,24 @@ async function loadAlpha(){
     const when=new Date(alphaCache.at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
     const head=`<li class="empty" style="cursor:default">Fuente: GeckoTerminal (${pools.length} pools) · actualizado ${esc(when)}${alphaCache.failed?` · ${alphaCache.failed} consulta(s) fallaron: lista incompleta`:""}. «Actividad» es el Alpha Signal Score: mide movimiento, no seguridad ni ganancias.</li>`;
     box.innerHTML=uniq.length?head+`<li class="empty" style="cursor:default">${uniq.length} token(s) pasan los filtros. Toca uno para el análisis completo (Risk Shield).</li>`+uniq.map(alphaRow).join(""):head+`<li class="empty">Ningún token pasa los filtros ahora mismo. Prueba con una edad mayor o menos liquidez mínima.</li>`;
-  }catch(e){box.innerHTML=`<li class="empty">Error de conexión con GeckoTerminal. Prueba en un momento.</li>`;}
+  }catch(e){if(exploreKind==="alpha")box.innerHTML=`<li class="empty">Error de conexión con GeckoTerminal. Prueba en un momento.</li>`;}
 }
 $("#alpha-f").addEventListener("change",()=>{const f=$("#alpha-f");const c={};for(const k of Object.keys(ALPHA_DEFAULT)){const v=Number(f.elements[k].value);if(!isNaN(v))c[k]=v;}store.set("pbs_alpha",c);loadAlpha();});
 $("#alpha-reset").addEventListener("click",()=>{store.set("pbs_alpha",{});loadAlpha();});
 async function loadExplore(kind){
+  kind=kind||"new";exploreKind=kind;
   document.querySelector(".alphabox").hidden=kind!=="alpha";
   if(kind==="alpha"){document.querySelectorAll("#v-explore [data-k]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k==="alpha"));return loadAlpha();}
   kind=kind||"new";document.querySelectorAll("#v-explore [data-k]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===kind));
-  const box=$("#explore-list");box.innerHTML=`<li class="busy" style="cursor:default">Cargando…</li>`;
-  try{const rows=await exploreRows(kind);box.innerHTML=rows.length?rows.map(exploreRow).join(""):`<li class="empty">No hay datos ahora mismo.</li>`;}
-  catch(e){box.innerHTML=`<li class="empty">No se pudo cargar la lista. Prueba en un momento.</li>`;}
+  const box=$("#explore-list");
+  if(kind==="fav"||kind==="history"){
+    const list=kind==="fav"?favs():store.get("pbs_hist",[]);
+    box.innerHTML=list.length?list.map(itemRow).join(""):`<li class="empty" style="cursor:default">${kind==="fav"?"Aún no tienes favoritos. Toca ☆ Favorito en un análisis.":"Aún no hay análisis guardados."}</li>`;
+    return;
+  }
+  box.innerHTML=`<li class="busy" style="cursor:default">Cargando…</li>`;
+  try{const rows=await exploreRows(kind);if(exploreKind!==kind)return;box.innerHTML=rows.length?rows.map(exploreRow).join(""):`<li class="empty">No hay datos ahora mismo.</li>`;}
+  catch(e){if(exploreKind===kind)box.innerHTML=`<li class="empty">No se pudo cargar la lista. Prueba en un momento.</li>`;}
 }
 async function loadRail(kind){
   kind=kind||"new";document.querySelectorAll(".rail [data-rk]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.rk===kind));
@@ -749,7 +757,7 @@ function setView(v,opt={}){
   if(v==="method"){v=lastRes||last?"result":"home";setTimeout(()=>$("#metodo").scrollIntoView({behavior:"smooth"}),50);}
   document.body.dataset.view=v;
   const navKey=v==="result"?"home":v;
-  document.querySelectorAll(".side [data-nav], .tabbar [data-nav]").forEach(b=>{const on=b.dataset.nav===navKey&&!b.dataset.kind&&!b.dataset.tab;on?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current");});
+  document.querySelectorAll(".side [data-nav], .tabbar [data-nav]").forEach(b=>{const on=b.dataset.nav===navKey&&(v==="explore"&&opt.kind==="alpha"?b.dataset.kind==="alpha":!b.dataset.kind)&&!b.dataset.tab;on?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current");});
   if(v==="explore")loadExplore(opt.kind);
   if(v==="sim")renderSimView();
   if(v==="history")renderHistory(opt.tab);
