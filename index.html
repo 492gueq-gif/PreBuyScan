@@ -227,6 +227,7 @@ table.tt a{text-decoration:none}
 /* ---------- explore / history / sim views ---------- */
 .view{display:none;gap:14px}
 body[data-view="home"] #v-home,body[data-view="result"] #v-home{display:grid}
+#v-explore[data-mode="alpha"] > .filters{display:none}
 body[data-view="explore"] #v-explore,body[data-view="sim"] #v-sim,body[data-view="history"] #v-history,body[data-view="settings"] #v-settings{display:grid}
 .vh{display:flex;align-items:center;gap:10px}
 .vh h2{font-family:var(--display);font-size:1.25rem;margin:0}
@@ -743,6 +744,6 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
 <script src="profile.js"></script>
 <script src="share.js"></script>
 <script src="live.js"></script>
-<script src="app.js?v=18"></script>
+<script src="app.js?v=19"></script>
 <script src="i18n.js"></script>
 </body></html>
