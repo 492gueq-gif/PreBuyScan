@@ -156,42 +156,156 @@
   }
 
   // ---------- drawing (browser, d3) ----------
-  const PALETTE = ["#d1495b", "#2f9e8f", "#e09f3e", "#6c63c7", "#3a86c8", "#b56576", "#7a9e3e", "#c2703d"];
+  // Arkham-style live graph: zoom/pan, drag, hover focus, animated money flow, detail card.
+  const PALETTE = ["#ff5f6d", "#27e6a3", "#ffb547", "#8b7cff", "#3fa9ff", "#ff7ac6", "#a3e635", "#ff9f43"];
+  const short = a => { const s = String(a).split("@")[0]; return s.slice(0, 6) + "…" + s.slice(-4); };
   function draw(el, g, opts = {}) {
-    const d3 = root.d3; const W = el.clientWidth || 340, H = Math.round(Math.min(520, Math.max(340, W * 0.9)));
-    el.innerHTML = "";
-    const svg = d3.select(el).append("svg").attr("viewBox", [0, 0, W, H]).attr("width", "100%").attr("role", "img")
-      .attr("aria-label", "Mapa de wallets: burbujas por holder, líneas por fondeo o transferencias");
+    const d3 = root.d3; const W = el.clientWidth || 340;
+    const H = Math.round(W >= 700 ? Math.min(620, Math.max(460, W * 0.62)) : Math.min(520, Math.max(380, W * 1.05)));
+    const still = root.matchMedia && root.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (el._pbStop) el._pbStop();
+    el.innerHTML = ""; el.classList.add("akmap"); el.style.height = H + "px";
     const nodes = g.nodes.map(n => Object.assign({}, n));
     const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
-    const links = g.edges.map(e => ({ source: byId[e.a], target: byId[e.b], type: e.type }));
+    const links = g.edges.filter(e => byId[e.a] && byId[e.b]).map(e => ({ source: byId[e.a], target: byId[e.b], type: e.type }));
+    const nb = new Map(nodes.map(n => [n, new Set()]));
+    links.forEach(l => { nb.get(l.source).add(l.target); nb.get(l.target).add(l.source); });
     const maxPct = Math.max(1, ...nodes.map(n => n.pct || 0));
-    const r = n => n.kind === "magic" ? 6 : 5 + Math.sqrt((n.pct || 0) / maxPct) * Math.min(W, H) * 0.09;
-    const color = n => n.group ? PALETTE[(n.group - 1) % PALETTE.length] : "var(--unk)";
-    const sim = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).distance(l => r(l.source) + r(l.target) + 14).strength(0.7))
-      .force("charge", d3.forceManyBody().strength(-18))
-      .force("collide", d3.forceCollide(n => r(n) + 2))
-      .force("x", d3.forceX(W / 2).strength(0.06)).force("y", d3.forceY(H / 2).strength(0.08)).stop();
-    for (let i = 0; i < 260; i++) sim.tick();
-    nodes.forEach(n => { n.x = Math.max(r(n) + 2, Math.min(W - r(n) - 2, n.x)); n.y = Math.max(r(n) + 2, Math.min(H - r(n) - 2, n.y)); });
-    svg.append("g").selectAll("line").data(links).join("line")
-      .attr("x1", l => l.source.x).attr("y1", l => l.source.y).attr("x2", l => l.target.x).attr("y2", l => l.target.y)
-      .attr("stroke", l => color(l.source)).attr("stroke-opacity", 0.75).attr("stroke-width", 1.4)
-      .attr("stroke-dasharray", l => l.type === "fund" ? "3 3" : null);
-    const nodeG = svg.append("g").selectAll("g").data(nodes).join("g").attr("transform", n => `translate(${n.x},${n.y})`)
+    const r = n => n.kind === "magic" ? 7 : 7 + Math.sqrt((n.pct || 0) / maxPct) * Math.min(W, H) * 0.075;
+    const color = n => n.creator ? "#ffffff" : n.group ? PALETTE[(n.group - 1) % PALETTE.length] : n.contract ? "#b9a7ff" : n.kind === "magic" ? "#7f93a3" : "#4cb8ff";
+    const role = n => n.creator ? "Creador" : n.sniper ? "Sniper del primer minuto" : n.timeNode ? "Contrato fondeador (misma hora)" : n.deployer ? "Creó el contrato fondeador" : n.kind === "magic" ? "Conector (no es holder)" : n.contract ? "Contrato" + (n.name ? " · " + n.name : "") : "Holder";
+    nodes.forEach((n, i) => { const a = i * 2.399; n.x = W / 2 + Math.cos(a) * 8 * Math.sqrt(i); n.y = H / 2 + Math.sin(a) * 8 * Math.sqrt(i); });
+
+    const svg = d3.select(el).append("svg").attr("viewBox", [0, 0, W, H]).attr("width", "100%").attr("height", H)
+      .attr("role", "img").attr("aria-label", "Mapa de wallets: burbujas por holder, líneas por fondeo o transferencias");
+    const defs = svg.append("defs");
+    const glow = defs.append("filter").attr("id", "akglow").attr("x", "-80%").attr("y", "-80%").attr("width", "260%").attr("height", "260%");
+    glow.append("feGaussianBlur").attr("stdDeviation", 6).attr("result", "b");
+    const fm = glow.append("feMerge"); fm.append("feMergeNode").attr("in", "b"); fm.append("feMergeNode").attr("in", "SourceGraphic");
+    [...new Set(nodes.map(color))].forEach((c, i) => {
+      const gr = defs.append("radialGradient").attr("id", "akg" + i).attr("cx", "35%").attr("cy", "30%").attr("r", "75%");
+      gr.append("stop").attr("offset", "0%").attr("stop-color", c).attr("stop-opacity", .95);
+      gr.append("stop").attr("offset", "60%").attr("stop-color", c).attr("stop-opacity", .45);
+      gr.append("stop").attr("offset", "100%").attr("stop-color", c).attr("stop-opacity", .12);
+    });
+    const gid = {}; [...new Set(nodes.map(color))].forEach((c, i) => { gid[c] = "url(#akg" + i + ")"; });
+    const world = svg.append("g");
+    const zoom = d3.zoom().scaleExtent([0.35, 5]).on("zoom", ev => world.attr("transform", ev.transform));
+    svg.call(zoom).on("dblclick.zoom", null);
+
+    const curve = l => { const sx = l.source.x, sy = l.source.y, tx = l.target.x, ty = l.target.y;
+      const mx = (sx + tx) / 2, my = (sy + ty) / 2, dx = tx - sx, dy = ty - sy, k = 0.18;
+      return [sx, sy, mx - dy * k, my + dx * k, tx, ty]; };
+    const linkSel = world.append("g").attr("class", "ak-links").selectAll("path").data(links).join("path")
+      .attr("fill", "none").attr("stroke", l => color(l.source)).attr("stroke-width", l => l.type === "fund" ? 1.3 : 1.8)
+      .attr("stroke-opacity", .38).attr("class", l => l.type === "fund" ? "ak-fund" : "ak-tok");
+    const partG = world.append("g").attr("class", "ak-parts");
+    const parts = still ? [] : links.slice(0, 160).map((l, i) => ({ l, t: (i * 0.137) % 1, v: 0.0035 + (i % 5) * 0.0009 }));
+    const partSel = partG.selectAll("circle").data(parts).join("circle").attr("r", p => p.l.type === "fund" ? 2 : 2.6)
+      .attr("fill", p => color(p.l.source)).attr("filter", "url(#akglow)");
+
+    const nodeG = world.append("g").selectAll("g").data(nodes).join("g").attr("class", "ak-node")
       .attr("tabindex", 0).attr("role", "button").style("cursor", "pointer")
-      .attr("aria-label", n => (n.creator ? "Creador " : "") + n.id + (n.pct ? ", " + n.pct + " %" : ""));
-    nodeG.append("circle").attr("r", r)
-      .attr("fill", n => n.kind === "magic" ? "transparent" : color(n)).attr("fill-opacity", n => n.group ? 0.55 : 0.28)
-      .attr("stroke", n => n.creator ? "var(--ink)" : color(n)).attr("stroke-width", n => n.creator ? 2.5 : 1.4)
-      .attr("stroke-dasharray", n => n.kind === "magic" ? "3 2" : null);
-    nodeG.filter(n => n.creator).append("text").text("★").attr("text-anchor", "middle").attr("dy", "0.35em")
-      .attr("font-size", 13).attr("fill", "var(--ink)");
-    nodeG.filter(n => n.sniper && !n.creator).append("text").text("S").attr("text-anchor", "middle").attr("dy", "0.35em")
-      .attr("font-size", 10).attr("font-weight", 700).attr("fill", "var(--ink)");
-    const pick = n => { if (opts.onPick) opts.onPick(n); nodeG.selectAll("circle").attr("stroke-width", m => m === n ? 3.5 : (m.creator ? 2.5 : 1.4)); };
-    nodeG.on("click", (ev, n) => pick(n)).on("keydown", (ev, n) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(n); } });
+      .attr("aria-label", n => role(n) + " " + n.id.split("@")[0] + (n.pct ? ", " + n.pct + " %" : ""));
+    nodeG.filter(n => n.creator || n.sniper || (n.pct || 0) >= maxPct * 0.5).append("circle").attr("class", "ak-halo")
+      .attr("r", n => r(n) + 6).attr("fill", "none").attr("stroke", color).attr("stroke-opacity", .5).attr("stroke-width", 1.5);
+    nodeG.filter(n => n.creator).append("circle").attr("class", "ak-orbit").attr("r", n => r(n) + 11).attr("fill", "none")
+      .attr("stroke", "#ffffff").attr("stroke-opacity", .7).attr("stroke-width", 1.2).attr("stroke-dasharray", "2 6");
+    nodeG.append("circle").attr("class", "ak-core").attr("r", r)
+      .attr("fill", n => n.kind === "magic" ? "rgba(8,17,26,.9)" : gid[color(n)])
+      .attr("stroke", color).attr("stroke-width", n => n.creator ? 2.4 : 1.4)
+      .attr("stroke-dasharray", n => n.kind === "magic" ? "3 2" : null).attr("filter", n => n.creator || n.group ? "url(#akglow)" : null);
+    nodeG.filter(n => n.creator).append("text").text("★").attr("text-anchor", "middle").attr("dy", "0.36em").attr("font-size", n => Math.max(12, r(n) * 0.9)).attr("fill", "#050b12");
+    nodeG.filter(n => n.sniper && !n.creator).append("text").text("S").attr("text-anchor", "middle").attr("dy", "0.36em").attr("font-size", 11).attr("font-weight", 800).attr("fill", "#050b12");
+    const lab = nodeG.filter(n => n.creator || n.sniper || n.timeNode || (n.pct || 0) >= Math.max(0.8, maxPct * 0.12)).append("g").attr("class", "ak-lab");
+    lab.append("text").attr("class", "ak-addr").attr("text-anchor", "middle").attr("y", n => r(n) + 15).text(n => n.creator ? "CREADOR" : short(n.id));
+    lab.append("text").attr("class", "ak-pct").attr("text-anchor", "middle").attr("y", n => r(n) + 28).text(n => n.pct ? n.pct.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " %" : role(n).split(" ")[0]);
+
+    // overlays
+    const wrap = d3.select(el);
+    const nGroups = new Set(nodes.filter(n => n.group).map(n => n.group)).size;
+    wrap.append("div").attr("class", "ak-hud").html(`<b>ENTITY GRAPH</b><span>${nodes.length} wallets · ${links.length} conexiones · ${nGroups} grupos</span>`);
+    const tb = wrap.append("div").attr("class", "ak-tools");
+    const tool = (t, lbl, fn) => tb.append("button").attr("type", "button").attr("title", lbl).attr("aria-label", lbl).text(t).on("click", fn);
+    tool("+", "Acercar", () => svg.transition().duration(250).call(zoom.scaleBy, 1.4));
+    tool("−", "Alejar", () => svg.transition().duration(250).call(zoom.scaleBy, 1 / 1.4));
+    tool("⟲", "Centrar", () => fit(400));
+    let flowing = !still;
+    const fb = tool(flowing ? "⏸" : "▶", "Pausar o reanudar el flujo", () => { flowing = !flowing; fb.text(flowing ? "⏸" : "▶"); if (flowing) loop(); });
+    tool("⤢", "Pantalla completa", () => { const x = el; if (document.fullscreenElement) document.exitFullscreen(); else if (x.requestFullscreen) x.requestFullscreen().catch(() => {}); });
+    const tip = wrap.append("div").attr("class", "ak-tip").style("opacity", 0);
+    const card = wrap.append("div").attr("class", "ak-card").attr("hidden", true);
+    wrap.append("div").attr("class", "ak-hint").text("Arrastra para mover · rueda o pellizco para zoom · toca una burbuja");
+
+    let picked = null;
+    const focus = n => {
+      const keep = n ? new Set([n, ...nb.get(n)]) : null;
+      nodeG.classed("dim", m => keep && !keep.has(m)).classed("on", m => m === n);
+      linkSel.classed("dim", l => keep && !(l.source === n || l.target === n)).classed("hot", l => n && (l.source === n || l.target === n));
+      partSel.classed("dim", p => keep && !(p.l.source === n || p.l.target === n));
+    };
+    const showCard = n => {
+      const ns = [...nb.get(n)].sort((a, b) => (b.pct || 0) - (a.pct || 0)).slice(0, 6);
+      const id = n.id.split("@")[0];
+      card.attr("hidden", null).html(`<button type="button" class="ak-x" aria-label="Cerrar">×</button>
+        <div class="ak-role" style="color:${color(n)}">${role(n)}</div><div class="ak-id">${id}</div>
+        <dl><div><dt>Suministro</dt><dd>${n.kind === "magic" ? "no es holder" : (n.pct || 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " %"}</dd></div>
+        <div><dt>Grupo</dt><dd>${n.group ? "#" + n.group : "—"}</dd></div><div><dt>Conexiones</dt><dd>${nb.get(n).size}</dd></div></dl>
+        ${ns.length ? `<div class="ak-sub">Conectada con</div><ul>${ns.map(m => `<li data-id="${m.id}"><i style="background:${color(m)}"></i>${m.creator ? "Creador" : short(m.id)}<span>${m.pct ? m.pct.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " %" : ""}</span></li>`).join("")}</ul>` : ""}
+        <div class="ak-acts">${/^0x[0-9a-f]{40}$/i.test(id) && !n.contract ? `<a href="?t=${id}">Perfil de la wallet</a>` : ""}<a href="https://robinhoodchain.blockscout.com/address/${id}" target="_blank" rel="noopener">Explorador ↗</a></div>`);
+      card.select(".ak-x").on("click", () => { picked = null; card.attr("hidden", true); focus(null); });
+      card.selectAll("li").on("click", function () { const m = byId[this.dataset.id]; if (m) pick(m, true); });
+    };
+    const pick = (n, center) => {
+      picked = n; focus(n); showCard(n); if (opts.onPick) opts.onPick(n);
+      if (center) { const t = d3.zoomTransform(svg.node()); svg.transition().duration(450).call(zoom.translateTo, n.x, n.y); void t; }
+    };
+    nodeG.on("mouseenter", (ev, n) => { if (!picked) focus(n);
+        tip.style("opacity", 1).html(`<b>${n.creator ? "Creador" : short(n.id)}</b><span>${role(n)}${n.pct ? " · " + n.pct.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " %" : ""}</span>`); })
+      .on("mousemove", ev => { const b = el.getBoundingClientRect(); tip.style("left", (ev.clientX - b.left + 14) + "px").style("top", (ev.clientY - b.top + 14) + "px"); })
+      .on("mouseleave", () => { tip.style("opacity", 0); if (!picked) focus(null); else focus(picked); })
+      .on("click", (ev, n) => { ev.stopPropagation(); pick(n); })
+      .on("keydown", (ev, n) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(n, true); } });
+    svg.on("click", () => { picked = null; card.attr("hidden", true); focus(null); });
+
+    const sim = d3.forceSimulation(nodes)
+      .force("link", d3.forceLink(links).distance(l => r(l.source) + r(l.target) + 34).strength(0.55))
+      .force("charge", d3.forceManyBody().strength(n => -60 - r(n) * 4))
+      .force("collide", d3.forceCollide(n => r(n) + 10))
+      .force("x", d3.forceX(W / 2).strength(0.05)).force("y", d3.forceY(H / 2).strength(0.07));
+    const paint = () => {
+      linkSel.attr("d", l => { const c = curve(l); return `M${c[0]},${c[1]}Q${c[2]},${c[3]} ${c[4]},${c[5]}`; });
+      nodeG.attr("transform", n => `translate(${n.x},${n.y})`);
+    };
+    nodeG.call(d3.drag()
+      .on("start", (ev, n) => { if (!ev.active) sim.alphaTarget(0.25).restart(); n.fx = n.x; n.fy = n.y; })
+      .on("drag", (ev, n) => { n.fx = ev.x; n.fy = ev.y; })
+      .on("end", (ev, n) => { if (!ev.active) sim.alphaTarget(0); n.fx = null; n.fy = null; }));
+    function fit(ms) {
+      if (!nodes.length) return; const pad = 40;
+      const x0 = d3.min(nodes, n => n.x - r(n)), x1 = d3.max(nodes, n => n.x + r(n)), y0 = d3.min(nodes, n => n.y - r(n)), y1 = d3.max(nodes, n => n.y + r(n) + 30);
+      const k = Math.min(2.2, 0.95 * Math.min((W - pad * 2) / Math.max(1, x1 - x0), (H - pad * 2) / Math.max(1, y1 - y0)));
+      const t = d3.zoomIdentity.translate(W / 2 - k * (x0 + x1) / 2, H / 2 - k * (y0 + y1) / 2).scale(k);
+      (ms ? svg.transition().duration(ms) : svg).call(zoom.transform, t);
+    }
+    if (still) { sim.stop(); for (let i = 0; i < 300; i++) sim.tick(); paint(); fit(0); }
+    else { sim.on("tick", paint); let fitted = false; sim.on("end", () => { if (!fitted) { fitted = true; fit(700); } }); setTimeout(() => { if (!fitted) { fitted = true; fit(700); } }, 2600); }
+
+    let raf = 0;
+    function loop() {
+      cancelAnimationFrame(raf);
+      const stepF = () => {
+        if (!el.isConnected) return;
+        if (flowing && !document.hidden) {
+          partSel.each(function (p) { p.t += p.v; if (p.t > 1) p.t -= 1; const c = curve(p.l), u = p.t, a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, d = u * u;
+            this.setAttribute("cx", a * c[0] + b * c[2] + d * c[4]); this.setAttribute("cy", a * c[1] + b * c[3] + d * c[5]); });
+        }
+        if (flowing) raf = requestAnimationFrame(stepF);
+      };
+      raf = requestAnimationFrame(stepF);
+    }
+    if (!still) loop();
+    el._pbStop = () => { cancelAnimationFrame(raf); sim.stop(); };
     return svg;
   }
 
