@@ -1,0 +1,127 @@
+[
+ {
+  "token": "0xD5f1afEA47b1A9eab414D2ee740cF1d6d039E725",
+  "budget": null,
+  "seconds": 40.5,
+  "badge": "ANÁLISIS PARCIAL",
+  "tech_errors": [
+   "Historial del creador no disponible"
+  ],
+  "cr": {
+   "ms": 35001,
+   "errors": [
+    "reputation: time budget"
+   ],
+   "has": {
+    "creator": true,
+    "rep": false,
+    "lp": true,
+    "lpKind": "v4",
+    "snipers": true,
+    "holders": true
+   },
+   "pairDex": "uniswap",
+   "pairAddr": "0xcde4d35e341901bc0308c2ffc789448ccd0f238a59597fe702e6710484b9c370",
+   "labels": [
+    "v4"
+   ]
+  },
+  "http_failures": [
+   [
+    "https://scripts.webcontentassessor.com/scripts/61d41f27d0c82528be0728f671349d49aa7a8c22b5f09adc9bf61b4b976047b0",
+    "net::ERR_BLOCKED_BY_ORB"
+   ],
+   [
+    "https://app.geckoterminal.com/api/p1/candlesticks/334806532/88996688?resolution=15&from_timestamp=1792467175&to_timestam",
+    500
+   ],
+   [
+    "https://bam.nr-data.net/events/1/NRJS-d84958ee1e44b117426?a=594350595&sa=1&v=1.295.0&t=Unnamed%20Transaction&rst=37928&c",
+    "net::ERR_ABORTED"
+   ],
+   [
+    "https://bam.nr-data.net/jserrors/1/NRJS-d84958ee1e44b117426?a=594350595&sa=1&v=1.295.0&t=Unnamed%20Transaction&rst=37929",
+    "net::ERR_ABORTED"
+   ],
+   [
+    "https://bam.nr-data.net/jserrors/1/NRJS-d84958ee1e44b117426?a=594350595&sa=1&v=1.295.0&t=Unnamed%20Transaction&rst=37929",
+    "net::ERR_ABORTED"
+   ],
+   [
+    "https://scripts.webcontentassessor.com/scripts/61d41f27d0c82528be0728f671349d49aa7a8c22b5f09adc9bf61b4b976047b0",
+    "net::ERR_BLOCKED_BY_ORB"
+   ],
+   [
+    "https://www.geckoterminal.com/animations/icons/theme/watchlist-yellow.riv",
+    403
+   ],
+   [
+    "https://robinhoodchain.blockscout.com/api/v2/transactions/0x1ecd10bcb788c972d120d7572624dffe95541ce945837b34c9a96f2a85cd",
+    "net::ERR_ABORTED"
+   ]
+  ],
+  "js_errors": [
+   "Cannot read properties of undefined (reading 'startsWith')",
+   "time budget"
+  ]
+ },
+ {
+  "token": "0xD5f1afEA47b1A9eab414D2ee740cF1d6d039E725",
+  "budget": 120000,
+  "seconds": 47.4,
+  "badge": "ANÁLISIS PARCIAL",
+  "tech_errors": [],
+  "cr": {
+   "ms": 40178,
+   "errors": [],
+   "has": {
+    "creator": true,
+    "rep": true,
+    "lp": true,
+    "lpKind": "v4",
+    "snipers": true,
+    "holders": true
+   },
+   "pairDex": "uniswap",
+   "pairAddr": "0xcde4d35e341901bc0308c2ffc789448ccd0f238a59597fe702e6710484b9c370",
+   "labels": [
+    "v4"
+   ]
+  },
+  "http_failures": [
+   [
+    "http://localhost:8792/$%7Besc(banner)%7D",
+    404
+   ],
+   [
+    "http://localhost:8792/$%7Besc(img)%7D",
+    404
+   ],
+   [
+    "https://scripts.webcontentassessor.com/scripts/61d41f27d0c82528be0728f671349d49aa7a8c22b5f09adc9bf61b4b976047b0",
+    "net::ERR_BLOCKED_BY_ORB"
+   ],
+   [
+    "https://bam.nr-data.net/events/1/NRJS-d84958ee1e44b117426?a=594350595&sa=1&v=1.295.0&t=Unnamed%20Transaction&rst=44034&c",
+    "net::ERR_ABORTED"
+   ],
+   [
+    "https://bam.nr-data.net/jserrors/1/NRJS-d84958ee1e44b117426?a=594350595&sa=1&v=1.295.0&t=Unnamed%20Transaction&rst=44035",
+    "net::ERR_ABORTED"
+   ],
+   [
+    "https://bam.nr-data.net/jserrors/1/NRJS-d84958ee1e44b117426?a=594350595&sa=1&v=1.295.0&t=Unnamed%20Transaction&rst=44035",
+    "net::ERR_ABORTED"
+   ],
+   [
+    "https://scripts.webcontentassessor.com/scripts/61d41f27d0c82528be0728f671349d49aa7a8c22b5f09adc9bf61b4b976047b0",
+    "net::ERR_BLOCKED_BY_ORB"
+   ],
+   [
+    "https://www.geckoterminal.com/animations/icons/theme/watchlist-yellow.riv",
+    403
+   ]
+  ],
+  "js_errors": []
+ }
+]
