@@ -198,7 +198,7 @@ def main():
                       checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'}],
                       facts:{name:'English fixture'},notChecked:[],cr:{},pair:null,pairs:[]});}""")
                     pg.wait_for_timeout(500)
-                    check("report_english_%d" % w, "Summary" in pg.inner_text("#out") and "Findings" in pg.inner_text("#out"))
+                    check("report_english_%d" % w, "Summary" in pg.inner_text("#out") and "Caution" in pg.inner_text("#out"))
                     check("report_no_errors_%d" % w, not errs, errs[:5])
                     ctx.close()
 
