@@ -612,10 +612,6 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
     <button data-nav="analyze"><svg><use href="#i-target"/></svg>Analizar</button>
     <button data-nav="explore"><svg><use href="#i-search"/></svg>Explorar</button>
     <button data-nav="explore" data-kind="alpha"><svg><use href="#i-target"/></svg>Alpha Radar</button>
-    <button data-nav="explore" data-kind="trending"><svg><use href="#i-trend"/></svg>Tendencias</button>
-    <button data-nav="sim"><svg><use href="#i-calc"/></svg>Simulador</button>
-    <button data-nav="history" data-tab="fav"><svg><use href="#i-star"/></svg>Favoritos<span class="badge" hidden></span></button>
-    <button data-nav="history"><svg><use href="#i-clock"/></svg>Historial</button>
     <button data-nav="accuracy"><svg><use href="#i-trend"/></svg>Precisión</button>
     <button data-nav="settings"><svg><use href="#i-target"/></svg>Ajustes</button>
     <div class="chaincard"><b><i class="dot"></i>Robinhood Chain</b><span style="color:var(--muted)">L2 · Chain ID 4663</span>
@@ -677,8 +673,9 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
     <div id="v-explore" class="view">
       <div class="vh"><h2>Explorar tokens</h2></div>
       <div class="filters" role="group" aria-label="Lista">
-        <button class="chip" data-k="alpha" aria-pressed="false">⚡ Alpha Radar</button><button class="chip" data-k="new" aria-pressed="true">Nuevos</button><button class="chip" data-k="trending" aria-pressed="false">Tendencias</button>
+        <button class="chip" data-k="new" aria-pressed="true">Nuevos</button><button class="chip" data-k="trending" aria-pressed="false">Tendencias</button>
         <button class="chip" data-k="volume" aria-pressed="false">Mayor volumen</button><button class="chip" data-k="gainers" aria-pressed="false">Ganadores</button>
+        <button class="chip" data-k="fav" aria-pressed="false">Favoritos</button><button class="chip" data-k="history" aria-pressed="false">Historial</button>
       </div>
       <section class="card alphabox" hidden><div class="h3">Filtros del Alpha Radar <button type="button" class="btn2 sm" id="alpha-reset">Valores iniciales</button></div>
         <form id="alpha-f" class="alphaf">
@@ -746,6 +743,6 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
 <script src="profile.js"></script>
 <script src="share.js"></script>
 <script src="live.js"></script>
-<script src="app.js?v=17"></script>
+<script src="app.js?v=18"></script>
 <script src="i18n.js"></script>
 </body></html>

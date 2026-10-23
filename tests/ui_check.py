@@ -123,6 +123,29 @@ def main():
                     axe(pg, "home_" + tag)
                     ctx.close()
 
+            def navigation_block():
+                ctx, pg, errs = page(b, 1440, 900)
+                pg.goto(BASE)
+                pg.wait_for_selector('#boot',state='detached')
+                labels=pg.locator('.side>button').all_text_contents()
+                check('sidebar_six_buttons', [x.strip() for x in labels]==['Inicio','Analizar','Explorar','Alpha Radar','Precisión','Ajustes'], labels)
+                pg.click('.side [data-nav=explore]:not([data-kind])')
+                tabs=pg.locator('#v-explore [data-k]').all_text_contents()
+                check('explore_tabs_without_alpha', [x.strip() for x in tabs]==['Nuevos','Tendencias','Mayor volumen','Ganadores','Favoritos','Historial'], tabs)
+                pg.click('[data-k=fav]')
+                check('explore_empty_favourites', 'Aún no tienes favoritos' in pg.inner_text('#explore-list'))
+                pg.evaluate("""() => {store.set('pbs_fav',[{t:'"""+TOKEN+"""',name:'Favorito guardado',score:70}]);store.set('pbs_hist',[{t:'"""+TOKEN+"""',name:'Historial guardado',score:60}]);}""")
+                pg.click('[data-k=fav]')
+                check('explore_saved_favourites', 'Favorito guardado' in pg.inner_text('#explore-list') and pg.locator('#explore-list [data-scan]').count()==1)
+                pg.click('[data-k=history]')
+                check('explore_saved_history', 'Historial guardado' in pg.inner_text('#explore-list') and pg.locator('[data-k=history]').get_attribute('aria-pressed')=='true')
+                check('local_lists_hide_alpha_filters', not pg.locator('.alphabox').is_visible())
+                pg.click('.side [data-kind=alpha]')
+                pg.wait_for_selector('#explore-list li.al',timeout=60000)
+                check('sidebar_alpha_still_works', pg.locator('.alphabox').is_visible() and pg.locator('.side [data-kind=alpha]').get_attribute('aria-current')=='page')
+                check('navigation_no_errors', not errs, errs[:5])
+                ctx.close()
+
             def conn_error_block():
                 # 5/12. connection error: market and chain unreachable => not evaluable, nothing favourable
                 ctx, pg, errs = page(b, 1440, 900, mode="blocked")
@@ -271,7 +294,7 @@ def main():
                 check("cards_no_errors", not errs, errs[:5])
                 ctx.close()
 
-            for n, fn in (("home", home_block), ("conn_error", conn_error_block), ("alpha", alpha_block), ("cards", cards_block), ("report_visuals", report_visuals_block)):
+            for n, fn in (("home", home_block), ("navigation", navigation_block), ("conn_error", conn_error_block), ("alpha", alpha_block), ("cards", cards_block), ("report_visuals", report_visuals_block)):
                 guarded(n, fn)
             b.close()
     finally:
