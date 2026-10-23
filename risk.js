@@ -40,8 +40,9 @@
     const abusive = others.filter(p => p.fee != null && p.fee >= 10);
     if (abusive.length) out.findings.push({ s: "warn", src: GT_SRC, t: abusive.length === 1 ? "Un pool con comisión abusiva" : abusive.length + " pools con comisión abusiva",
       d: "Hay pools de este token con comisión de " + abusive.map(p => p.fee + " %").slice(0, 4).join(", ") + ": quien compre o venda ahí pierde esa parte. Usa solo el pool principal." });
-    // Volume without liquidity: a pool that moves 20x+ its liquidity in a day (and $10k+) is churned, not traded.
-    const hollow = pools.filter(p => (p.vol24 || 0) >= 10000 && (p.liq || 0) > 0 ? p.vol24 / p.liq >= 20 : (p.vol24 || 0) >= 10000 && !p.liq);
+    // Volume without liquidity: a small pool (< $25k) that moves 20x+ its liquidity in a day ($10k+) is churned,
+    // not traded. Large pools with high turnover are covered by the volume/liquidity check of the main pair.
+    const hollow = pools.filter(p => (p.vol24 || 0) >= 10000 && (p.liq || 0) < 25000 && (!p.liq || p.vol24 / p.liq >= 20));
     if (hollow.length) {
       const hv = hollow.reduce((t, p) => t + p.vol24, 0), share = out.totalVol ? hv / out.totalVol : 0;
       const w = hollow.sort((a, b) => b.vol24 - a.vol24)[0];
@@ -73,10 +74,17 @@
   }
   const num = v => Number(v).toLocaleString("es-MX");
 
-  /* DexScreener vs GeckoTerminal for the same token: liquidity and price. */
+  /* DexScreener vs GeckoTerminal for the SAME pool (the main pair): liquidity and price. Different pool
+     counts are normal (DexScreener lists fewer pools); disagreement on the same pool is not. */
   function sourceMismatch(dex, gt) {
-    // dex: {liq, price, pool}; gt: {liq, price, poolFound}
-    if (!dex || !gt || dex.liq == null || gt.liq == null) return null;
+    // dex: {liq, price}; gt: {liq, price, poolFound} for the same pool address
+    if (!dex || !gt || dex.liq == null) return null;
+    if (gt.poolFound === false) {
+      if (dex.liq >= 10000) return { s: "warn", src: "DexScreener vs. GeckoTerminal", t: "Datos inconsistentes entre fuentes",
+        d: "DexScreener muestra el pool principal con " + usd(dex.liq) + " de liquidez, pero GeckoTerminal no lo tiene. Confía menos en las cifras de mercado." };
+      return null;
+    }
+    if (gt.liq == null) return null;
     const hi = Math.max(dex.liq, gt.liq), lo = Math.min(dex.liq, gt.liq);
     if (hi >= 10000 && lo / hi < 1 / 3)
       return { s: "warn", src: "DexScreener vs. GeckoTerminal", t: "Datos inconsistentes entre fuentes",

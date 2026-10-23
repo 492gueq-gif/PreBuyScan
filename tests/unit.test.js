@@ -372,6 +372,7 @@ test("UHI: only 0.83 % of the supply in pools is a fragile price; multi-pool fla
   const t = mp.findings.map(x => x.t).join(" | ");
   assert.match(t, /comisión abusiva/);
   assert.match(t, /Volumen sin liquidez/);
+  assert.equal(mp.findings.find(x => /Volumen sin liquidez/.test(x.t)).s, "warn");      // small side pools, not the main one
 });
 
 test("fake volume: $50M in 13 trades is high risk; bot churn is a warning; normal volume passes", () => {
@@ -385,12 +386,15 @@ test("fake volume: $50M in 13 trades is high risk; bot churn is a warning; norma
 
 test("PAPER: DexScreener $10.5M vs GeckoTerminal ~$0 is an inconsistent-data warning", () => {
   const gt = Risk.poolsFromGT(AUD.paper_pools, PAPER);
-  const dexLiq = AUD.paper_dex.reduce((t, p) => t + ((p.liquidity || {}).usd || 0), 0);
   const main = AUD.paper_dex.slice().sort((a, b) => ((b.liquidity || {}).usd || 0) - ((a.liquidity || {}).usd || 0))[0];
   const gtMain = gt.find(p => p.pool === main.pairAddress.toLowerCase());
-  const m = Risk.sourceMismatch({ liq: dexLiq, price: Number(main.priceUsd) }, { liq: gt.reduce((t, p) => t + (p.liq || 0), 0), price: gtMain ? gtMain.price : null, poolFound: !!gtMain });
+  const m = Risk.sourceMismatch({ liq: main.liquidity.usd, price: Number(main.priceUsd) }, { liq: gtMain ? gtMain.liq : null, price: gtMain ? gtMain.price : null, poolFound: !!gtMain });
   assert.ok(m); assert.equal(m.s, "warn"); assert.match(m.t, /inconsistentes/);
   assert.equal(Risk.sourceMismatch({ liq: 100000, price: 1 }, { liq: 90000, price: 1.05 }), null);
+  assert.match(Risk.sourceMismatch({ liq: 2e6, price: 1 }, { liq: null, poolFound: false }).d, /no lo tiene/);
+  // PONS: DexScreener lists 1 pool and GeckoTerminal 20, but the same pool agrees -> no warning.
+  const pons = Risk.poolsFromGT(AUD.pons_pools, PONS).find(p => p.pool === "0x10cc6bd38112cac182db90b6a71d8bb5939526ba");
+  assert.equal(Risk.sourceMismatch({ liq: 2560327, price: 0.2549 }, { liq: pons.liq, price: pons.price, poolFound: true }), null);
 });
 
 test("early whales: a launch buyer with 5 %+ is flagged even after selling", () => {

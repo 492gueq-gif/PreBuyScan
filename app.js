@@ -167,8 +167,7 @@ async function inspect(token,onPartial){
     else if((h24.sells||0)>0&&((fake&&fake.s==="high")||hollowHigh))add({s:"unk",t:"Ventas no confiables",d:"El par reporta "+num(h24.sells)+" ventas, pero el volumen del token es anómalo: no sirven como prueba de que se pueda vender."});
     else if((h24.sells||0)>0)add({s:"ok",t:"Hay ventas de otros usuarios",d:num(h24.sells)+" ventas en 24 h. Que otros vendan no garantiza que tú puedas."});
     // Two independent sources must roughly agree.
-    const dexLiq=allPairs.reduce((t,p)=>t+(p.liquidity?.usd||0),0);
-    const mm=gtPools?PBRisk.sourceMismatch({liq:dexLiq,price:Number(pair.priceUsd)||null},{liq:gtPools.reduce((t,p)=>t+(p.liq||0),0),price:gtMain?gtMain.price:null,poolFound:!!gtMain}):null;
+    const mm=gtPools?PBRisk.sourceMismatch({liq:liq==null?null:liq,price:Number(pair.priceUsd)||null},{liq:gtMain?gtMain.liq:null,price:gtMain?gtMain.price:null,poolFound:!!gtMain}):null;
     if(mm){add(mm);marketInconsistent=true;
       const la=checks.find(c=>c.t==="Liquidez aceptable");if(la){la.s="unk";la.t="Liquidez no confirmada";la.d="DexScreener reporta "+usd(liq)+", pero GeckoTerminal no lo confirma: no cuentes con esa liquidez para vender.";}}
   }else if(!checks.length){add({s:"high",t:"Sin mercado en DexScreener",d:"No hay pares de este token en Robinhood Chain: no se puede comprar ni vender de forma normal."});}

@@ -5,9 +5,14 @@ import json, re, subprocess, sys, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 OUT = Path("out"); OUT.mkdir(exist_ok=True)
+# Expectations: what the external audit asked for, corrected where the chain says otherwise
+# (UHI sells fine at 0.5 ETH once both simulations share one block; PONS's verified code has no owner or blacklist).
 CASES = {
-  "UHI": ("0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94", [("saldos clonados", r"wallets con saldos casi idénticos", "high"), ("poco suministro en pools", r"^Precio frágil", None), ("venta limitada con monto máximo", r"^Solo se puede vender hasta", "high")]),
-  "PONS": ("0x39dbed3a2bd333467115de45665cc57f813c4571", [("volumen anómalo", r"^(Volumen anómalo|Operaciones repetidas por pocas wallets|Volumen sin liquidez detrás)", None), ("dueño activo", r"^(El contrato tiene dueño activo|El contrato tiene administradores)", None), ("lista negra", r"^Puede bloquear wallets", None)]),
+  "UHI": ("0xe01ada02fb4d1951cdb8cbb761d509db2ff02c94", [("saldos clonados", r"wallets con saldos casi idénticos", "high"), ("poco suministro en pools", r"^Precio frágil", None),
+          ("venta de 0.5 ETH simulada (resultado real, sin límite)", "sizes:0.5", "round_trip_ok"), ("sin hallazgo falso de venta limitada", "absent:^Solo se puede vender hasta", None)]),
+  "PONS": ("0x39dbed3a2bd333467115de45665cc57f813c4571", [("volumen anómalo / bots", r"^(Volumen anómalo|Operaciones repetidas por pocas wallets|Volumen sin liquidez detrás)", None),
+          ("sin dueño ni lista negra según el código verificado", r"^Sin dueño ni administradores", "ok"), ("no inventa lista negra", "absent:^Puede bloquear wallets", None),
+          ("sin falsa discrepancia de fuentes", "absent:^Datos inconsistentes", None)]),
   "PAPER": ("0x179b22557cd511124535e41cc0dacf845b650b07", [("datos inconsistentes", r"^Datos inconsistentes entre fuentes", "warn")]),
   "MUERTO (GRUDGE)": ("0x01127d7d9680578e53812ec8bd714993bc8da6bc", [("riesgo alto", None, "verdict:high")]),
 }
@@ -30,6 +35,12 @@ try:
             for label, rx, want in exp:
                 if rx is None:
                     ok = r["verdict"] == want.split(":")[1]; got.append(dict(expect=label, ok=ok, found="veredicto " + r["verdict"])); continue
+                if rx.startswith("sizes:"):
+                    eth = float(rx.split(":")[1]); sz = [x for x in (r["sizes"] or []) if x["eth"] == eth]
+                    got.append(dict(expect=label, ok=bool(sz) and sz[0]["status"] == want, found=sz[0] if sz else "sin simulación")); continue
+                if rx.startswith("absent:"):
+                    hits = [c for c in r["checks"] if re.search(rx[7:], c["t"])]
+                    got.append(dict(expect=label, ok=not hits, found=[c["s"] + ": " + c["t"] for c in hits])); continue
                 hits = [c for c in r["checks"] if re.search(rx, c["t"])]
                 ok = bool(hits) and (want is None or any(c["s"] == want for c in hits))
                 got.append(dict(expect=label, ok=ok, found=[c["s"] + ": " + c["t"] for c in hits]))
