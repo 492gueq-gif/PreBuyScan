@@ -381,6 +381,91 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 .sc-actions{display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px 0}
 .verifybox.ok{border-color:rgba(39,230,163,.5)}.verifybox.bad{border-color:var(--high)}
 @media (max-width:700px){.sc-grid{grid-template-columns:1fr}}
+
+/* ---------- animated scan ring (while analyzing) ---------- */
+.scanring{--tx:0deg;--ty:0deg;position:relative;width:150px;height:150px;flex:0 0 auto;cursor:pointer;border-radius:50%;outline:none;
+  transform:perspective(500px) rotateX(var(--tx)) rotateY(var(--ty));transition:transform .15s ease-out}
+.scanring:focus-visible{box-shadow:0 0 0 3px var(--accent)}
+.scanring svg{width:100%;height:100%;overflow:visible}
+.scanring .sr-glow{position:absolute;inset:12%;border-radius:50%;background:radial-gradient(circle,rgba(39,230,163,.22),transparent 70%);animation:srPulse 2.4s ease-in-out infinite}
+.scanring .sr-track{stroke:var(--sheet2)}
+.scanring .sr-prog{transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1);transform:rotate(-90deg);transform-origin:60px 60px;filter:drop-shadow(0 0 6px rgba(39,230,163,.6))}
+.scanring .sr-spin{transform-origin:60px 60px;animation:spin 1.6s linear infinite}
+.scanring .sr-ticks{transform-origin:60px 60px;animation:spin 9s linear infinite reverse}
+.scanring .sr-sweep{transform-origin:60px 60px;animation:spin 2.8s linear infinite}
+.scanring .sr-blip{opacity:0;animation:srBlip 2.8s ease-out infinite}
+.scanring:hover .sr-spin{animation-duration:.8s}.scanring:hover .sr-sweep{animation-duration:1.4s}
+.scanring .v{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none}
+.scanring .v b{font-family:var(--display);font-size:1.9rem;line-height:1;color:var(--ink)}
+.scanring .v span{font-size:.68rem;font-weight:800;letter-spacing:.08em;color:var(--accent);margin-top:5px;text-transform:uppercase;max-width:96px;line-height:1.2}
+@keyframes srPulse{0%,100%{transform:scale(.92);opacity:.6}50%{transform:scale(1.06);opacity:1}}
+@keyframes srBlip{0%{opacity:0}8%{opacity:1}60%{opacity:0}100%{opacity:0}}
+@media (max-width:520px){.scanring{width:120px;height:120px}.scanring .v b{font-size:1.5rem}}
+@media (prefers-reduced-motion:reduce){.scanring *{animation:none!important}}
+
+/* ---------- Arkham-style entity graph ---------- */
+.mapsvg.akmap{position:relative;overflow:hidden;border-top:1px solid #12324a;
+  background:radial-gradient(ellipse at 50% 40%,#0b2033 0%,#060d16 60%,#03070c 100%);color:#d8e6ef}
+.akmap::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;
+  background-image:radial-gradient(rgba(120,170,210,.18) 1px,transparent 1.2px);background-size:22px 22px}
+.akmap svg{position:relative;display:block;touch-action:none;cursor:grab}
+.akmap svg:active{cursor:grabbing}
+.akmap .ak-links path{transition:stroke-opacity .2s}
+.akmap .ak-links .ak-fund{stroke-dasharray:4 5;animation:akDash 1.2s linear infinite}
+.akmap .ak-links .hot{stroke-opacity:.95;stroke-width:2.4}
+.akmap .dim{opacity:.1}
+.akmap .ak-node{transition:opacity .2s}
+.akmap .ak-node .ak-halo{animation:akPulse 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.akmap .ak-node .ak-orbit{animation:spin 7s linear infinite;transform-box:fill-box;transform-origin:center}
+.akmap .ak-node.on .ak-core{stroke-width:3.5;stroke:#fff}
+.akmap .ak-node:focus-visible .ak-core{stroke:#fff;stroke-width:3.5}
+.akmap .ak-lab text{font-family:var(--mono);paint-order:stroke;stroke:#03070c;stroke-width:3px;pointer-events:none}
+.akmap .ak-addr{font-size:10px;fill:#d8e6ef;font-weight:600}
+.akmap .ak-pct{font-size:10px;fill:#5fd7ff;font-weight:700}
+.akmap .ak-hud{position:absolute;left:14px;top:12px;display:grid;gap:2px;pointer-events:none}
+.akmap .ak-hud b{font-family:var(--mono);font-size:.7rem;letter-spacing:.18em;color:#5fd7ff}
+.akmap .ak-hud span{font-size:.78rem;color:#8fb0c4}
+.akmap .ak-tools{position:absolute;right:12px;top:12px;display:flex;gap:6px}
+.akmap .ak-tools button{width:32px;height:32px;border-radius:9px;border:1px solid #1d4561;background:rgba(6,16,26,.85);color:#d8e6ef;font-size:.95rem;cursor:pointer;backdrop-filter:blur(6px)}
+.akmap .ak-tools button:hover{border-color:#5fd7ff;color:#5fd7ff}
+.akmap .ak-hint{position:absolute;left:14px;bottom:10px;font-size:.72rem;color:#6d8ba0;pointer-events:none}
+.akmap .ak-tip{position:absolute;pointer-events:none;background:rgba(5,12,20,.94);border:1px solid #1d4561;border-radius:10px;padding:7px 10px;display:grid;gap:2px;font-size:.78rem;transition:opacity .12s;z-index:2;white-space:nowrap}
+.akmap .ak-tip b{font-family:var(--mono);color:#fff}.akmap .ak-tip span{color:#8fb0c4}
+.akmap .ak-card{position:absolute;right:12px;top:54px;width:min(280px,calc(100% - 24px));background:rgba(5,12,20,.94);border:1px solid #1d4561;border-radius:14px;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.5),0 0 24px rgba(95,215,255,.08);backdrop-filter:blur(8px);z-index:3;animation:akIn .25s ease-out}
+.akmap .ak-card[hidden]{display:none}
+.akmap .ak-x{position:absolute;right:8px;top:6px;border:0;background:none;color:#8fb0c4;font-size:1.2rem;cursor:pointer}
+.akmap .ak-role{font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.akmap .ak-id{font-family:var(--mono);font-size:.76rem;color:#fff;overflow-wrap:anywhere;margin:4px 0 10px}
+.akmap .ak-card dl{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 10px}
+.akmap .ak-card dl div{background:#0a1a29;border:1px solid #13304a;border-radius:8px;padding:6px 8px}
+.akmap .ak-card dt{font-size:.64rem;color:#6d8ba0}.akmap .ak-card dd{margin:0;font-weight:800;font-size:.82rem}
+.akmap .ak-sub{font-size:.68rem;color:#6d8ba0;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.akmap .ak-card ul{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:3px}
+.akmap .ak-card li{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.74rem;padding:4px 6px;border-radius:6px;cursor:pointer}
+.akmap .ak-card li:hover{background:#0f2638}
+.akmap .ak-card li i{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.akmap .ak-card li span{margin-left:auto;color:#5fd7ff}
+.akmap .ak-acts{display:flex;gap:8px;flex-wrap:wrap}
+.akmap .ak-acts a{font-size:.76rem;font-weight:700;color:#5fd7ff;border:1px solid #1d4561;border-radius:8px;padding:5px 9px;text-decoration:none}
+.akmap:fullscreen{height:100vh!important}.akmap:fullscreen svg{height:100vh}
+@keyframes akDash{to{stroke-dashoffset:-18}}
+@keyframes akPulse{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.18);opacity:.15}}
+@keyframes akIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.akmap *{animation:none!important}}
+.scanwrap{display:flex;gap:20px;align-items:center;padding:16px 16px 0;flex-wrap:wrap}.scanwrap .grow{min-width:220px}
+.maploading{position:relative;height:340px;display:grid;place-items:center;border-top:1px solid #12324a;
+  background:radial-gradient(ellipse at 50% 40%,#0b2033 0%,#060d16 60%,#03070c 100%);color:#8fb0c4;font-size:.86rem;overflow:hidden}
+.maploading svg{position:absolute;inset:0;width:100%;height:100%;opacity:.8}
+.maploading .ml-dot{animation:akPulse 2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.maploading .ml-line{stroke-dasharray:4 5;animation:akDash 1.2s linear infinite}
+.maploading span{position:relative;background:rgba(5,12,20,.85);border:1px solid #1d4561;border-radius:10px;padding:8px 12px}
+@media (min-width:1100px){
+  .panes{grid-auto-flow:row dense}
+  .a-map{grid-column:1!important;order:2!important}
+  .a-chart{display:flex;flex-direction:column}
+  .a-chart .chart{flex:1;display:flex;flex-direction:column}
+  .a-chart .chart iframe{flex:1;min-height:420px}
+}
 </style></head><body data-view="home">
 <script>try{const t=localStorage.getItem("pbs_theme");const pref=t?JSON.parse(t):"dark";const dark=pref==="auto"?matchMedia("(prefers-color-scheme: dark)").matches:pref!=="light";document.documentElement.dataset.theme=dark?"dark":"light";}catch(e){document.documentElement.dataset.theme="dark";}</script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -973,16 +1058,23 @@ async function showVerification(){
 }
 
 function loadScript(src){return new Promise((ok,ko)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=ko;document.head.appendChild(s);});}
+function mapLoadingHtml(){let dots="",lines="";const pts=[];for(let k=0;k<16;k++){const a=k*2.4,rr=40+((k*37)%140);pts.push([50+Math.cos(a)*rr/3.2,50+Math.sin(a)*rr/4.2]);}
+  pts.forEach((p,k)=>{if(k)lines+=`<line class="ml-line" x1="${p[0]}%" y1="${p[1]}%" x2="${pts[(k*7)%k][0]}%" y2="${pts[(k*7)%k][1]}%" stroke="#2a6f96" stroke-opacity=".45"/>`;
+    dots+=`<circle class="ml-dot" cx="${p[0]}%" cy="${p[1]}%" r="${3+(k%4)*2}" fill="${window.PBMap?window.PBMap.PALETTE[k%8]:"#27e6a3"}" fill-opacity=".5" style="animation-delay:${(k*0.17).toFixed(2)}s"/>`;});
+  return `<div class="maploading"><svg aria-hidden="true">${lines}${dots}</svg><span id="mapmsg">Armando el grafo de wallets (hasta 90 s)…</span></div>`;}
+let mapObs=null;
+function autoMap(){if(mapObs){mapObs.disconnect();mapObs=null;}const sec=$("#out .mapsec");if(!sec||!("IntersectionObserver" in window))return;
+  mapObs=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)){mapObs.disconnect();mapObs=null;const b=sec.querySelector("[data-act=map]");if(b&&!b.disabled)loadMap(b);}},{rootMargin:"200px"});mapObs.observe(sec);}
 async function loadMap(btn){
   if(!lastRes)return;const {token,res}=lastRes;const cr=res.cr||{};const box=$("#mapout");
-  btn.disabled=true;box.innerHTML=`<div class="busy" id="mapmsg">Preparando el mapa (hasta 90 s)…</div>`;
+  btn.disabled=true;btn.hidden=true;box.innerHTML=mapLoadingHtml();
   try{
     if(!window.d3)await loadScript("https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js");
     const g=await window.PBMap.build(token,{pairs:res.pairs,creator:cr.creator&&cr.creator.deployer,creatorFunder:cr.rep&&cr.rep.funder,snipers:cr.snipers},
       {progress:m=>{const e=$("#mapmsg");if(e)e.textContent=m;}});
-    if(lastRes.token!==token)return;
-    renderMap(g,cr);btn.closest(".mapintro").querySelector("button").remove();
-  }catch(e){box.innerHTML=`<div class="busy">No se pudo armar el mapa: el explorador no respondió. Prueba de nuevo en un minuto.</div>`;btn.disabled=false;}
+    if(!lastRes||lastRes.token!==token)return;
+    renderMap(g,cr);btn.remove();
+  }catch(e){box.innerHTML=`<div class="busy">No se pudo armar el mapa: el explorador no respondió. Prueba de nuevo en un minuto.</div>`;btn.disabled=false;btn.hidden=false;}
 }
 function renderMap(g,cr){
   const box=$("#mapout");const P=window.PBMap.PALETTE;const hasCreator=!!(cr&&cr.creator);
@@ -1339,13 +1431,13 @@ function render(token,res){
     </div>
     <div class="pane" data-pane="actividad">${winners}${bigs}${snip}${launches}${!winners&&!bigs&&!snip&&!launches?`<section class="card a-wide"><div class="empty">Sin actividad para mostrar.</div></section>`:""}</div>
     <div class="pane" data-pane="holders">${holders}
-     <section class="card mapsec a-wide"><h3>Mapa de wallets</h3>
+     <section class="card mapsec a-wide a-map"><h3>Mapa de wallets <span class="disc">grafo de entidades · en vivo</span></h3>
       <div class="mapintro"><p>Burbujas = mayores holders. Las une quién les dio su primer ETH o si se pasaron el token. Un grupo de color suele ser una sola persona con varias wallets.</p>
       <button class="btn2" type="button" data-act="map">Ver mapa de wallets</button></div><div id="mapout"></div></section></div>
    </div>
    <div class="note">${notChecked.length?"No revisado: "+esc(notChecked.join("; "))+". ":""}Liquidez bloqueada en contratos de terceros: no se verifica hasta cuándo.<br>Revisado ${res.block?"en el bloque "+res.block.toLocaleString("es-MX")+" · ":""}${esc(new Date(res.scannedAt||Date.now()).toLocaleString("es-MX"))} · algoritmo ${esc(res.algo||ALGO_VERSION)} · <a href="#metodo" data-nav="method">cómo calculamos</a>.</div>
   </div>`;
-  bindSim($("#out"),res);
+  bindSim($("#out"),res);autoMap();
   addHistory({t:token,name,sym,img,score,v:cls,at:Date.now(),type:"token",algo:ALGO_VERSION,conf:conf.score});
 }
 // ---------- wallet profile ----------
@@ -1397,7 +1489,33 @@ $("#out").addEventListener("click",async e=>{
 
 const STAGES=[["Mercado y gráfico",/^Revisando 0x/],["Venta simulada",/^Simulando compra/],["Venta con montos mayores",/^Simulando montos/],["Operaciones recientes",/^Revisando operaciones/],["Contrato",/^Revisando el contrato/],["Creador, liquidez, snipers y holders",/^Revisando creador/]];
 let stageIdx=0;
-function paintStages(){const ul=$("#out .stages");if(!ul)return;ul.innerHTML=STAGES.map((st,i)=>`<li class="${i<stageIdx?"st-done":i===stageIdx?"st-now":""}"><i>${i<stageIdx?"✓":""}</i>${st[0]}</li>`).join("");}
+function scanRing(){const c=(2*Math.PI*52).toFixed(1);
+  const blips=[[38,34],[84,44],[72,86],[34,76],[60,24]].map((b,i)=>`<circle class="sr-blip" cx="${b[0]}" cy="${b[1]}" r="2.4" fill="var(--accent)" style="animation-delay:${(i*0.56).toFixed(2)}s"/>`).join("");
+  return `<div class="scanring" role="progressbar" tabindex="0" aria-label="Analizando" aria-valuemin="0" aria-valuemax="${STAGES.length}" aria-valuenow="0" title="Toca para ver en qué paso va">
+   <div class="sr-glow"></div><svg viewBox="0 0 120 120" aria-hidden="true">
+    <defs><linearGradient id="srg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent2)"/></linearGradient>
+     <linearGradient id="srs" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--accent)" stop-opacity="0"/><stop offset="1" stop-color="var(--accent)" stop-opacity=".35"/></linearGradient></defs>
+    <circle class="sr-track" cx="60" cy="60" r="52" fill="none" stroke-width="9"/>
+    <circle class="sr-prog" cx="60" cy="60" r="52" fill="none" stroke="url(#srg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c}"/>
+    <g class="sr-spin"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round" stroke-dasharray="26 301" opacity=".9"/></g>
+    <circle class="sr-ticks" cx="60" cy="60" r="43" fill="none" stroke="var(--line2)" stroke-width="2" stroke-dasharray="1.5 5.2"/>
+    <g class="sr-sweep"><path d="M60 60 L60 21 A39 39 0 0 1 93.8 40.5 Z" fill="url(#srs)"/></g>
+    ${blips}</svg>
+   <div class="v"><b class="sr-pct">0%</b><span class="sr-lbl">Analizando</span></div></div>`;}
+let srShowStage=false;
+function paintRing(){const el=$("#out .scanring");if(!el)return;const n=STAGES.length,done=Math.min(stageIdx,n);
+  const pct=Math.round(Math.min(95,(done/n)*100+(100/n)*0.35));const c=2*Math.PI*52;
+  el.querySelector(".sr-prog").setAttribute("stroke-dashoffset",(c*(1-pct/100)).toFixed(1));
+  el.querySelector(".sr-pct").textContent=srShowStage?(done+1)+"/"+n:pct+"%";
+  el.querySelector(".sr-lbl").textContent=srShowStage?(STAGES[Math.min(done,n-1)][0].split(",")[0]):"Analizando";
+  el.setAttribute("aria-valuenow",done);el.setAttribute("aria-label","Analizando: paso "+(done+1)+" de "+n+", "+STAGES[Math.min(done,n-1)][0]);}
+function bindRing(){const el=$("#out .scanring");if(!el)return;
+  const flip=()=>{srShowStage=!srShowStage;paintRing();};
+  el.addEventListener("click",flip);el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();flip();}});
+  el.addEventListener("pointermove",e=>{const b=el.getBoundingClientRect();const x=(e.clientX-b.left)/b.width-.5,y=(e.clientY-b.top)/b.height-.5;el.style.setProperty("--ty",(x*22).toFixed(1)+"deg");el.style.setProperty("--tx",(-y*22).toFixed(1)+"deg");});
+  el.addEventListener("pointerleave",()=>{el.style.setProperty("--tx","0deg");el.style.setProperty("--ty","0deg");});
+  paintRing();}
+function paintStages(){paintRing();const ul=$("#out .stages");if(!ul)return;ul.innerHTML=STAGES.map((st,i)=>`<li class="${i<stageIdx?"st-done":i===stageIdx?"st-now":""}"><i>${i<stageIdx?"✓":""}</i>${st[0]}</li>`).join("");}
 function step(m){const b=$("#out .busy span");if(b)b.textContent=m;const i=STAGES.findIndex(st=>st[1].test(m));if(i>=0){stageIdx=Math.max(stageIdx,i);paintStages();}}
 // Shown as soon as market data arrives; the full report replaces it when every check finishes.
 function renderPartial(token,{pair,facts}){
@@ -1417,13 +1535,13 @@ function renderPartial(token,{pair,facts}){
       <div style="min-width:0"><h2>${esc(name)}</h2><div class="sym">${esc(sym)}${pair.quoteToken?" / "+esc(pair.quoteToken.symbol):""}</div><span class="addr">${esc(short(token))}</span></div></div>
       ${tagList(pair,null)}
       ${links.length?`<div class="links" style="margin-top:10px">${links.map(l=>`<a class="btn2 sm" href="${esc(l.u)}" target="_blank" rel="noopener noreferrer nofollow">${esc(l.t)} ↗</a>`).join("")}</div>`:""}</div>
-    <div class="ring pending" aria-hidden="true">${ringSvg(0,"unk")}<div class="v"><b>Analizando</b></div></div>
+    ${scanRing()}
     <div class="grow"><div class="busy" style="padding:0 0 8px"><span>Simulando compra y venta…</span></div><ul class="stages"></ul></div>
    </div></section>
    <dl class="stats">${stats.map(st=>`<div class="stat"><dt>${st[0]}</dt><dd>${st[1]}${st[2]}</dd></div>`).join("")}</dl>
    <section class="card">${chartSection(pair).replace(/^<section>/,"").replace(/<\/section>$/,"")}</section>
   </div>`;
-  paintStages();
+  bindRing();paintStages();
 }
 let running=false;
 async function analyze(raw){
@@ -1433,8 +1551,8 @@ async function analyze(raw){
   if(!/^0x[0-9a-f]{40}$/.test(token)){$("#out").innerHTML=`<section class="card"><div class="empty">Esa dirección no es válida. Debe empezar con 0x y tener 40 caracteres hexadecimales después.</div></section>`;return;}
   if(running)return;running=true;stageIdx=0;shareSet=null;
   document.querySelectorAll(".go").forEach(b=>b.disabled=true);
-  $("#out").innerHTML=`<section class="card"><div class="busy"><span>Revisando ${esc(short(token))}…</span></div><ul class="stages"></ul><div class="tnote">Simulamos la compra y la venta, revisamos el contrato, el creador, la liquidez, los snipers y los holders. Tarda de 20 a 60 segundos.</div></section>`;
-  paintStages();
+  $("#out").innerHTML=`<section class="card"><div class="scanwrap">${scanRing()}<div class="grow"><div class="busy"><span>Revisando ${esc(short(token))}…</span></div><ul class="stages"></ul></div></div><div class="tnote">Simulamos la compra y la venta, revisamos el contrato, el creador, la liquidez, los snipers y los holders. Tarda de 20 a 60 segundos.</div></section>`;
+  bindRing();paintStages();
   try{
     let code=null;try{code=await rpc("eth_getCode",[token,"latest"]);}catch(e){}
     if(code==="0x"||(code&&code.toLowerCase().startsWith("0xef0100"))){
