@@ -961,7 +961,7 @@ $("#out").addEventListener("click",async e=>{
 async function showVerification(){
   if(!window.PBShare)return;const v=await window.PBShare.verifyFromLocation(location);if(!v)return;
   const box=$("#verify");const r=v.rep||{};
-  const when=r.ts?new Date(r.ts*1000).toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short",timeZoneName:"short"}):"—";
+  const when=r.ts?new Date(r.ts*1000).toLocaleString("es-MX",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}):"—";
   const vtxt={high:"Riesgo alto",warn:"Precaución",ok:"Sin alertas",unk:"Sin datos"}[r.vd]||"—";
   const ic=a=>a[0]==="confirmed"?["high","✕"]:a[0]==="suspicious"?["warn","!"]:a[0]==="clear"?["ok","✓"]:["unk","?"];
   box.innerHTML=v.ok?`<section class="card verifybox ok"><h3>✓ Reporte verificado <span class="tag ok">${esc(v.id)}</span></h3><div class="tnote" style="font-size:.86rem;padding-top:0">

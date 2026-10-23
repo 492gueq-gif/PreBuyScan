@@ -36,7 +36,7 @@ Se usa el valor real del motor (`scoreOf()`, algoritmo `2026.10.22-2`). Escala e
 
 ## Verificación
 
-- El enlace y el QR apuntan a `…/PreBuyScan/?t=<dirección>&r=<id>&b=<bloque>&v=<algoritmo>#rep=<reporte>`. El reporte va en el fragmento (`#rep=`, base64url del JSON canónico, con descripciones recortadas para que el QR sea legible).
+- El enlace y el QR apuntan a `…/PreBuyScan/?t=<dirección>&r=<id>#rep=<reporte>`. El reporte va en el fragmento (`#rep=`, base64url del JSON canónico compacto: puntuación, veredicto, confianza, algoritmo, bloque, hora y hasta 5 hallazgos con estado y título). Si no cabe en 700 bytes se recorta por niveles (títulos y nombre más cortos, menos hallazgos) para que el QR tenga módulos de al menos 3 px con corrección de errores L y zona de silencio de 4 módulos.
 - Al abrir el enlace, la página recalcula el SHA-256. Si el ID coincide y la dirección también, muestra «Reporte verificado» con lo que decía el reporte en ese bloque, y debajo el análisis actualizado de hoy. Si alguien cambió algo, muestra «Reporte no verificado».
 - **Límite:** sin servidor no hay firma digital. El hash prueba que el contenido del enlace no cambió, no quién lo generó. Para autenticidad hace falta una clave privada en un backend y la clave pública publicada.
 
