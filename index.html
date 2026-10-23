@@ -585,6 +585,14 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
 body:not([data-view="home"]) .hero .globe::before,body:not([data-view="home"]) .hero .globe::after{animation-play-state:paused}
 @media(prefers-reduced-motion:reduce){.hero .globe::before,.hero .globe::after{animation:none}.hero > .globe{transform:none;transition:none}}
 
+
+/* Official feather: docs.robinhood.com/chain/brand-guidelines/ */
+.rh-symbol{width:22px;height:22px;object-fit:contain;flex:none;vertical-align:middle}
+.chainpill,.chaincard b{display:flex;align-items:center;gap:7px}
+.acc .fill{transform-origin:left center;animation:accuracy-fill 7s ease-in-out infinite}
+@keyframes accuracy-fill{0%,8%{transform:scaleX(0)}48%,92%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+body:not([data-view="home"]) .acc .fill{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.acc .fill{animation:none;transform:none}}
 </style></head><body data-view="home">
 <div id="boot" aria-hidden="true"><img src="logo.svg" alt="" width="96" height="96"><b>PreBuy<span>Scan</span></b><small>Scan before the scam</small></div>
 <script src="theme.js"></script>
@@ -618,7 +626,7 @@ body:not([data-view="home"]) .hero .globe::before,body:not([data-view="home"]) .
     <button type="button" class="iconbtn langbtn" id="langbtn" aria-label="Idioma / Language" title="Español / English">EN</button>
     <button type="button" class="iconbtn themebtn" aria-label="Cambiar entre modo claro y oscuro" title="Modo claro / oscuro">◐</button>
     <button type="button" class="iconbtn" data-nav="settings" aria-label="Ajustes" title="Ajustes">⚙</button>
-    <div class="chainpill" title="Robinhood Chain (chain 4663)"><i class="dot" id="chaindot"></i>Robinhood Chain</div>
+    <div class="chainpill" title="Robinhood Chain (chain 4663)"><img class="rh-symbol" src="robinhood-avatar.jpg" width="22" height="22" alt="">Robinhood Chain<i class="dot" id="chaindot"></i></div>
   </header>
 
   <nav class="side" aria-label="Secciones">
@@ -628,7 +636,7 @@ body:not([data-view="home"]) .hero .globe::before,body:not([data-view="home"]) .
     <button data-nav="explore" data-kind="alpha"><svg><use href="#i-target"/></svg>Alpha Radar</button>
     <button data-nav="accuracy"><svg><use href="#i-trend"/></svg>Precisión</button>
     <button data-nav="settings"><svg><use href="#i-target"/></svg>Ajustes</button>
-    <div class="chaincard"><b><i class="dot"></i>Robinhood Chain</b><span style="color:var(--muted)">L2 · Chain ID 4663</span>
+    <div class="chaincard"><b><img class="rh-symbol" src="robinhood-avatar.jpg" width="22" height="22" alt="">Robinhood Chain</b><span style="color:var(--muted)">L2 · Chain ID 4663</span>
       <dl><dt>Gas</dt><dd id="cgas">—</dd><dt>Bloque</dt><dd id="cblock">—</dd><dt>Estado</dt><dd id="cstate">…</dd></dl></div>
   </nav>
 
