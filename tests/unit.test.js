@@ -471,3 +471,15 @@ test("contract analyze over a fake RPC: beacon proxy, AccessControl admins, decl
   assert.deepEqual(r.risky.sort(), ["blacklist", "mint"]);              // the implementation's code is scanned too
   assert.equal(r.taxes.sell, 25); assert.equal(r.taxes.buy, 3);
 });
+
+test("English mode: exact strings, dynamic titles and summary lines translate; unknown text stays", () => {
+  const I = require("../i18n.js");
+  assert.equal(I.tr("Riesgo alto"), "High risk");
+  assert.equal(I.tr("  Liquidez muy baja "), "  Very low liquidity ");
+  assert.equal(I.tr("49 wallets con saldos casi idénticos"), "49 wallets with near-identical balances");
+  assert.equal(I.tr("Solo se puede vender hasta ~0.27 ETH"), "You can only sell up to ~0.27 ETH");
+  assert.equal(I.tr("Precaución · Safety Score 61/100 · Data Confidence 85 %."), "Caution · Safety Score 61/100 · Data Confidence 85 %.");
+  assert.equal(I.tr("Lo más importante: Liquidez baja · Volumen anómalo."), "Most important: Low liquidity · Anomalous volume.");
+  assert.equal(I.tr("0x39db…4571"), "0x39db…4571");
+  assert.equal(I.tr("texto sin traducción"), "texto sin traducción");
+});

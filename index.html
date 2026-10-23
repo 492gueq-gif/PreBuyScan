@@ -74,6 +74,7 @@ main{padding:14px 16px 96px;display:grid;gap:16px;min-width:0}
 .field svg{flex:0 0 auto;color:var(--muted)}
 .field input{flex:1;min-width:0;background:transparent;border:0;color:var(--ink);font-family:var(--mono);font-size:.9rem;padding:10px 0;outline:none}
 .iconbtn{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.langbtn{font-weight:800;font-size:.78rem;letter-spacing:.04em}
 .iconbtn:hover{color:var(--ink);background:var(--sheet)}
 .cta{display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:14px 22px;cursor:pointer;
   font-family:var(--display);font-weight:700;font-size:1.02rem;color:var(--cta-ink);background:linear-gradient(90deg,#3df2b0,#1fd6c0);box-shadow:0 8px 28px rgba(39,230,163,.28)}
@@ -584,6 +585,7 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
       <div class="pastehint" role="status"></div>
     </form>
     <button type="button" class="btn2 sm installbtn" hidden>⤓ Instalar app</button>
+    <button type="button" class="iconbtn langbtn" id="langbtn" aria-label="Idioma / Language" title="Español / English">EN</button>
     <button type="button" class="iconbtn themebtn" aria-label="Cambiar entre modo claro y oscuro" title="Modo claro / oscuro">◐</button>
     <button type="button" class="iconbtn" data-nav="settings" aria-label="Ajustes" title="Ajustes">⚙</button>
     <div class="chainpill" title="Robinhood Chain (chain 4663)"><i class="dot" id="chaindot"></i>Robinhood Chain</div>
@@ -690,6 +692,8 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
       <div class="vh"><h2>Ajustes</h2></div>
       <section class="card"><h3>Apariencia</h3><div class="filters" style="padding:0 16px 14px" role="group" aria-label="Tema">
         <button class="chip" data-theme-set="dark">Oscuro</button><button class="chip" data-theme-set="light">Claro</button><button class="chip" data-theme-set="auto">Automático</button></div></section>
+      <section class="card"><h3>Idioma</h3><div class="filters" style="padding:0 16px 14px" role="group" aria-label="Idioma / Language">
+        <button class="chip" data-lang-set="es">Español</button><button class="chip" data-lang-set="en">English</button></div></section>
       <section class="card"><h3>Notificaciones</h3><div class="tnote" style="font-size:.86rem;padding-top:0">Avisos de tus favoritos (liquidez retirada, caídas fuertes, cambio de veredicto) mientras la página o la app instalada estén abiertas. No se envía nada a terceros.</div>
         <div style="padding:0 16px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="btn2" id="notif-on">Activar notificaciones</button><button type="button" class="btn2" id="notif-off">Desactivar</button><span class="disc" id="notif-state"></span></div></section>
       <section class="card"><h3>Datos guardados en este navegador</h3><div style="padding:0 16px 14px;display:flex;gap:8px;flex-wrap:wrap">
@@ -726,4 +730,5 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
 <script src="profile.js"></script>
 <script src="share.js"></script>
 <script src="app.js"></script>
+<script src="i18n.js"></script>
 </body></html>
