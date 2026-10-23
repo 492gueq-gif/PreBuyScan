@@ -12,6 +12,7 @@ PreBuyScan es una herramienta de **solo lectura** para revisar tokens y wallets 
 | Desarrollo de la página | rama `feature/creator-liquidity` → se publica con fast-forward a `gh-pages` |
 | Base de creadores (cada hora) | código en `main` (`creator_db.py`), datos en la rama `creator-db` (`creators.json`) |
 | Estudio PRECISION_V2 (cada hora, 22–29 oct) | código y datos en `research/precision-v2`; el horario vive en `main` (`.github/workflows/precision-v2.yml`) |
+| Estudio GEMS_V1 (joyas; escaneos 30 oct–13 nov, resultados después del 21 nov) | código y datos en `research/gems-v1`; horario en `main` (`.github/workflows/gems-v1.yml`, minuto 47; fuera del periodo no hace nada) |
 | Estudios anteriores | `research/base-rates-v1` (BASE_RATES_V1, PRECISION_V1) |
 | Pruebas en navegador real (CI) | rama `research/probes` (workflows *Candidate page check*, *Live page check*, *Blockscout probe*); capturas y notas en `research/shots`, `research/probe-out`, `research/live-out` |
 
