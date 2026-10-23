@@ -23,7 +23,7 @@
 /* Dark "scanner console": neon-mint accent on deep navy. Mobile = app with bottom tab bar; desktop = sidebar + main + right rail. */
 :root{
   --bg:#060b10; --bg2:#08111a; --sheet:#0c1620; --sheet2:#101c28; --line:#1a2836; --line2:#22364a;
-  --ink:#e7f2f3; --muted:#8ba1ae; --dim:#5f7482;
+  --ink:#e7f2f3; --muted:#8ba1ae; --dim:#7a8f9d;
   --accent:#27e6a3; --accent2:#13b6c8; --accent-ink:#04140e; --glow:0 0 24px rgba(39,230,163,.25);
   --high:#ff5f6d; --high-bg:rgba(255,95,109,.12); --warn:#ffb547; --warn-bg:rgba(255,181,71,.12);
   --ok:#27e6a3; --ok-bg:rgba(39,230,163,.12); --unk:#8ba1ae; --unk-bg:rgba(139,161,174,.12);
@@ -34,7 +34,7 @@
 }
 :root[data-theme="light"]{
   --bg:#eef3f5; --bg2:#e6edf1; --sheet:#ffffff; --sheet2:#f2f6f8; --line:#d9e2e7; --line2:#cbd6dc;
-  --ink:#0d1b24; --muted:#4f6474; --dim:#738696;
+  --ink:#0d1b24; --muted:#4f6474; --dim:#5d6f7d;
   --accent:#078a60; --accent2:#0a7f8e; --accent-ink:#ffffff; --glow:0 0 18px rgba(7,138,96,.18);
   --high:#c0263a; --high-bg:rgba(192,38,58,.10); --warn:#9a5c00; --warn-bg:rgba(154,92,0,.10);
   --ok:#078a60; --ok-bg:rgba(7,138,96,.10); --unk:#5b6e7c; --unk-bg:rgba(91,110,124,.10);
@@ -53,7 +53,7 @@ body[data-view="result"] .hero{display:none}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ---------- shell ---------- */
-.app{display:grid;grid-template-columns:1fr;min-height:100vh}
+.app{display:grid;grid-template-columns:minmax(0,1fr);min-height:100vh}
 .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:10px max(16px,env(safe-area-inset-left)) 10px max(16px,env(safe-area-inset-right));
   background:var(--topbar);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);flex:0 0 auto}
@@ -351,6 +351,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 .topbar .installbtn{display:none !important}
 @media (max-width:1099px){.topbar .themebtn{display:none}}
 @media (max-width:400px){.chainpill{font-size:.7rem;padding:5px 8px}}
+@media (max-width:420px){.topbar{gap:8px}.brand{flex:0 0 auto}.chainpill{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 @media (min-width:1100px){.topbar .installbtn:not([hidden]){display:inline-flex !important}}
 .installrow{position:relative;display:grid;justify-items:center;gap:6px;margin-top:12px}
 .installbtn{border-color:rgba(39,230,163,.45)}
@@ -618,7 +619,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
       <div id="out" aria-live="polite"></div>
       <section class="card home-only mobile-only"><div class="h3">Últimos analizados <a href="#" data-nav="history">Ver todos →</a></div><ul class="list" id="recent-m"></ul></section>
       <section class="card acc" id="accuracy" aria-labelledby="acc-h">
-        <h3 id="acc-h">Qué tan seguido acierta</h3>
+        <h3 id="acc-h" aria-level="2">Qué tan seguido acierta</h3>
         <p style="padding-top:0">Medimos las señales de mercado con 749 tokens nuevos de Robinhood Chain (17–21 oct 2026), con reglas fijadas antes de ver resultados. Porcentaje que colapsó en 24 h:</p>
         <div class="bars">
           <div class="bar"><span>Riesgo alto <small>(343)</small></span><div class="track"><div class="fill high" style="width:87%"></div></div><b>87 %</b></div>
@@ -627,7 +628,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
         </div>
         <p>Un «riesgo alto» casi siempre termina mal, pero «sin alertas» tampoco es seguro: más de la mitad de los tokens nuevos colapsa igual. Las señales nuevas (creador, liquidez, snipers) se están midiendo ahora; resultados el 30 oct. <a href="https://github.com/492gueq-gif/PreBuyScan/blob/research/base-rates-v1/docs/PRECISION_V1.md" target="_blank" rel="noopener">Ver método</a>.</p>
       </section>
-      <section class="card" id="metodo" aria-labelledby="met-h"><h3 id="met-h">Cómo calculamos <span class="tag algov"></span></h3>
+      <section class="card" id="metodo" aria-labelledby="met-h"><h3 id="met-h" aria-level="2">Cómo calculamos <span class="tag algov"></span></h3>
         <div class="tnote" style="font-size:.86rem;padding-top:0">
         <p><b>Safety Score (0–100, 100 = menor riesgo detectado).</b> Empieza en 100: cada «Riesgo alto» resta 25, cada «Precaución» 10 y cada «Sin datos» 5. Con cualquier riesgo alto el máximo es 39; con alguna precaución, 79. Un riesgo crítico (venta que falla, liquidez retirable por el creador) nunca queda compensado por otras señales buenas.</p>
         <p><b>Data Confidence (0–100).</b> Qué parte de la revisión se pudo completar: mercado, venta simulada, contrato, dueño, creador e historial, control de la liquidez, snipers, holders y operaciones. Si un dato no se pudo verificar se muestra «NO VERIFICADO» y resta; nunca se toma como ausencia de riesgo.</p>
@@ -1446,7 +1447,7 @@ function render(token,res){
     ["Creador",C?link(C.deployer):"—"],["Dueño (owner)",res.owner?(/^0x0+$/.test(res.owner)?"renunciado":link(res.owner)):"sin owner()"],["Código",C?(C.verified?"verificado en el explorador":"no verificado"):"—"]];
   const now=new Date().toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"});
   const fav=isFav(token);
-  $("#out").innerHTML=`<div class="rcard">
+  $("#out").innerHTML=`<div class="rcard"><h1 class="sr">Análisis de ${esc(name)} en PreBuyScan</h1>
    <div class="rhead"><button class="iconbtn mobile-only" data-nav="home" aria-label="Volver">‹</button><h2>Análisis de token</h2><span class="done st-${ast.key}" title="${esc(ast.detail)}">${esc(ast.label.toUpperCase())}</span><time>${esc(now)}</time>
     <div class="ractions">${pair&&pair.url?`<a class="btn2 sm" href="${esc(pair.url)}" target="_blank" rel="noopener">DexScreener ↗</a>`:""}<a class="btn2 sm" href="https://robinhoodchain.blockscout.com/token/${esc(token)}" target="_blank" rel="noopener">Explorador ↗</a>
      <button class="btn2 sm" type="button" data-act="share">Compartir</button><button class="btn2 sm" type="button" data-act="copy">Copiar enlace</button><button class="btn2 sm" type="button" data-act="img">Imagen</button>
