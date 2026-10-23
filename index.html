@@ -579,10 +579,11 @@ abbr.gl{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
 /* Only the decorative background moves; foreground content stays fixed. */
 .hero{isolation:isolate}
 .hero > .globe{inset:0;height:auto;z-index:-1;overflow:hidden;filter:none;background:radial-gradient(ellipse at 78% 55%,rgba(39,230,163,.23),transparent 65%);transform:translate(var(--hero-x,0px),var(--hero-y,0px)) scale(1.08);transition:transform 1.2s ease-out}
-.hero .globe::before{content:"";position:absolute;inset:-20%;background:radial-gradient(ellipse at 70% 55%,rgba(39,230,163,.38),transparent 60%);animation:hero-glow 7s ease-in-out infinite alternate;pointer-events:none}
-@keyframes hero-glow{from{transform:translate(-18%,-10%) scale(.9);opacity:.55}to{transform:translate(12%,10%) scale(1.15);opacity:1}}
-body:not([data-view="home"]) .hero .globe::before{animation-play-state:paused}
-@media(prefers-reduced-motion:reduce){.hero .globe::before{animation:none}.hero > .globe{transform:none;transition:none}}
+.hero .globe::before,.hero .globe::after{content:"";position:absolute;inset:-25%;pointer-events:none;background:radial-gradient(ellipse at 35% 50%,rgba(39,230,163,.42),transparent 48%);filter:blur(24px);animation:hero-aurora 10s ease-in-out infinite alternate}
+.hero .globe::after{background:radial-gradient(ellipse at 60% 55%,rgba(12,205,140,.32),transparent 42%);animation-duration:14s;animation-delay:-7s}
+@keyframes hero-aurora{0%{transform:translateX(-22%) scale(.85);opacity:.45}50%{opacity:1}100%{transform:translateX(28%) scale(1.15);opacity:.7}}
+body:not([data-view="home"]) .hero .globe::before,body:not([data-view="home"]) .hero .globe::after{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.hero .globe::before,.hero .globe::after{animation:none}.hero > .globe{transform:none;transition:none}}
 
 </style></head><body data-view="home">
 <div id="boot" aria-hidden="true"><img src="logo.svg" alt="" width="96" height="96"><b>PreBuy<span>Scan</span></b><small>Scan before the scam</small></div>
