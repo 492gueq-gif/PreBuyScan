@@ -348,6 +348,8 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 .tabbar .badge{position:absolute;top:0;right:22%;margin:0}
 [hidden]{display:none !important}
 .topbar .installbtn{display:none !important}
+@media (max-width:1099px){.topbar .themebtn{display:none}}
+@media (max-width:400px){.chainpill{font-size:.7rem;padding:5px 8px}}
 @media (min-width:1100px){.topbar .installbtn:not([hidden]){display:inline-flex !important}}
 .installrow{position:relative;display:grid;justify-items:center;gap:6px;margin-top:12px}
 .installbtn{border-color:rgba(39,230,163,.45)}
@@ -671,14 +673,17 @@ async function inspect(token,onPartial){
     else add({s:"unk",t:"Venta no simulada",d:r.detail||"Simulación no disponible para este par."});
     if(r.status==="round_trip_ok"){
       step("Simulando montos mayores…");
-      simSizes=[{eth:0.01,status:r.status,ret:r.retention}];
+      // Price impact = how many fewer tokens each ETH buys at a larger size (a quick round trip hides it).
+      simSizes=[{eth:0.01,status:r.status,ret:r.retention,bought:r.boughtRaw?Number(BigInt(r.boughtRaw)/10n**6n):null,impact:0}];
       for(const eth of [0.1,0.5]){
-        try{const x=await window.PBSellSim.simulate(token,pair,{buyWei:(BigInt(Math.round(eth*1e6))*10n**12n).toString()});simSizes.push({eth,status:x.status,ret:x.retention});}
-        catch(e){simSizes.push({eth,status:"unknown",ret:null});}
+        try{const x=await window.PBSellSim.simulate(token,pair,{buyWei:(BigInt(Math.round(eth*1e6))*10n**12n).toString()});
+          const bought=x.boughtRaw?Number(BigInt(x.boughtRaw)/10n**6n):null;const ref=simSizes[0].bought;
+          simSizes.push({eth,status:x.status,ret:x.retention,bought,impact:bought&&ref?Math.max(0,1-(bought/eth)/(ref/0.01)):null});}
+        catch(e){simSizes.push({eth,status:"unknown",ret:null,impact:null});}
       }
       const big=simSizes[2];
       if(big&&big.status==="sell_failed")add({s:"high",t:"La venta falla con montos grandes",d:"Con 0.01 ETH sí se pudo vender, pero con "+big.eth+" ETH la venta simulada falla: puede haber un límite de venta."});
-      else if(big&&big.ret!=null&&big.ret<0.7)add({s:"warn",t:"Pérdida alta en compras grandes",d:"Con "+big.eth+" ETH recuperarías solo "+(big.ret*100).toFixed(1)+" % al vender enseguida (impacto de precio por poca liquidez)."});
+      else if(big&&big.impact!=null&&big.impact>=0.15)add({s:"warn",t:"Mucho impacto de precio en compras grandes",d:"Comprando "+big.eth+" ETH pagarías cada token "+(big.impact*100).toFixed(1)+" % más caro que con una compra pequeña: la liquidez es poca para ese monto."});
     }
     if(r.hooks&&!/^0x0+$/.test(r.hooks))add({s:"warn",t:"El pool V4 tiene un hook",d:"Código extra en el pool ("+short(r.hooks)+") que puede cambiar comisiones o reglas de compra y venta."});
   }
@@ -1209,7 +1214,7 @@ function render(token,res){
   const stats=pair?[["Precio (USD)",fmtPrice(Number(pair.priceUsd)),chg(pc.h24)],["Market cap",usd(pair.marketCap??pair.fdv),""],["Liquidez",usd(pair.liquidity&&pair.liquidity.usd),""],
     ["Volumen 24 h",usd(vol.h24),chg(null)],["Holders",cr&&cr.holders&&cr.holders.count?num(cr.holders.count):"—",""],["Antigüedad",ageTxt(ageH),""],["Transacciones 24 h",num((h24.buys||0)+(h24.sells||0)),`<small style="color:var(--muted)">${num(h24.buys)} compras · ${num(h24.sells)} ventas</small>`]]:[];
   const sr=secRows(res);const conf=confidenceOf(res);const confCls=conf.score>=80?"ok":conf.score>=50?"warn":"high";
-  const sizes=res.simSizes&&res.simSizes.length?`<div class="tw"><table class="tt"><thead><tr><th>Compra simulada</th><th>Recuperas al vender</th><th>Pérdida</th></tr></thead><tbody>${res.simSizes.map(z=>`<tr><td>${z.eth} ETH</td><td>${z.ret!=null?(z.ret*100).toFixed(1)+" %":z.status==="sell_failed"?"la venta falla":"sin dato"}</td><td class="${z.ret==null?"":z.ret<0.7?"neg":z.ret<0.9?"":"pos"}">${z.ret!=null?(100-z.ret*100).toFixed(1)+" %":"—"}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Comprar y vender enseguida en simulación, con distintos montos: muestra cuánto sube la pérdida (impacto de precio y comisiones) según el tamaño.</div>`:"";
+  const sizes=res.simSizes&&res.simSizes.length?`<div class="tw"><table class="tt"><thead><tr><th>Compra simulada</th><th>Impacto de precio</th><th>Si vendes enseguida</th></tr></thead><tbody>${res.simSizes.map(z=>`<tr><td>${z.eth} ETH</td><td class="${z.impact==null?"":z.impact>=0.15?"neg":z.impact>=0.05?"":"pos"}">${z.impact==null?"—":z.eth===0.01?"referencia":"+"+(z.impact*100).toFixed(1)+" %"}</td><td>${z.ret!=null?"recuperas "+(z.ret*100).toFixed(1)+" %":z.status==="sell_failed"?"la venta falla":"sin dato"}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Compras simuladas de distinto tamaño: «impacto» = cuánto más caro sale cada token frente a la compra de 0.01 ETH. Vender enseguida recupera casi todo el impacto, por eso la última columna cambia poco; lo que pierdes ahí son comisiones e impuestos.</div>`:"";
   const rep=cr&&cr.rep;const S=cr&&cr.snipers;const H=cr&&cr.holders;
   const tbl=(title,head,rows,note,area)=>rows?`<section class="card ${area||"a-half"}"><h3>${title}</h3><div class="tw"><table class="tt"><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>${note?`<div class="tnote">${note}</div>`:""}</section>`:"";
   const link=a=>`<a href="?t=${esc(a)}">${esc(short(a))}</a>`;
