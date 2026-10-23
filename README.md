@@ -9,6 +9,6 @@ Escáner de riesgo de tokens de **Robinhood Chain (chain 4663)** que corre en tu
 - **Fuentes públicas sin claves:** RPC de Robinhood Chain, Blockscout, DexScreener, GeckoTerminal y la base de creadores propia. Ver [DATA_SOURCES.md](DATA_SOURCES.md).
 - **Privacidad:** no pide wallet ni datos personales. Historial, favoritos y ajustes se guardan solo en tu navegador (`localStorage`).
 
-Documentación: [ARCHITECTURE.md](ARCHITECTURE.md) · [AUDIT_REPORT.md](AUDIT_REPORT.md) · [TEST_RESULTS.md](TEST_RESULTS.md) · [DEPLOYMENT.md](DEPLOYMENT.md) · [docs/SMART_SHARE.md](docs/SMART_SHARE.md).
+Documentación: [PROJECT_STATUS.md](PROJECT_STATUS.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [AUDIT_REPORT.md](AUDIT_REPORT.md) · [SCORING_METHODOLOGY.md](SCORING_METHODOLOGY.md) · [DATA_SOURCES.md](DATA_SOURCES.md) · [TEST_RESULTS.md](TEST_RESULTS.md) · [DEPLOYMENT.md](DEPLOYMENT.md) · [docs/SMART_SHARE.md](docs/SMART_SHARE.md).
 
 **Aviso:** herramienta informativa, no asesoría financiera ni auditoría. «Sin alertas» no significa «seguro» y ninguna revisión garantiza que puedas vender.
