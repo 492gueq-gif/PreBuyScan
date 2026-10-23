@@ -24,6 +24,7 @@
   function classify(check) {
     const t = check.t || "";
     if (check.s === "ok") return { state: "clear", label: STATE.clear.label };
+    if (check.s === "unk" && check.err) return { state: "pending", label: "ERROR TÉCNICO", kind: "error técnico" };
     if (check.s === "unk") {
       if (/^Venta no simulada/.test(t)) return { state: "pending", label: "SIMULACIÓN PENDIENTE", kind: "pendiente" };
       if (/^Dueño del contrato no identificado/.test(t)) return { state: "pending", label: "IDENTIDAD NO VERIFICADA", kind: "no verificado" };
@@ -88,9 +89,9 @@
   // Levels shrink the copy until the QR fits with >=3 px modules (URL <= 700 bytes).
   const LEVELS = [[5, 40, 40], [5, 26, 28], [4, 20, 20], [3, 14, 16], [3, 0, 12]];
   function linkPayload(rep, level) { const [na, tl, nl] = LEVELS[level || 0]; const { m, x, ...core } = rep;
-    return { ...core, n: (core.n || "").slice(0, nl), s: (core.s || "").slice(0, 14), x: x.slice(0, na).map(a => [SCODE[a[0]] || "p", a[2].slice(0, tl)]) }; }
-  function expandAlerts(lite) { const back = { c: "confirmed", s: "suspicious", p: "pending", k: "clear" };
-    return (lite.x || []).map(a => { const st = back[a[0]] || "pending"; return [st, st === "pending" ? (classify({ t: a[1], s: "unk" }).label) : STATE[st].label, a[1], ""]; }); }
+    return { ...core, n: (core.n || "").slice(0, nl), s: (core.s || "").slice(0, 14), x: x.slice(0, na).map(a => [a[1] === "ERROR TÉCNICO" ? "e" : SCODE[a[0]] || "p", a[2].slice(0, tl)]) }; }
+  function expandAlerts(lite) { const back = { c: "confirmed", s: "suspicious", p: "pending", k: "clear", e: "pending" };
+    return (lite.x || []).map(a => { const st = back[a[0]] || "pending"; return [st, a[0] === "e" ? "ERROR TÉCNICO" : st === "pending" ? (classify({ t: a[1], s: "unk" }).label) : STATE[st].label, a[1], ""]; }); }
   async function verifiableLink(rep) {
     let out = null;
     for (let lv = 0; lv < LEVELS.length; lv++) {
@@ -134,7 +135,7 @@
   }
   let MARK = null;
   function loadMark() { if (MARK) return Promise.resolve(MARK);
-    return new Promise(ok => { const im = new Image(); im.onload = () => { MARK = im; ok(im); }; im.onerror = () => ok(null); im.src = "logo-mark.png"; setTimeout(() => ok(null), 5000); }); }
+    return new Promise(ok => { const im = new Image(); im.onload = () => { MARK = im; ok(im); }; im.onerror = () => ok(null); im.src = "logo.svg"; setTimeout(() => ok(null), 5000); }); }
   function brand(g, x, y, size, sub) {
     const s = size * 1.15, top = y - size * 0.95;
     if (MARK) { g.save(); g.shadowColor = C.teal; g.shadowBlur = 22; g.drawImage(MARK, x, top, s, s); g.restore(); } else shield(g, x, top, s);
@@ -228,8 +229,8 @@
     rep.x.slice(0, 4).forEach((a, i) => alertRow(g, 46, 400 + i * 94, 1120, 82, a));
     gauge(g, 1398, 452, 172, rep.sc, vl, vc);
     capsule(g, 1238, 606, 320, 74, vl, vc, 34);
-    const sn = fit(g, "Puntuación · " + scaleNote, 360, 21, 700, FONT_B, 15); txt(g, sn.t, 1398, 712, sn.s, 700, C.gray, FONT_B, "center");
-    txt(g, "Confianza de los datos: " + (rep.cf != null ? rep.cf + " %" : "N/D"), 1398, 744, 24, 800, rep.cf >= 80 ? C.green : rep.cf >= 50 ? C.yellow : C.red, FONT_B, "center");
+    const sn = fit(g, "Safety Score · " + scaleNote, 360, 21, 700, FONT_B, 15); txt(g, sn.t, 1398, 712, sn.s, 700, C.gray, FONT_B, "center");
+    txt(g, "Data Confidence: " + (rep.cf != null ? rep.cf + " %" : "N/D"), 1398, 744, 24, 800, rep.cf >= 80 ? C.green : rep.cf >= 50 ? C.yellow : C.red, FONT_B, "center");
     box(g, 46, 784, 1000, 74, 18, "rgba(0,229,196,.06)", C.teal, 10, 2.5);
     const lf = fit(g, "492gueq-gif.github.io/PreBuyScan/?t=" + rep.a.slice(0, 12) + "…", 900, 32, 800, FONT_B, 18); txt(g, "↗ " + lf.t, 74, 832, lf.s, 800, C.teal, FONT_B);
     box(g, 1066, 784, 488, 74, 18, "rgba(11,23,36,.85)", C.line, 0, 2);
@@ -251,7 +252,7 @@
     gauge(g, 880, 262, 118, rep.sc, vl, vc);
     capsule(g, 770, 396, 220, 56, vl, vc, 25);
     txt(g, scaleNote, 880, 476, 16, 700, C.gray, FONT_B, "center");
-    txt(g, "Confianza de los datos: " + (rep.cf != null ? rep.cf + " %" : "N/D"), 52, 352, 24, 800, rep.cf >= 80 ? C.green : rep.cf >= 50 ? C.yellow : C.red, FONT_B);
+    txt(g, "Data Confidence: " + (rep.cf != null ? rep.cf + " %" : "N/D"), 52, 352, 24, 800, rep.cf >= 80 ? C.green : rep.cf >= 50 ? C.yellow : C.red, FONT_B);
     rep.x.slice(0, 4).forEach((a, i) => alertRow(g, 46, 500 + i * 102, 988, 88, a));
     box(g, 46, 916, 988, 62, 14, "rgba(5,11,18,.7)", C.line, 0, 2);
     const af = fit(g, addr, 940, 30, 500, FONT_M, 18); txt(g, af.t, 540, 957, af.s, 500, C.white, FONT_M, "center");
@@ -285,8 +286,8 @@
     box(g, 40, 372, 1000, 250, 20, "rgba(11,23,36,.92)", C.line, 0, 2);
     gauge(g, 190, 506, 96, rep.sc, vl, vc);
     capsule(g, 330, 404, 290, 62, vl, vc, 28);
-    txt(g, "Puntuación " + rep.sc + "/100 · " + scaleNote, 330, 504, 22, 700, C.white, FONT_B);
-    txt(g, "Confianza de los datos: " + (rep.cf != null ? rep.cf + " %" : "N/D"), 330, 540, 24, 800, rep.cf >= 80 ? C.green : rep.cf >= 50 ? C.yellow : C.red, FONT_B);
+    txt(g, "Safety Score " + rep.sc + "/100 · " + scaleNote, 330, 504, 22, 700, C.white, FONT_B);
+    txt(g, "Data Confidence: " + (rep.cf != null ? rep.cf + " %" : "N/D"), 330, 540, 24, 800, rep.cf >= 80 ? C.green : rep.cf >= 50 ? C.yellow : C.red, FONT_B);
     txt(g, "Algoritmo " + rep.al + " · lo no verificado resta y nunca cuenta como seguro", 330, 574, 18, 600, C.gray, FONT_B);
     // 3 findings grouped
     let y = 652; txt(g, "HALLAZGOS", 52, y, 18, 800, C.gray, FONT_D); y += 14;

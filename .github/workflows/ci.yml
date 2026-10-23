@@ -1,0 +1,66 @@
+name: PreBuyScan CI
+on:
+  pull_request:
+    branches: [gh-pages]
+  push:
+    branches: [feature/prompt-2.2]
+permissions:
+  contents: write
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Lint (syntax of every script, inline scripts and JSON; duplicate ids)
+        run: node tests/lint.js
+      - name: Unit tests (fixtures and mocks, no network)
+        run: node --test tests/*.test.js
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Third-party scripts pinned with SRI (real CDN files)
+        run: python3 tests/sri_check.py
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install playwright==1.56.0 opencv-python-headless pillow && python -m playwright install --with-deps chromium
+      - run: npm install --no-save --no-package-lock axe-core@4.10.2
+      - name: Browser checks (mocked fixtures; desktop, mobile, a11y, QR, visual regression)
+        run: python tests/ui_check.py
+      - name: Publish screenshots and results to a per-run branch
+        if: always()
+        run: |
+          mkdir -p /tmp/o && cp -r out/. /tmp/o/ || true
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git checkout --orphan ci-results && git rm -rfq . && cp -r /tmp/o/. . && git add -A && git commit -qm "ui ${GITHUB_SHA}" && git push origin HEAD:refs/heads/ci/ui-${GITHUB_RUN_ID}
+  live:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
+      - run: git fetch origin gh-pages
+      - name: Real services (non-blocking)
+        run: python tests/live_check.py
+      - name: Publish results to a per-run branch
+        if: always()
+        run: |
+          mkdir -p /tmp/o && cp -r out/. /tmp/o/ || true
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git checkout --orphan ci-live && git rm -rfq . && cp -r /tmp/o/. . && git add -A && git commit -qm "live ${GITHUB_SHA}" && git push origin HEAD:refs/heads/ci/live-${GITHUB_RUN_ID}
