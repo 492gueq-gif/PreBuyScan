@@ -197,19 +197,24 @@
         sellCalls = amt => [...permit(token), tx(router, v4Execute(key, !buyZeroForOne, amt, token, other))];
       } else { out.status = "unsupported"; out.detail = "Tipo de pool no reconocido."; return out; }
 
+      // Both simulations run on the SAME block: on a busy token the price moves between two calls to
+      // "latest", the second buy then returns fewer tokens and selling the first amount fails (a false
+      // "sell failed"; seen on UHI, 23 oct 2026).
+      const pin = o.block ? "0x" + BigInt(o.block).toString(16) : await rpc("eth_blockNumber", [], o);
+      out.block = Number(BigInt(pin));
       // First simulation: the buy, to learn the exact amount received.
       const base = { [ACTOR]: { balance: "0x" + (BUY * 10n).toString(16) } };
       // o.delaySec: the sell (everything after `split`) runs in a second simulated block that many
       // seconds later, to detect time-based locks (sell only right after buying, or only after a cooldown).
       let later = null;
       if (o.delaySec) {
-        const lb = await rpc("eth_getBlockByNumber", ["latest", false], o);
+        const lb = await rpc("eth_getBlockByNumber", [pin, false], o);
         later = { time: "0x" + (BigInt(lb.timestamp) + BigInt(o.delaySec)).toString(16) };   // block number: next one, assigned by the node
       }
       const sim = async (cs, split) => {
         const blocks = later && split ? [{ stateOverrides: base, calls: cs.slice(0, split) }, { blockOverrides: later, calls: cs.slice(split) }]
           : [{ stateOverrides: base, calls: cs }];
-        const r = await rpc("eth_simulateV1", [{ blockStateCalls: blocks, validation: false }, "latest"], o);
+        const r = await rpc("eth_simulateV1", [{ blockStateCalls: blocks, validation: false }, pin], o);
         if (!Array.isArray(r) || r.length !== blocks.length || r.some(b => !b || !Array.isArray(b.calls))) throw new Error("invalid simulation");
         return r.reduce((t, b) => t.concat(b.calls), []);
       };
@@ -237,11 +242,15 @@
       for (let i = mi + 1; i < si; i++) {          // approvals before the sell
         if (!r[i] || r[i].status !== "0x1") { out.status = "unknown"; out.detail = "La aprobación simulada falló."; return out; }
       }
+      out.balBeforeSell = r[bs] && r[bs].status === "0x1" ? uint(r[bs].returnData).toString() : null;
       out.sellGas = r[si] && r[si].gasUsed ? Number(BigInt(r[si].gasUsed)) : null;
       if (r[si] && r[si].status !== "0x1") out.revert = (r[si].error && (r[si].error.data || r[si].error.message)) || r[si].returnData || null;
       if (o.delaySec) out.delaySec = o.delaySec;
-      out.balBeforeSell = r[bs] && r[bs].status === "0x1" ? uint(r[bs].returnData).toString() : null;
-      if (r[si].status !== "0x1") { out.status = "sell_failed"; out.detail = "La compra funcionó pero la venta falló: posible honeypot."; return out; }
+      if (r[si].status !== "0x1") {
+        // Guard: if the balance before selling is below the amount sold, the failure is ours, not the token's.
+        if (out.balBeforeSell != null && BigInt(out.balBeforeSell) < sellAmt) { out.status = "unknown"; out.detail = "La simulación no fue consistente (el saldo cambió entre llamadas)."; return out; }
+        out.status = "sell_failed"; out.detail = "La compra funcionó pero la venta falló: posible honeypot."; return out;
+      }
       if (r[mi].status !== "0x1" || r[ma].status !== "0x1") { out.status = "unknown"; out.detail = "No se pudo medir lo recibido."; return out; }
       const received = uint(r[ma].returnData) - uint(r[mi].returnData);
       const left = uint(decodeOrNull(r[tAfter]));

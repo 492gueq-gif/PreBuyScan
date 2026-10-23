@@ -181,7 +181,7 @@ async function inspect(token,onPartial){
     let r=await window.PBSellSim.simulate(token,pair);simR=r;
     // Time-based locks: the same round trip with the sale one hour later (second simulated block).
     let later=null;
-    if(r.status==="round_trip_ok"||r.status==="sell_failed"){try{later=await window.PBSellSim.simulate(token,pair,{delaySec:3600});}catch(e){later=null;}}
+    if(r.status==="round_trip_ok"||r.status==="sell_failed"){try{later=await window.PBSellSim.simulate(token,pair,{delaySec:3600,block:r.block});}catch(e){later=null;}}
     if(r.status==="sell_failed"&&later&&later.status==="round_trip_ok"){
       simDone=true;
       add({s:"warn",t:"No deja vender en el mismo bloque de la compra",d:"Comprar y vender en el mismo bloque falla, pero vender 1 hora después funciona (recuperas "+Math.round(later.retention*1000)/10+" %). Es una protección anti-bots (cooldown), no un bloqueo permanente."});
@@ -203,7 +203,7 @@ async function inspect(token,onPartial){
     else add({s:"unk",t:"Venta no simulada",d:r.detail||"Simulación no disponible para este par."});
     if(r.status==="round_trip_ok"){
       step("Simulando montos mayores…");
-      const opt=r.sameBlockFailed?{delaySec:3600}:{};
+      const opt=Object.assign({block:r.block},r.sameBlockFailed?{delaySec:3600}:{});   // every size on the same block
       // Price impact = how many fewer tokens each ETH buys at a larger size (a quick round trip hides it).
       simSizes=[{eth:0.01,status:r.status,ret:r.retention,bought:r.boughtRaw?Number(BigInt(r.boughtRaw)/10n**6n):null,boughtRaw:r.boughtRaw,impact:0}];
       for(const eth of [0.1,0.5]){
