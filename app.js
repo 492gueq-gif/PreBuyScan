@@ -713,6 +713,8 @@ $("#alpha-f").addEventListener("change",()=>{const f=$("#alpha-f");const c={};fo
 $("#alpha-reset").addEventListener("click",()=>{store.set("pbs_alpha",{});loadAlpha();});
 async function loadExplore(kind){
   kind=kind||"new";exploreKind=kind;
+  $("#v-explore").dataset.mode=kind;
+  $("#v-explore .vh h2").textContent=kind==="alpha"?"Alpha Radar":"Explorar tokens";
   document.querySelector(".alphabox").hidden=kind!=="alpha";
   if(kind==="alpha"){document.querySelectorAll("#v-explore [data-k]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k==="alpha"));return loadAlpha();}
   kind=kind||"new";document.querySelectorAll("#v-explore [data-k]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===kind));
