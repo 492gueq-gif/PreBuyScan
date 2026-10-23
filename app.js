@@ -854,6 +854,26 @@ function groupsHtml(checks){
     const ok=g.filter(x=>x.s==="ok").length;
     return `<div class="grp"><h4>${esc(c)}<span>${ok} de ${g.length} bien</span></h4><ol class="checks">${g.map(x=>`<li><span class="pill ${x.s}${x.err?" err":""}">${esc(PBScore.labelOf(x))}</span><div class="ck"><b>${esc(x.t)}</b><span>${gloss(x.d)}</span>${x.src?`<em class="src">Fuente: ${esc(x.src)}</em>`:""}</div></li>`).join("")}</ol></div>`;}).join("");
 }
+// Desktop columns flow independently; placeholders restore the original mobile tabs.
+let reportSlots=[];
+function arrangeReportColumns(){
+  const grid=$("#out .panes");
+  if(!grid){reportSlots=[];return;}
+  if(!matchMedia("(min-width:1100px)").matches){
+    for(const {node,marker} of reportSlots)if(marker.isConnected){marker.before(node);marker.remove();}
+    grid.querySelectorAll(":scope > .report-main,:scope > .report-details").forEach(el=>el.remove());
+    reportSlots=[];return;
+  }
+  if(grid.querySelector(":scope > .report-main"))return;
+  reportSlots=[];
+  const left=[".a-chart",".a-map",".a-sim"].flatMap(q=>Array.from(grid.querySelectorAll(q)));
+  const right=Array.from(grid.querySelectorAll(".a-sec,.a-info"));
+  for(const [cls,nodes] of [["report-main",left],["report-details",right]]){
+    const column=document.createElement("div");column.className=cls;
+    for(const node of nodes){const marker=document.createComment("report position");node.before(marker);reportSlots.push({node,marker});column.append(node);}
+    grid.append(column);
+  }
+}
 function render(token,res){
   const {checks,facts,notChecked,tr,cr,pair,sim}=res;lastRes={token,res};
   const n=k=>checks.filter(c=>c.s===k).length;
@@ -936,7 +956,7 @@ function render(token,res){
    </div>
    <div class="note">${notChecked.length?"No revisado: "+esc(notChecked.join("; "))+". ":""}Liquidez bloqueada en contratos de terceros: no se verifica hasta cuándo.<br>Revisado ${res.block?"en el bloque "+res.block.toLocaleString("es-MX")+" · ":""}${esc(new Date(res.scannedAt||Date.now()).toLocaleString("es-MX"))} · algoritmo ${esc(res.algo||ALGO_VERSION)} · <a href="#metodo" data-nav="method">cómo calculamos</a>.</div>
   </div>`;
-  bindSim($("#out"),res);autoMap();animateRings();
+  arrangeReportColumns();bindSim($("#out"),res);autoMap();animateRings();
   stopMarket();
   stopMarket=window.PBLive&&pair?PBLive.mount($("#market-tape"),{token,pool:pair.pairAddress,holders:H,fetchJSON:timed,isActive:()=>document.body.dataset.view==="result"}):()=>{};
   addHistory({t:token,name,sym,img,score,v:cls,at:Date.now(),type:"token",algo:ALGO_VERSION,conf:conf.score});
@@ -1244,3 +1264,5 @@ if(isDesk())loadRail("new");
 chainTick();setInterval(()=>{if(!document.hidden)chainTick();},30000);setInterval(chainState,10000);
 (()=>{const q=new URLSearchParams(location.search).get("t")||location.hash.slice(1);if(q&&/^0x[0-9a-fA-F]{40}$/.test(q.trim()))analyze(q.trim());})();
 matchMedia("(min-width:1100px)").addEventListener?.("change",ev=>{if(ev.matches&&$("#rail-trend").querySelector(".empty, .busy"))loadRail("new");});
+
+matchMedia("(min-width:1100px)").addEventListener?.("change",arrangeReportColumns);

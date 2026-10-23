@@ -196,6 +196,12 @@ def main():
                     check("report_chart_auto_%d" % w, pg.locator("#out .chart iframe[loading=eager]").count() == 1)
                     check("report_map_auto_%d" % w, pg.locator("#mapsvg").is_visible() and pg.evaluate("mapBuilds") == 1)
                     check("report_no_overflow_%d" % w, pg.evaluate("document.documentElement.scrollWidth") <= w)
+                    if w==1440:
+                        gaps=pg.evaluate("""() => {const cards=[...document.querySelectorAll('.report-details>.card')];return {count:cards.length,gaps:cards.slice(1).map((c,i)=>c.getBoundingClientRect().top-cards[i].getBoundingClientRect().bottom)}}""")
+                        check("detail_cards_compact_column", gaps['count']==3 and all(13<=g<=15 for g in gaps['gaps']), gaps)
+                    else:
+                        check("mobile_original_report_tabs", pg.locator('.report-details').count()==0 and pg.locator('[data-pane=seguridad] .a-sec').count()==1)
+
                     pg.wait_for_selector('#market-tape tbody tr.tape-sell')
                     check("tape_auto_%d" % w, pg.locator('#market-tape tbody tr').count()==2)
                     pg.select_option('.market-side','sell')
