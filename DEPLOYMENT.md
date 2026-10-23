@@ -7,3 +7,11 @@
 - **Trabajos programados (rama `main`):** `creator-db.yml` (cada hora, minuto 41) y `precision-v2.yml` (cada hora, hasta el 29 oct).
 - **Resultados de CI:** capturas y JSON en ramas `ci/ui-<run>` y `ci/live-<run>`; las ramas de resultados se pueden borrar sin afectar el sitio.
 - **Reversión:** fusionar una PR de reversión hacia `gh-pages` (nunca force push).
+
+## CSP y cierre de auditoría
+
+`script-src` no permite `unsafe-inline`: lógica en `app.js`, tema en `theme.js` y sin manejadores de eventos HTML en línea. `style-src` conserva `unsafe-inline` por los estilos en atributos.
+
+El shell `pbs-shell-v12` ya incluye `app.js`, `theme.js`, `i18n.js`, `risk.js` y `contract.js`. El cierre documental no modifica archivos del shell y no necesita otra versión.
+
+Se retira `.github/workflows/diag.yml` por ser temporal. Se conservan los scripts `tests/audit_cases.py`, `tests/probe_*.py` y `tests/diag_*.py`. Los casos de auditoría no se añaden al job live mientras su runner no haga fallar las expectativas incumplidas.

@@ -1,4 +1,18 @@
-# Resultados de pruebas — Prompt 2.2
+# Resultados de pruebas
+
+## Auditoría externa — revisión del 23 oct 2026
+
+Commit de implementación: `8c738a8`. CI verificada en GitHub: `40011181162`, success en los jobs unit, dependencies, ui y live. El paso de navegador (fixtures, accesibilidad, QR y regresión visual) y el paso de servicios reales terminaron correctamente. No se sustituyeron baselines: la regresión pasó.
+
+Repetición local: lint OK y 36/36 unitarias OK. No se ejecutó navegador local: Playwright no está instalado.
+
+Casos reales: JSON de `ci/probe-40010012917/audit_cases.json` revisado: todas las expectativas de UHI, PONS, PAPER y GRUDGE son verdaderas, sin errores JS y con ancho 360/1440 correcto. UHI vende 0.5 ETH en ese registro; PONS no tiene dueño según código verificado; PAPER muestra discrepancia de fuentes; GRUDGE tiene riesgo alto. Son observaciones históricas, no cotizaciones actuales.
+
+El registro anterior no incluye `_english`: queda pendiente verificar esa prueba en una ejecución posterior. El runner de auditoría registra expectativas, pero no falla automáticamente si una es falsa; no se considera prueba bloqueante por su código de salida.
+
+Los resultados que siguen son el registro histórico de Prompt 2.2; no describen el cierre actual.
+
+# Registro histórico — Prompt 2.2
 
 Commit probado: `139e1dc` (rama `feature/prompt-2.2`). Ejecución de CI: run `39902247016`, conclusión **success** (23 oct 2026, 04:48 UTC).
 
@@ -55,4 +69,4 @@ Capturas: rama `ci/live-39902247016`.
 - **Firma digital** de reportes: no existe (requiere servidor con clave privada). La verificación es solo por hash; la página lo dice.
 - **Pruebas en dispositivos físicos**: solo emulación de viewport en Chromium.
 - **GeckoTerminal** limita a ~30 solicitudes/min; con la red saturada Alpha Radar puede salir incompleto (se indica en pantalla).
-- **CSP** conserva `unsafe-inline` (riesgo residual documentado en `AUDIT_REPORT.md`).
+- **CSP histórica:** conservaba `unsafe-inline`; la auditoría lo eliminó de `script-src`, pero lo conserva en `style-src`.
