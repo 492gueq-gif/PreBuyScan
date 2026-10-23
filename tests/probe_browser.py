@@ -8,7 +8,7 @@ srv = subprocess.Popen([sys.executable, "-m", "http.server", "8820"], stdout=sub
 res = {}
 try:
     with sync_playwright() as p:
-        b = p.chromium.launch(); pg = b.new_page(); pg.goto("http://localhost:8820/index.html")
+        b = p.chromium.launch(); pg = b.new_page(); pg.goto("http://localhost:8820/tests/blank.html")
         for name, it in items.items():
             u, body = (it, None) if isinstance(it, str) else (it["url"], it["body"])
             r = pg.evaluate("""async([u,body])=>{const t0=performance.now();try{const r=await fetch(u,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});

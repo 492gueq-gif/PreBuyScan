@@ -1155,11 +1155,18 @@ function cardCanvas(){
     g.fillStyle="#e3e9ed";g.font="500 30px Manrope, Arial, sans-serif";let t=ck.t;while(g.measureText(t).width>1040&&t.length>4)t=t.slice(0,-2);g.fillText(t,95,y);y+=52;
   }
   if(y===345){g.fillStyle="#27e6a3";g.font="500 30px Manrope, Arial, sans-serif";g.fillText("Sin alertas en las revisiones (no garantiza que sea seguro)",60,y);}
-  g.fillStyle="#27e6a3";g.font="600 24px Manrope, Arial, sans-serif";g.fillText("492gueq-gif.github.io/PreBuyScan/?t="+last.token.slice(0,10)+"…",60,590);
-  g.fillStyle="#93a3ae";g.textAlign="right";g.fillText(new Date().toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"}),1140,590);
+  // Origin proof: report id + SHA-256 of the canonical report (verifiable with the link), analysis date and block.
+  const R=lastRes&&lastRes.token===last.token?lastRes.res:null,P=last.proof;
+  g.fillStyle="#27e6a3";g.font="600 22px Manrope, Arial, sans-serif";g.fillText("492gueq-gif.github.io/PreBuyScan/?t="+last.token.slice(0,10)+"…"+(P?"&r="+P.id:""),60,572);
+  g.fillStyle="#93a3ae";g.font="500 16px 'JetBrains Mono', monospace";
+  g.fillText((P?"Reporte "+P.id+" · SHA-256 "+P.hash.slice(0,16)+"… · ":"")+"Analizado "+new Date(R&&R.scannedAt||Date.now()).toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"})+(R&&R.block?" · bloque "+R.block.toLocaleString("es-MX"):""),60,606);
   return c;
 }
-const cardBlob=()=>new Promise(r=>cardCanvas().toBlob(r,"image/png"));
+async function ensureProof(){
+  if(!last||last.proof||!lastRes||lastRes.token!==last.token||!window.PBShare||!PBScore.isEvaluable(lastRes.res.checks))return;
+  try{last.proof=await PBShare.verifiableLink(PBShare.buildReport(lastRes.token,lastRes.res,shareCtx()));}catch(e){}
+}
+const cardBlob=async()=>{await ensureProof();return new Promise(r=>cardCanvas().toBlob(r,"image/png"));};
 async function downloadCard(){const b=await cardBlob();const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="prebuyscan-"+last.token.slice(0,8)+".png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);flash("Imagen descargada");}
 async function shareIt(){
   const text=last.name+": "+last.v[1]+" ("+last.score+"/100) en PreBuyScan. Scan before the scam.";
