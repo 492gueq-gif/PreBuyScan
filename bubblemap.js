@@ -194,13 +194,13 @@
     svg.call(zoom).on("dblclick.zoom", null);
 
     // ---- 3D "molecule" projection: nodes get depth, the graph turns toward the pointer ----
-    const cx = W / 2, cy = H / 2, depth = Math.min(W, H) * 0.34, FOC = 900;
+    const cx = W / 2, cy = H / 2, depth = Math.min(W, H) * 0.46, FOC = 620;
     const gz = {}; nodes.forEach((n, i) => { const g0 = n.group || 0; if (g0 && gz[g0] == null) gz[g0] = (Math.sin(g0 * 12.9898) * 0.5) * depth;
       n.z = (g0 ? gz[g0] : 0) + (Math.sin(i * 78.233 + 1.7) * 0.5) * depth * (g0 ? 0.5 : 1.3); n.ph = i * 1.618; n.px = n.x; n.py = n.y; n.ps = 1; n.pz = 0; });
     const view = { ax: 0, ay: 0, tax: 0, tay: 0, spin: 0, active: 0, act: 0, drag: false, t: 0 };
     const project = () => {
       const cax = Math.cos(view.ax), sax = Math.sin(view.ax), cay = Math.cos(view.ay + view.spin), say = Math.sin(view.ay + view.spin);
-      const amp = 1.2 + view.act * 3.2, t = view.t;
+      const amp = 1.4 + view.act * 6.5, t = view.t;
       for (const n of nodes) {
         const jx = Math.sin(t * 1.3 + n.ph) * amp, jy = Math.cos(t * 1.1 + n.ph * 1.3) * amp, jz = Math.sin(t * 0.9 + n.ph * 0.7) * amp * 4;
         const dx = n.x - cx + jx, dy = n.y - cy + jy, dz = (n.z + jz) * view.act;
@@ -296,7 +296,7 @@
       linkSel.attr("d", l => { const c = curve(l); return `M${c[0]},${c[1]}Q${c[2]},${c[3]} ${c[4]},${c[5]}`; })
         .attr("stroke-opacity", l => Math.max(.12, .45 - ((l.source.pz + l.target.pz) / 2 / dmax) * .3));
       nodeG.attr("transform", n => `translate(${n.px},${n.py}) scale(${(n.ps * (n === hovered ? 1.22 : 1)).toFixed(3)})`)
-        .each(function (n) { this.style.opacity = this.classList.contains("dim") ? "" : Math.max(.35, Math.min(1, 1 - (n.pz / dmax) * .55)).toFixed(2); });
+        .each(function (n) { this.style.opacity = this.classList.contains("dim") ? "" : Math.max(.25, Math.min(1, 1 - (n.pz / dmax) * .75)).toFixed(2); });
       if (++frame % 8 === 0) nodeG.sort((a, b) => b.pz - a.pz);
     };
     let hovered = null;
@@ -309,7 +309,7 @@
     let idleT = 0;
     const svgEl = svg.node();
     const aim = ev => { const b = svgEl.getBoundingClientRect(); const mx = (ev.clientX - b.left) / b.width - .5, my = (ev.clientY - b.top) / b.height - .5;
-      view.tay = mx * 1.25; view.tax = -my * .9; view.active = 1; clearTimeout(idleT); };
+      view.tay = mx * 2.3; view.tax = -my * 1.6; view.active = 1; clearTimeout(idleT); };
     svgEl.addEventListener("pointermove", aim); svgEl.addEventListener("pointerdown", aim);
     svgEl.addEventListener("pointerenter", aim);
     svgEl.addEventListener("pointerleave", () => { idleT = setTimeout(() => { view.active = 0; view.tax = 0; view.tay = 0; }, 900); });
@@ -331,12 +331,12 @@
         if (!el.isConnected) return;
         raf = requestAnimationFrame(stepF);
         if (document.hidden) return;
-        view.t += 0.016 * (0.6 + view.act * 1.4);
+        view.t += 0.016 * (0.6 + view.act * 2.4);
         const want = view.drag ? 0 : view.active;
         view.act += (want - view.act) * 0.06;
         const tx = view.drag ? 0 : view.tax, ty = view.drag ? 0 : view.tay;
-        view.ax += (tx - view.ax) * 0.07; view.ay += (ty - view.ay) * 0.07;
-        if (view.active && !view.drag) view.spin += 0.0025; else view.spin *= 0.96;
+        view.ax += (tx - view.ax) * 0.1; view.ay += (ty - view.ay) * 0.1;
+        if (view.active && !view.drag) view.spin += 0.007; else view.spin *= 0.96;
         paint();
         if (flowing) partSel.each(function (p) { p.t += p.v; if (p.t > 1) p.t -= 1; const c = curve(p.l), u = p.t, a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, d = u * u;
             this.setAttribute("cx", a * c[0] + b * c[2] + d * c[4]); this.setAttribute("cy", a * c[1] + b * c[3] + d * c[5]); });
