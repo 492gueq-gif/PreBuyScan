@@ -1276,3 +1276,19 @@ chainTick();setInterval(()=>{if(!document.hidden)chainTick();},30000);setInterva
 matchMedia("(min-width:1100px)").addEventListener?.("change",ev=>{if(ev.matches&&$("#rail-trend").querySelector(".empty, .busy"))loadRail("new");});
 
 matchMedia("(min-width:1100px)").addEventListener?.("change",arrangeReportColumns);
+
+
+// Pointer interaction affects only the home background, never the content.
+{
+  const hero=document.querySelector(".hero"),bg=hero?.querySelector(".globe");
+  const reduced=matchMedia("(prefers-reduced-motion: reduce)");
+  if(hero&&bg){
+    hero.addEventListener("pointermove",e=>{
+      if(reduced.matches||e.pointerType==="touch")return;
+      const r=hero.getBoundingClientRect();
+      bg.style.setProperty("--hero-x",((e.clientX-r.left)/r.width*16-8).toFixed(1)+"px");
+      bg.style.setProperty("--hero-y",((e.clientY-r.top)/r.height*12-6).toFixed(1)+"px");
+    },{passive:true});
+    hero.addEventListener("pointerleave",()=>{bg.style.removeProperty("--hero-x");bg.style.removeProperty("--hero-y");});
+  }
+}
