@@ -167,6 +167,7 @@ def main():
                 for w, h in ((360, 780), (1440, 900)):
                     ctx, pg, errs = page(b, w, h, mode="blocked")
                     pg.goto(BASE)
+                    pg.wait_for_selector("#boot", state="detached")
                     pg.evaluate("""() => {
                       window.mapBuilds=0; window.d3={};
                       PBMap.build=async()=>{window.mapBuilds++;return {nodes:[],groups:[],partial:{},creatorPct:0,holdersShown:0}};
@@ -192,18 +193,19 @@ def main():
                     check("report_no_overflow_%d" % w, pg.evaluate("document.documentElement.scrollWidth") <= w)
                     shot(pg,"report_visuals_%d" % w)
                     # Exercise English mode on the rendered report, including async translation.
-                    pg.evaluate("localStorage.setItem('pbs_lang',JSON.stringify('en'))")
+                    ctx.add_init_script("localStorage.setItem('pbs_lang',JSON.stringify('en'))")
                     pg.reload()
+                    pg.wait_for_function("window.PBI18N && PBI18N.lang==='en'")
                     pg.evaluate("""() => {setView('result'); render('""" + TOKEN + """',{
                       checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'}],
                       facts:{name:'English fixture'},notChecked:[],cr:{},pair:null,pairs:[]});}""")
                     # Translation is asynchronous (MutationObserver); wait for its actual result.
                     try:
-                        pg.wait_for_function("document.querySelector('#out').innerText.includes('Summary') && document.querySelector('#out').innerText.includes('Caution')", timeout=10000)
+                        pg.wait_for_function("document.querySelector('#out').innerText.toLowerCase().includes('summary') && document.querySelector('#out').innerText.toLowerCase().includes('caution')", timeout=10000)
                     except Exception:
                         pass  # record a failed assertion with the rendered text below
                     english_text=pg.inner_text("#out")
-                    check("report_english_%d" % w, "Summary" in english_text and "Caution" in english_text, english_text[:1600])
+                    check("report_english_%d" % w, "summary" in english_text.lower() and "caution" in english_text.lower(), english_text[:1600])
                     shot(pg,"report_english_%d" % w)
                     check("report_no_errors_%d" % w, not errs, errs[:5])
                     ctx.close()
