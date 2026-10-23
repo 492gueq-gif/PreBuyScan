@@ -1,0 +1,361 @@
+{
+ "kind": "MOCKED_FIXTURES",
+ "passed": 77,
+ "failed": [
+  "visual_home_desktop"
+ ],
+ "results": {
+  "home_desktop_no_errors": {
+   "ok": true,
+   "detail": []
+  },
+  "home_desktop_boot_removed": {
+   "ok": true,
+   "detail": null
+  },
+  "home_desktop_no_overflow": {
+   "ok": true,
+   "detail": {
+    "scrollWidth": 1440,
+    "wide": []
+   }
+  },
+  "home_desktop_vector_logo": {
+   "ok": true,
+   "detail": null
+  },
+  "visual_home_desktop": {
+   "ok": false,
+   "detail": 0.0241
+  },
+  "a11y_home_desktop_all": [],
+  "a11y_home_desktop_no_critical": {
+   "ok": true,
+   "detail": []
+  },
+  "home_mobile_no_errors": {
+   "ok": true,
+   "detail": []
+  },
+  "home_mobile_boot_removed": {
+   "ok": true,
+   "detail": null
+  },
+  "home_mobile_no_overflow": {
+   "ok": true,
+   "detail": {
+    "scrollWidth": 390,
+    "wide": []
+   }
+  },
+  "home_mobile_vector_logo": {
+   "ok": true,
+   "detail": null
+  },
+  "visual_home_mobile": {
+   "ok": true,
+   "detail": 0.02
+  },
+  "a11y_home_mobile_all": [],
+  "a11y_home_mobile_no_critical": {
+   "ok": true,
+   "detail": []
+  },
+  "sidebar_six_buttons": {
+   "ok": true,
+   "detail": [
+    "Inicio",
+    "Analizar",
+    "Explorar",
+    "Alpha Radar",
+    "Precisión",
+    "Ajustes"
+   ]
+  },
+  "explore_tabs_without_alpha": {
+   "ok": true,
+   "detail": [
+    "Nuevos",
+    "Tendencias",
+    "Mayor volumen",
+    "Ganadores",
+    "Favoritos",
+    "Historial"
+   ]
+  },
+  "explore_empty_favourites": {
+   "ok": true,
+   "detail": null
+  },
+  "explore_saved_favourites": {
+   "ok": true,
+   "detail": null
+  },
+  "explore_saved_history": {
+   "ok": true,
+   "detail": null
+  },
+  "local_lists_hide_alpha_filters": {
+   "ok": true,
+   "detail": null
+  },
+  "sidebar_alpha_still_works": {
+   "ok": true,
+   "detail": null
+  },
+  "navigation_no_errors": {
+   "ok": true,
+   "detail": []
+  },
+  "conn_error_badge": {
+   "ok": true,
+   "detail": null
+  },
+  "conn_error_not_evaluable": {
+   "ok": true,
+   "detail": null
+  },
+  "conn_error_technical_pills": {
+   "ok": true,
+   "detail": null
+  },
+  "conn_error_no_history_score": {
+   "ok": true,
+   "detail": null
+  },
+  "conn_error_no_share_card": {
+   "ok": true,
+   "detail": null
+  },
+  "conn_error_no_errors": {
+   "ok": true,
+   "detail": []
+  },
+  "visual_conn_error": {
+   "ok": true,
+   "detail": 0.0081
+  },
+  "a11y_result_conn_error_all": [],
+  "a11y_result_conn_error_no_critical": {
+   "ok": true,
+   "detail": []
+  },
+  "alpha_default_filters_order": {
+   "ok": true,
+   "detail": [
+    "FRESH",
+    "MIDDAY",
+    "WASH",
+    "TRAP"
+   ]
+  },
+  "alpha_activity_badges": {
+   "ok": true,
+   "detail": null
+  },
+  "alpha_high_risk_last_unfavourable": {
+   "ok": true,
+   "detail": "4\nTR\nTRAP ⚡ <6 h\n$40,000 liq. · $9,000 vol 1 h · 50 tx (50 compras / 0 ventas) · 4.0 h\n$0.0123\nActividad 53\nRiesgo: Ries"
+  },
+  "alpha_source_and_time": {
+   "ok": true,
+   "detail": null
+  },
+  "alpha_filter_editable": {
+   "ok": true,
+   "detail": 5
+  },
+  "visual_alpha": {
+   "ok": true,
+   "detail": 0.0033
+  },
+  "alpha_no_errors": {
+   "ok": true,
+   "detail": []
+  },
+  "cards_sizes": {
+   "ok": true,
+   "detail": null
+  },
+  "cards_qr_drawn": {
+   "ok": true,
+   "detail": {
+    "modules": 69,
+    "size": 231
+   }
+  },
+  "cards_error_state_kept": {
+   "ok": true,
+   "detail": [
+    "SEÑAL SOSPECHOSA",
+    "ERROR TÉCNICO"
+   ]
+  },
+  "qr_decodes_to_link": {
+   "ok": true,
+   "detail": 397
+  },
+  "verify_ok": {
+   "ok": true,
+   "detail": null
+  },
+  "verify_tampered_rejected": {
+   "ok": true,
+   "detail": null
+  },
+  "cards_no_errors": {
+   "ok": true,
+   "detail": []
+  },
+  "scan_no_chart_360": {
+   "ok": true,
+   "detail": null
+  },
+  "scan_no_map_360": {
+   "ok": true,
+   "detail": null
+  },
+  "reason_priority_360": {
+   "ok": true,
+   "detail": null
+  },
+  "reason_pending_not_risk_360": {
+   "ok": true,
+   "detail": null
+  },
+  "reason_below_marker_360": {
+   "ok": true,
+   "detail": null
+  },
+  "report_chart_auto_360": {
+   "ok": true,
+   "detail": null
+  },
+  "report_map_auto_360": {
+   "ok": true,
+   "detail": null
+  },
+  "report_no_overflow_360": {
+   "ok": true,
+   "detail": null
+  },
+  "mobile_original_report_tabs": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_auto_360": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_side_filter_360": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_min_filter_360": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_pause_360": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_traders_360": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_holders_unknown_360": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_no_overflow_360": {
+   "ok": true,
+   "detail": null
+  },
+  "report_english_360": {
+   "ok": true,
+   "detail": "Análisis de 0xa01f…fcbd en PreBuyScan\n‹\nToken analysis\nANALYSIS COMPLETE\n23 oct 2026, 12:00 a.m.\nExplorer ↗\nShare\nCopy link\nImage\n☆ Favorite\nSUMMARY\n\nCaution · Safety Score 79/100 · Data Confidence 15 %.\n\nMost important: Low liquidity.\n\nEvery check returned a result; still, this does not guarantee it is safe.\n\n?\n0xa01f…fcbd\n0xa01f…fcbd\n⧉\nRobinhood Chain\nSin web ni redes registradas en DexScreener.\nSAFETY SCORE\n11/100\nCaution\n!\nLow liquidity\n1 precaución\nCobertura\n1 de 1\nData Confidence\n15 %\n¿Por qué recibe esta puntuación?\n\nLa puntuación de 79/100 se debe principalmente a: Liquidez baja. Las señales de precaución limitan la puntuación a un máximo de 79/100.\n\nSummary\nSeguridad\nActividad\nHolders\nAnaliza un token primero; el simulador usa su precio y su venta simulada.\nTarjetas para compartir\nX 1600×900 · Telegram 1080×1080 · Reporte premium 1080×1350\n\nImágenes generadas con los datos reales de este análisis, con un enlace y un QR verificables.\n\nCrear tarjetas\nInformación del contrato\nVer en explorador →\nDirección\n0xa01f…fcbd ⧉\nNetwork\nRobinhood Chain (4663)\nTipo\nERC-20\nCreado\n—\nCreador\n—\nDueño (owner)\nsin owner()\nCódigo\n—\nMapa de wallets\ngrafo de entidades · en vivo\n\nPasa el cursor o el dedo sobre el mapa para verlo en 3D. Burbujas = mayores holders. Las une quién les dio su primer ETH o si se pasaron el token. Un grupo de color suele ser una sola persona con varias wallets.\n\nReintentar mapa de wallets\nNo se pudo armar el mapa: el explorador no respondió. Prueba de nuevo en un minuto.\nLiquidez bloqueada en contratos de terceros: no se verifica hasta cuándo.\nRevisado 23/10/202"
+  },
+  "report_no_errors_360": {
+   "ok": true,
+   "detail": []
+  },
+  "scan_no_chart_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "scan_no_map_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "reason_priority_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "reason_pending_not_risk_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "reason_below_marker_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "report_chart_auto_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "report_map_auto_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "report_no_overflow_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "detail_cards_compact_column": {
+   "ok": true,
+   "detail": {
+    "count": 3,
+    "gaps": [
+     14,
+     14
+    ]
+   }
+  },
+  "tape_auto_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_side_filter_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_min_filter_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_pause_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_traders_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_holders_unknown_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "tape_no_overflow_1440": {
+   "ok": true,
+   "detail": null
+  },
+  "report_english_1440": {
+   "ok": true,
+   "detail": "Análisis de 0xa01f…fcbd en PreBuyScan\nToken analysis\nANALYSIS COMPLETE\n23 oct 2026, 12:00 a.m.\nExplorer ↗\nShare\nCopy link\nImage\n☆ Favorite\nSUMMARY\n\nCaution · Safety Score 79/100 · Data Confidence 15 %.\n\nMost important: Low liquidity.\n\nEvery check returned a result; still, this does not guarantee it is safe.\n\n?\n0xa01f…fcbd\n0xa01f…fcbd\n⧉\nRobinhood Chain\nSin web ni redes registradas en DexScreener.\nSAFETY SCORE\n11/100\nCaution\n!\nLow liquidity\n1 precaución\nCobertura\n1 de 1\nData Confidence\n15 %\n¿Por qué recibe esta puntuación?\n\nLa puntuación de 79/100 se debe principalmente a: Liquidez baja. Las señales de precaución limitan la puntuación a un máximo de 79/100.\n\nTodos los hallazgos\nSafety Score: empieza en 100 y resta por cada alerta; lo no revisado también resta.\nMARKET\n0 OF 1 OK\nCaution\nLow liquidity\nfixture\nAnaliza un token primero; el simulador usa su precio y su venta simulada.\nTarjetas para compartir\nX 1600×900 · Telegram 1080×1080 · Reporte premium 1080×1350\n\nImágenes generadas con los datos reales de este análisis, con un enlace y un QR verificables.\n\nCrear tarjetas\nSin actividad para mostrar.\nMapa de wallets\ngrafo de entidades · en vivo\n\nPasa el cursor o el dedo sobre el mapa para verlo en 3D. Burbujas = mayores holders. Las une quién les dio su primer ETH o si se pasaron el token. Un grupo de color suele ser una sola persona con varias wallets.\n\nReintentar mapa de wallets\nNo se pudo armar el mapa: el explorador no respondió. Prueba de nuevo en un minuto.\nSeguridad del contrato\n?\nHoneypot (venta simulada)\nSin simular\n?\nLiquidez\nSin verificar\n✓\nPuede crear tokens (mint)\nN"
+  },
+  "report_no_errors_1440": {
+   "ok": true,
+   "detail": []
+  }
+ }
+}
