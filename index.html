@@ -11,6 +11,7 @@
 <meta name="theme-color" content="#060b10">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -22,7 +23,7 @@
 /* Dark "scanner console": neon-mint accent on deep navy. Mobile = app with bottom tab bar; desktop = sidebar + main + right rail. */
 :root{
   --bg:#060b10; --bg2:#08111a; --sheet:#0c1620; --sheet2:#101c28; --line:#1a2836; --line2:#22364a;
-  --ink:#e7f2f3; --muted:#8ba1ae; --dim:#5f7482;
+  --ink:#e7f2f3; --muted:#8ba1ae; --dim:#7a8f9d;
   --accent:#27e6a3; --accent2:#13b6c8; --accent-ink:#04140e; --glow:0 0 24px rgba(39,230,163,.25);
   --high:#ff5f6d; --high-bg:rgba(255,95,109,.12); --warn:#ffb547; --warn-bg:rgba(255,181,71,.12);
   --ok:#27e6a3; --ok-bg:rgba(39,230,163,.12); --unk:#8ba1ae; --unk-bg:rgba(139,161,174,.12);
@@ -33,7 +34,7 @@
 }
 :root[data-theme="light"]{
   --bg:#eef3f5; --bg2:#e6edf1; --sheet:#ffffff; --sheet2:#f2f6f8; --line:#d9e2e7; --line2:#cbd6dc;
-  --ink:#0d1b24; --muted:#4f6474; --dim:#738696;
+  --ink:#0d1b24; --muted:#4f6474; --dim:#5d6f7d;
   --accent:#078a60; --accent2:#0a7f8e; --accent-ink:#ffffff; --glow:0 0 18px rgba(7,138,96,.18);
   --high:#c0263a; --high-bg:rgba(192,38,58,.10); --warn:#9a5c00; --warn-bg:rgba(154,92,0,.10);
   --ok:#078a60; --ok-bg:rgba(7,138,96,.10); --unk:#5b6e7c; --unk-bg:rgba(91,110,124,.10);
@@ -52,7 +53,7 @@ body[data-view="result"] .hero{display:none}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ---------- shell ---------- */
-.app{display:grid;grid-template-columns:1fr;min-height:100vh}
+.app{display:grid;grid-template-columns:minmax(0,1fr);min-height:100vh}
 .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:10px max(16px,env(safe-area-inset-left)) 10px max(16px,env(safe-area-inset-right));
   background:var(--topbar);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);flex:0 0 auto}
@@ -350,6 +351,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 .topbar .installbtn{display:none !important}
 @media (max-width:1099px){.topbar .themebtn{display:none}}
 @media (max-width:400px){.chainpill{font-size:.7rem;padding:5px 8px}}
+@media (max-width:420px){.topbar{gap:8px}.brand{flex:0 0 auto}.chainpill{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 @media (min-width:1100px){.topbar .installbtn:not([hidden]){display:inline-flex !important}}
 .installrow{position:relative;display:grid;justify-items:center;gap:6px;margin-top:12px}
 .installbtn{border-color:rgba(39,230,163,.45)}
@@ -510,7 +512,33 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 @media (max-width:520px){.ring.live{width:170px;height:170px}.ring.live .v b{font-size:2.6rem}}
 @media (max-width:1099px){.rtop .ring.live{grid-column:1 / -1;justify-self:center;margin:4px auto}}
 @media (prefers-reduced-motion:reduce){.ring.live *{animation:none!important;transition:none!important}}
+
+/* analysis state (Prompt 2.2) */
+.done.st-partial{background:var(--warn-bg);color:var(--warn)}
+.done.st-connection_error{background:var(--high-bg);color:var(--high)}
+.astate{margin:0 0 12px;padding:10px 14px;border-radius:12px;font-size:.88rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.astate.st-partial{background:var(--warn-bg);color:var(--ink);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
+.astate.st-connection_error{background:var(--high-bg);color:var(--ink);border:1px solid color-mix(in srgb,var(--high) 40%,transparent)}
+.pill.err{border:1px dashed var(--unk)}
+.ring.live .v .lr-cap{font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 2px}
+
+.al .scores{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.alphab{font-size:.74rem;font-weight:700;color:var(--accent2);border:1px solid color-mix(in srgb,var(--accent2) 45%,transparent);border-radius:999px;padding:2px 8px;white-space:nowrap}
+.alphab b{font-family:var(--display)}
+.prio{font-size:.7rem;font-weight:800;color:var(--warn);margin-left:4px}
+
+/* boot splash: shown only until the app script runs */
+#boot{position:fixed;inset:0;z-index:100;display:grid;place-content:center;justify-items:center;gap:10px;background:var(--bg);transition:opacity .35s}
+#boot img{animation:bootPulse 1.4s ease-in-out infinite;filter:drop-shadow(0 0 18px rgba(67,240,192,.5))}
+#boot b{font-family:var(--display);font-size:1.6rem;color:var(--ink)}#boot b span{color:var(--accent)}
+#boot small{color:var(--muted);letter-spacing:.12em}
+#boot.gone{opacity:0;pointer-events:none}
+#boot{animation:bootHide .3s 4s forwards}
+@keyframes bootHide{to{opacity:0;visibility:hidden}}
+@keyframes bootPulse{0%,100%{transform:scale(.96)}50%{transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){#boot img{animation:none}}
 </style></head><body data-view="home">
+<div id="boot" aria-hidden="true"><img src="logo.svg" alt="" width="96" height="96"><b>PreBuy<span>Scan</span></b><small>Scan before the scam</small></div>
 <script>try{const t=localStorage.getItem("pbs_theme");const pref=t?JSON.parse(t):"dark";const dark=pref==="auto"?matchMedia("(prefers-color-scheme: dark)").matches:pref!=="light";document.documentElement.dataset.theme=dark?"dark":"light";}catch(e){document.documentElement.dataset.theme="dark";}</script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -529,7 +557,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 </svg>
 <div class="app">
   <header class="topbar">
-    <a class="brand" href="./" data-nav="home" aria-label="PreBuyScan, inicio"><img class="mark" src="logo-mark.png" alt="" width="42" height="42"><span><b>PreBuy<span>Scan</span></b><small>ANALIZA · DETECTA · PROTEGE · DECIDE</small></span></a>
+    <a class="brand" href="./" data-nav="home" aria-label="PreBuyScan, inicio"><img class="mark" src="logo.svg" alt="" width="42" height="42"><span><b>PreBuy<span>Scan</span></b><small>ANALIZA · DETECTA · PROTEGE · DECIDE</small></span></a>
     <form id="f" class="search" autocomplete="off" role="search">
       <div class="field"><svg width="20" height="20" aria-hidden="true"><use href="#i-search"/></svg>
         <label for="addr" class="sr">Dirección de un token o de una wallet</label>
@@ -591,7 +619,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
       <div id="out" aria-live="polite"></div>
       <section class="card home-only mobile-only"><div class="h3">Últimos analizados <a href="#" data-nav="history">Ver todos →</a></div><ul class="list" id="recent-m"></ul></section>
       <section class="card acc" id="accuracy" aria-labelledby="acc-h">
-        <h3 id="acc-h">Qué tan seguido acierta</h3>
+        <h3 id="acc-h" aria-level="2">Qué tan seguido acierta</h3>
         <p style="padding-top:0">Medimos las señales de mercado con 749 tokens nuevos de Robinhood Chain (17–21 oct 2026), con reglas fijadas antes de ver resultados. Porcentaje que colapsó en 24 h:</p>
         <div class="bars">
           <div class="bar"><span>Riesgo alto <small>(343)</small></span><div class="track"><div class="fill high" style="width:87%"></div></div><b>87 %</b></div>
@@ -600,12 +628,13 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
         </div>
         <p>Un «riesgo alto» casi siempre termina mal, pero «sin alertas» tampoco es seguro: más de la mitad de los tokens nuevos colapsa igual. Las señales nuevas (creador, liquidez, snipers) se están midiendo ahora; resultados el 30 oct. <a href="https://github.com/492gueq-gif/PreBuyScan/blob/research/base-rates-v1/docs/PRECISION_V1.md" target="_blank" rel="noopener">Ver método</a>.</p>
       </section>
-      <section class="card" id="metodo" aria-labelledby="met-h"><h3 id="met-h">Cómo calculamos <span class="tag algov"></span></h3>
+      <section class="card" id="metodo" aria-labelledby="met-h"><h3 id="met-h" aria-level="2">Cómo calculamos <span class="tag algov"></span></h3>
         <div class="tnote" style="font-size:.86rem;padding-top:0">
-        <p><b>Puntuación (0–100, más alto = menos riesgo encontrado).</b> Empieza en 100: cada «Riesgo alto» resta 25, cada «Precaución» 10 y cada «Sin datos» 5. Con cualquier riesgo alto el máximo es 39; con alguna precaución, 79. Un riesgo crítico (venta que falla, liquidez retirable por el creador) nunca queda compensado por otras señales buenas.</p>
-        <p><b>Confianza de los datos (0–100).</b> Qué parte de la revisión se pudo completar: mercado, venta simulada, contrato, dueño, creador e historial, control de la liquidez, snipers, holders y operaciones. Si un dato no se pudo verificar se muestra «NO VERIFICADO» y resta; nunca se toma como ausencia de riesgo.</p>
+        <p><b>Safety Score (0–100, 100 = menor riesgo detectado).</b> Empieza en 100: cada «Riesgo alto» resta 25, cada «Precaución» 10 y cada «Sin datos» 5. Con cualquier riesgo alto el máximo es 39; con alguna precaución, 79. Un riesgo crítico (venta que falla, liquidez retirable por el creador) nunca queda compensado por otras señales buenas.</p>
+        <p><b>Data Confidence (0–100).</b> Qué parte de la revisión se pudo completar: mercado, venta simulada, contrato, dueño, creador e historial, control de la liquidez, snipers, holders y operaciones. Si un dato no se pudo verificar se muestra «NO VERIFICADO» y resta; nunca se toma como ausencia de riesgo.</p>
         <p><b>Fuentes.</b> Cada hallazgo indica de dónde sale: simulación en la RPC pública de Robinhood Chain (sin firmar ni enviar nada), código del contrato en la cadena, explorador Blockscout, DexScreener, GeckoTerminal o la base de creadores de PreBuyScan. Cada reporte indica el bloque y la hora de la revisión.</p>
-        <p><b>Señales de oportunidad (Alpha Radar).</b> Se muestran como señales observadas (volumen, transacciones, compradores), no como puntaje ni predicción. Un puntaje de oportunidad solo se publicará después de medirlo con el mismo método preregistrado de nuestros estudios.</p>
+        <p><b>Alpha Signal Score (Alpha Radar, 0–100).</b> Mide actividad observada en este momento: volumen 1 h frente a liquidez (25), transacciones 1 h (20), proporción de compradores (15), aceleración del volumen en 15 min (20), compradores nuevos (10) y edad del par (10). Es independiente del Safety Score: un token muy activo puede ser muy riesgoso. No predice precio ni ganancias y su valor predictivo no está validado; cualquier afirmación de acierto se publicará solo después de medirla con un estudio preregistrado.</p>
+        <p><b>Cobertura y estado del análisis.</b> Cobertura = comprobaciones con resultado (bien, precaución o riesgo) sobre el total. «Error técnico» significa que un proveedor (RPC, explorador o mercado) no respondió: resta como «Sin datos», nunca cuenta como aprobado y reintentar puede cambiar el resultado. El estado del análisis es Completado, Parcial o Error de conexión.</p>
         <p>Versión del algoritmo: <b class="algov"></b>. Cada análisis guardado registra la versión con la que se hizo.</p></div></section>
       <footer>PreBuyScan, por VIGIA. Herramienta informativa con datos públicos (DexScreener, GeckoTerminal, explorador y RPC pública de Robinhood Chain) desde tu navegador. Simula una compra y venta sin firmar ni enviar nada. No es asesoría financiera ni una auditoría: «sin alertas» no significa «seguro».</footer>
     </div>
@@ -619,12 +648,13 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
       <section class="card alphabox" hidden><div class="h3">Filtros del Alpha Radar <button type="button" class="btn2 sm" id="alpha-reset">Valores iniciales</button></div>
         <form id="alpha-f" class="alphaf">
           <label>Edad máxima<select name="age"><option value="6">6 h</option><option value="12">12 h</option><option value="24">24 h</option></select></label>
+          <label>Prioridad si es menor a<select name="priority"><option value="3">3 h</option><option value="6">6 h</option><option value="12">12 h</option></select></label>
           <label>Liquidez mínima (USD)<input name="liq" type="number" min="0" step="1000"></label>
           <label>Volumen 1 h mínimo (USD)<input name="vol" type="number" min="0" step="500"></label>
           <label>Transacciones 1 h mínimas<input name="tx" type="number" min="0" step="5"></label>
           <label>FDV máximo (USD)<input name="fdv" type="number" min="0" step="50000"></label>
         </form>
-        <div class="tnote">Valores iniciales configurables, no garantías de calidad. Muestra señales observadas, no predicciones; un token con riesgo alto queda marcado y al final de la lista. Busca entre los ~150 pools más nuevos y activos de Robinhood Chain (GeckoTerminal).</div></section>
+        <div class="tnote">Valores iniciales configurables, no garantías de calidad. «Actividad» (Alpha Signal Score, 0–100) mide volumen frente a liquidez, transacciones, presión compradora, aceleración y edad; es independiente del Safety Score y no predice precio ni está validado. Un token con riesgo alto o señales de manipulación nunca recibe una etiqueta favorable y queda al final. Busca entre los ~150 pools más nuevos y activos de Robinhood Chain (GeckoTerminal).</div></section>
       <section class="card"><ul class="list" id="explore-list"><li class="empty">Cargando…</li></ul>
         <div class="tnote">Veredicto rápido solo con datos de mercado (GeckoTerminal), con las reglas cuya precisión publicamos. Toca un token para el análisis completo.</div></section>
     </div>
@@ -662,12 +692,15 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
   <nav class="tabbar" aria-label="Navegación">
     <button data-nav="home" aria-current="page"><svg><use href="#i-home"/></svg>Inicio</button>
     <button data-nav="explore"><svg><use href="#i-search"/></svg>Explorar</button>
-    <button data-nav="analyze" class="center" aria-label="Analizar"><span><img src="logo-mark.png" alt="" width="58" height="58"></span></button>
+    <button data-nav="analyze" class="center" aria-label="Analizar"><span><img src="logo.svg" alt="" width="58" height="58"></span></button>
     <button data-nav="sim"><svg><use href="#i-calc"/></svg>Simulador</button>
     <button data-nav="history" style="position:relative"><svg><use href="#i-clock"/></svg>Historial<span class="badge" hidden></span></button>
   </nav>
 </div>
 
+<script src="net.js"></script>
+<script src="scoring.js"></script>
+<script src="alpha.js"></script>
 <script src="sellsim.js"></script>
 <script src="creator.js"></script>
 <script src="bubblemap.js"></script>
@@ -690,11 +723,9 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 const usd=v=>v==null||isNaN(v)?"—":"$"+Number(v).toLocaleString("es-MX",{maximumFractionDigits:v<1?8:0});
 const num=v=>v==null||isNaN(v)?"—":Number(v).toLocaleString("es-MX");
 
-async function timed(url,opts={},ms=9000){
-  const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);
-  try{const r=await fetch(url,{...opts,signal:c.signal});if(!r.ok)throw new Error("HTTP "+r.status);return await r.json();}
-  finally{clearTimeout(t)}
-}
+// net.js: timeout, bounded retries with backoff, Retry-After, JSON validation, 30 s market cache.
+const timed=(url,opts={},ms=9000)=>PBNet.fetchJSON(url,opts,ms);
+const netCacheClear=()=>PBNet.clear();
 let rpcId=0;
 async function rpc(method,params){
   const j=await timed(RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:++rpcId,method,params})});
@@ -757,7 +788,7 @@ function creatorDB(){
   if(!dbPromise)dbPromise=timed("https://raw.githubusercontent.com/492gueq-gif/PreBuyScan/creator-db/creators.json",{},7000).catch(()=>{dbPromise=null;return null;});
   return dbPromise;
 }
-const ALGO_VERSION="2026.10.22-2";
+const ALGO_VERSION=window.PBScore.ALGO_VERSION;
 const SRC={"Venta":"Simulación eth_simulateV1 en la RPC pública","Contrato":"Código del contrato en la cadena (RPC pública)","Creador y liquidez":"Explorador Blockscout + RPC pública","Lanzamiento":"Explorador Blockscout + RPC pública","Holders":"Explorador Blockscout","Mercado":"DexScreener"};
 async function inspect(token,onPartial){
   const dbP=creatorDB();
@@ -768,7 +799,7 @@ async function inspect(token,onPartial){
   try{
     const pairs=await timed(DEX+token);
     if(Array.isArray(pairs)&&pairs.length){pairsFound=pairs.length;allPairs=pairs;pair=pairs.slice().sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0))[0];}
-  }catch(e){add({s:"unk",t:"Datos de mercado no disponibles",d:"No se pudo consultar DexScreener desde este navegador."});}
+  }catch(e){add({s:"unk",err:true,t:"Datos de mercado no disponibles",d:"No se pudo consultar DexScreener desde este navegador."});}
   if(pair){
     const liq=pair.liquidity?.usd;liqUsd=liq||null;const fdv=pair.fdv??pair.marketCap,ageH=pair.pairCreatedAt?(Date.now()-pair.pairCreatedAt)/3.6e6:null;
     const h24=pair.txns?.h24||{}, h1=pair.txns?.h1||{};
@@ -886,7 +917,7 @@ async function inspect(token,onPartial){
       if(found.length)found.forEach(f=>add({s:renounced?"warn":"high",t:f,d:renounced?"La función existe en el código, aunque la propiedad está renunciada.":"Función detectada en el código del contrato (búsqueda por huella; puede haber falsos positivos)."}));
       else add({s:"ok",t:"Sin funciones peligrosas comunes",d:"No se encontraron mint, lista negra, cambio de comisiones ni pausa entre las variantes conocidas."});
     }
-  }catch(e){add({s:"unk",t:"Contrato no revisado",d:"No se pudo consultar la cadena desde este navegador. Prueba de nuevo más tarde."});}
+  }catch(e){add({s:"unk",err:true,t:"Contrato no revisado",d:"No se pudo consultar la cadena desde este navegador. Prueba de nuevo más tarde."});}
   if(!simDone)notChecked.push("si se puede vender (simulación no disponible para este par)");
   // Creator, liquidity control and holders (explorer data)
   let DBC=null;try{DBC=await dbP;}catch(e){}
@@ -921,10 +952,10 @@ async function inspect(token,onPartial){
       const K=DBC&&DBC.creators&&DBC.creators[D];
       if(K&&K[7]===1)add({s:"unk",t:"Lanzado desde una plataforma",d:short(D)+" es la wallet de una plataforma de lanzamiento, no de una persona."});
       else if(K){add(dbCreatorCheck(K,DBC));facts["Creador"]=short(D);facts["En la base de PreBuyScan"]=K[0]+" tokens · "+K[1]+" muertos";}
-      else add({s:"unk",t:"Historial del creador no disponible",d:"No se pudo consultar el historial de "+short(D)+"."});
+      else add({s:"unk",err:true,t:"Historial del creador no disponible",d:"No se pudo consultar el historial de "+short(D)+"."});
     }
     const lp=cr.lp;
-    if(!lp)add({s:"unk",t:"Control de la liquidez no revisado",d:"No se pudo consultar quién tiene la liquidez del par."});
+    if(!lp)add({s:"unk",err:true,t:"Control de la liquidez no revisado",d:"No se pudo consultar quién tiene la liquidez del par."});
     else if(lp.kind==="v2"){
       if(lp.creatorShare>=50)add({s:"high",t:"El creador puede retirar la liquidez",d:"Tiene "+lp.creatorShare.toFixed(1)+" % de los tokens LP del par en su wallet, sin bloqueo: puede sacar la liquidez cuando quiera (rug pull)."});
       else if(lp.burned>=90)add({s:"ok",t:"Liquidez quemada",d:lp.burned.toFixed(1)+" % de los tokens LP están en una dirección de quemado: nadie puede retirarla."});
@@ -952,7 +983,7 @@ async function inspect(token,onPartial){
   }
   cat="Lanzamiento";
   const S=cr&&cr.snipers;
-  if(!S){if(cr&&cr.creator)add({s:"unk",t:"Snipers no revisados",d:"No se pudo consultar quién compró en el lanzamiento."});}
+  if(!S){if(cr&&cr.creator)add({s:"unk",err:true,t:"Snipers no revisados",d:"No se pudo consultar quién compró en el lanzamiento."});}
   else if(S.n===0)add({s:"ok",t:"Sin snipers detectados",d:"Nadie más compró en el primer minuto de operaciones."});
   else{
     if(S.held>=20)add({s:"high",t:"Los snipers aún tienen "+S.held+" %",d:S.n+" wallets compraron en el primer minuto y siguen con "+S.held+" % del suministro: pueden vender de golpe."});
@@ -964,7 +995,7 @@ async function inspect(token,onPartial){
   if(tr&&tr.bigSells&&liqUsd){const b=tr.bigSells[0];if(b&&b.v>=0.1*liqUsd&&Date.now()-b.ts<6*3.6e6)add({s:"warn",t:"Venta grande reciente",d:short(b.addr)+" vendió "+usd(Math.round(b.v))+" ("+Math.round(b.v/liqUsd*100)+" % de la liquidez) en las últimas horas."});}
   cat="Holders";
   const H=cr&&cr.holders;
-  if(!H||H.top10==null)add({s:"unk",t:"Holders no revisados",d:"No se pudo consultar la lista de holders."});
+  if(!H||H.top10==null)add({s:"unk",err:true,t:"Holders no revisados",d:"No se pudo consultar la lista de holders."});
   else{
     if(H.count)facts["Holders"]=num(H.count);
     const big=H.top[0];
@@ -980,18 +1011,7 @@ const CATS=["Venta","Contrato","Creador y liquidez","Lanzamiento","Holders","Mer
 const lbl={high:"Riesgo alto",warn:"Precaución",ok:"Bien",unk:"Sin datos"};
 const order={high:0,warn:1,unk:2,ok:3};
 // Honest score: anything we could not check costs points; it never counts as passed.
-function scoreOf(checks){
-  let s=100;for(const c of checks)s-=c.s==="high"?25:c.s==="warn"?10:c.s==="unk"?5:0;
-  if(checks.some(c=>c.s==="high"))s=Math.min(s,39);else if(checks.some(c=>c.s==="warn"))s=Math.min(s,79);
-  return Math.max(0,Math.round(s));
-}
-function verdictOf(checks){
-  const n=k=>checks.filter(c=>c.s===k).length;
-  return n("high")?["high","Riesgo alto","Se detectaron señales graves. No compres sin investigar mucho más."]:
-         n("warn")?["warn","Precaución","Hay señales que conviene entender antes de comprar."]:
-         n("ok")?["ok","Sin alertas detectadas","No se encontraron las señales comunes. Esto no garantiza que sea seguro."]:
-         ["unk","Sin datos suficientes","No se pudieron completar las revisiones."];
-}
+const {scoreOf,verdictOf,confidenceOf}=window.PBScore; // scoring.js (tested in tests/)
 let last=null;
 const safeUrl=u=>{try{const x=new URL(u);return x.protocol==="https:"||x.protocol==="http:"?x.href:null;}catch(e){return null;}};
 const SOCIAL={twitter:"X / Twitter",telegram:"Telegram",discord:"Discord",tiktok:"TikTok",instagram:"Instagram",youtube:"YouTube",facebook:"Facebook",reddit:"Reddit",github:"GitHub",medium:"Medium"};
@@ -1054,6 +1074,7 @@ async function ensureQR(){
 function shareCtx(){const res=lastRes.res;return {score:scoreOf(res.checks),verdict:verdictOf(res.checks)[0],confidence:confidenceOf(res).score,algo:ALGO_VERSION,logoUrl:res.pair&&res.pair.info&&safeUrl(res.pair.info.imageUrl)};}
 async function makeCards(btn){
   if(!lastRes||!window.PBShare)return;const box=$("#out .sc-out");const token=lastRes.token;
+  if(!PBScore.isEvaluable(lastRes.res.checks)){box.innerHTML=`<div class="empty">Este análisis no tiene ninguna comprobación concluyente: no se genera una tarjeta para compartir. Reintenta el análisis.</div>`;return;}
   if(btn)btn.disabled=true;box.innerHTML=`<div class="busy"><span>Generando las tres tarjetas…</span></div>`;
   try{
     await ensureQR();
@@ -1102,7 +1123,14 @@ async function showVerification(){
    :`<section class="card verifybox bad"><h3>✕ Reporte no verificado</h3><div class="tnote" style="font-size:.86rem;padding-top:0">${esc(v.reason)} No confíes en la imagen que te compartieron; abajo está el análisis real de hoy.</div></section>`;
 }
 
-function loadScript(src){return new Promise((ok,ko)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=ko;document.head.appendChild(s);});}
+// Subresource Integrity for every third-party script (hashes computed in CI from the served files).
+const SRI={
+ "https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js":"sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i",
+ "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js":"sha384-mZT2gIty7ZDdOGkxfP6joZcYdMW1Jvj9dRlfpTmaJAKKXTqzygtB22k7FLe+KZC1",
+ "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js":"sha384-8FWZA6BGMXhsfO+BLtrJK0We6gg5o1JyO8xQm6peWDEUs17ACA5ziE/NIAkl9z2k"};
+function loadScript(src){return new Promise((ok,ko)=>{const s=document.createElement("script");s.src=src;
+  const h=SRI[src];if(h&&!/PENDING/.test(h)){s.integrity=h;s.crossOrigin="anonymous";}
+  s.onload=ok;s.onerror=ko;document.head.appendChild(s);});}
 function mapLoadingHtml(){let dots="",lines="";const pts=[];for(let k=0;k<16;k++){const a=k*2.4,rr=40+((k*37)%140);pts.push([50+Math.cos(a)*rr/3.2,50+Math.sin(a)*rr/4.2]);}
   pts.forEach((p,k)=>{if(k)lines+=`<line class="ml-line" x1="${p[0]}%" y1="${p[1]}%" x2="${pts[(k*7)%k][0]}%" y2="${pts[(k*7)%k][1]}%" stroke="#2a6f96" stroke-opacity=".45"/>`;
     dots+=`<circle class="ml-dot" cx="${p[0]}%" cy="${p[1]}%" r="${3+(k%4)*2}" fill="${window.PBMap?window.PBMap.PALETTE[k%8]:"#27e6a3"}" fill-opacity=".5" style="animation-delay:${(k*0.17).toFixed(2)}s"/>`;});
@@ -1144,13 +1172,8 @@ function renderMap(g,cr){
   }});
 }
 
-function quick(liq,buys,sells,ageH){
-  if(liq==null)return "unk";
-  if(liq<5000||(buys>=20&&sells===0))return "high";
-  if(liq<25000||(buys>0&&sells/buys<0.15)||(ageH!=null&&ageH<1))return "warn";
-  return "ok";
-}
-const WETH_ID="robinhood_0x0bd7d308f8e1639fab988df18a8011f41eacad73";
+const quick=PBAlpha.quick; // alpha.js (tested)
+const WETH_ID=PBAlpha.WETH_ID;
 
 // ================= UI (redesign) =================
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
@@ -1206,7 +1229,7 @@ const fmtPrice=p=>{if(p==null||isNaN(p))return "—";if(p>=1)return "$"+p.toLoca
   if(p<=0)return "$0";const z=Math.floor(-Math.log10(p));const digits=Math.round(p*Math.pow(10,z+3));return "$0.0"+String(z).split("").map(d=>SUB[d]).join("")+String(digits).slice(0,4).replace(/0+$/,"");};
 function exploreRow(x,i){return `<li data-scan="${esc(x.t)}"><span class="num" style="width:1.4rem;color:var(--muted)">${i+1}</span>${avatar(x.img,x.nm)}<div class="grow"><b>${esc(x.nm.slice(0,18))}</b><small>${usd(x.liq==null?null:Math.round(x.liq))} liq. · ${ageTxt(x.ageH)}</small></div><div class="num">${fmtPrice(x.price)}<br>${x.ch==null?"":`<span class="${x.ch>=0?"pos":"neg"}">${x.ch>=0?"+":""}${x.ch.toFixed(1)} %</span>`}</div><span class="pill ${x.q}">${lbl[x.q]}</span></li>`;}
 // ---------- Alpha Radar: early-activity filters + observed signals (no opportunity score until validated) ----------
-const ALPHA_DEFAULT={age:6,liq:15000,vol:3000,tx:30,fdv:1000000};
+const ALPHA_DEFAULT=PBAlpha.DEFAULTS;
 const alphaCfg=()=>({...ALPHA_DEFAULT,...store.get("pbs_alpha",{})});
 let alphaCache=null;
 async function alphaPools(){
@@ -1214,44 +1237,36 @@ async function alphaPools(){
   const B="https://api.geckoterminal.com/api/v2/networks/robinhood/";
   const paths=["new_pools?page=1","new_pools?page=2","new_pools?page=3","trending_pools?page=1","pools?page=1&sort=h24_volume_usd_desc","pools?page=2&sort=h24_volume_usd_desc","pools?page=1&sort=h24_tx_count_desc"];
   const pools={};
-  for(const pth of paths){try{const j=await timed(B+pth,{},12000);for(const p of j.data||[]){const a=p.attributes||{};if(a.address)pools[a.address.toLowerCase()]=p;}}catch(e){}}
-  const list=Object.values(pools);alphaCache={at:Date.now(),pools:list};return list;
-}
-function alphaEval(p,cfg){
-  const a=p.attributes||{},r=p.relationships||{};
-  let tid=r.base_token&&r.base_token.data&&r.base_token.data.id;let nm=(a.name||"").split(" / ")[0];let inv=false;
-  if(tid===WETH_ID){tid=r.quote_token&&r.quote_token.data&&r.quote_token.data.id;nm=(a.name||"").split(" / ")[1]||nm;inv=true;}
-  const t=(tid||"").split("_")[1];if(!/^0x[0-9a-f]{40}$/.test(t||""))return null;
-  const num0=x=>Number(x)||0;const v=a.volume_usd||{},tx=a.transactions||{};
-  const ageH=a.pool_created_at?(Date.now()-Date.parse(a.pool_created_at))/3.6e6:null;
-  const liq=num0(a.reserve_in_usd),fdv=num0(a.fdv_usd||a.market_cap_usd),vol1=num0(v.h1),vol15=num0(v.m15),
-    h1=tx.h1||{},m15=tx.m15||{},tx1=num0(h1.buys)+num0(h1.sells);
-  const pass=ageH!=null&&ageH<=cfg.age&&liq>=cfg.liq&&vol1>=cfg.vol&&tx1>=cfg.tx&&(!fdv||fdv<=cfg.fdv);
-  const sig=[];
-  if(vol1>0&&vol15*4>vol1*1.3)sig.push("Volumen acelerando (15 min)");
-  if(num0(h1.buyers)>0&&num0(h1.buyers)>=1.5*Math.max(1,num0(h1.sellers)))sig.push("Más compradores que vendedores (1 h)");
-  if(num0(h1.buyers)>0&&num0(m15.buyers)*4>num0(h1.buyers)*1.2)sig.push("Compradores únicos en aumento");
-  const pc=Number((a.price_change_percentage||{}).h1);if(!inv&&pc>=10)sig.push("Precio +"+Math.round(pc)+" % en 1 h");
-  const q=quick(liq,num0((tx.h6||{}).buys),num0((tx.h6||{}).sells),ageH);
-  return {t,nm,ageH,liq,fdv,vol1,tx1,pass,sig,q,price:Number(inv?a.quote_token_price_usd:a.base_token_price_usd),ch:inv?null:Number((a.price_change_percentage||{}).h24)};
+  let failed=0;
+  const reasons=[];
+  for(const pth of paths){try{const j=await timed(B+pth,{},12000);for(const p of j.data||[]){const a=p.attributes||{};if(a.address)pools[a.address.toLowerCase()]=p;}}catch(e){failed++;reasons.push(pth.split("?")[0]+":"+(e.kind||"error")+(e.status?" "+e.status:""));}}
+  if(failed===paths.length)throw new Error("GeckoTerminal unavailable");
+  const list=Object.values(pools);alphaCache={at:Date.now(),pools:list,failed,reasons};return list;
 }
 function alphaRow(x,i){
-  const blocked=x.q==="high";
-  return `<li class="al" data-scan="${esc(x.t)}"><span class="num" style="width:1.4rem;color:var(--muted)">${i+1}</span>${avatar(x.img,x.nm)}<div class="grow"><b>${esc(x.nm.slice(0,18))}</b><small>${usd(Math.round(x.liq))} liq. · ${usd(Math.round(x.vol1))} vol 1 h · ${x.tx1} tx · ${ageTxt(x.ageH)}</small></div>
-    <div class="num">${fmtPrice(x.price)}</div><span class="pill ${x.q}">${lbl[x.q]}</span>
-    <div class="sigs">${blocked?`<span class="sig bad">Riesgo alto: sin etiqueta favorable</span>`:x.sig.length?x.sig.map(z=>`<span class="sig">${esc(z)}</span>`).join(""):`<span class="sig dim">Sin señales extra</span>`}</div></li>`;
+  const blocked=!x.favourable;
+  const lc=x.liqChange?`<span class="sig ${x.liqChange.pct<0?"bad":""}">Liquidez ${x.liqChange.pct>=0?"+":""}${Math.round(x.liqChange.pct)} % desde ${esc(ago(x.liqChange.since))}</span>`:"";
+  return `<li class="al" data-scan="${esc(x.t)}"><span class="num" style="width:1.4rem;color:var(--muted)">${i+1}</span>${avatar(x.img,x.nm)}<div class="grow"><b>${esc(x.nm.slice(0,18))}${x.priority?` <span class="prio" title="Par con menos de ${ALPHA_DEFAULT.priority} h">⚡ &lt;${alphaCfg().priority} h</span>`:""}</b><small>${usd(Math.round(x.liq))} liq. · ${usd(Math.round(x.vol1))} vol 1 h · ${x.tx1} tx (${x.buys1} compras / ${x.sells1} ventas) · ${ageTxt(x.ageH)}</small></div>
+    <div class="num">${fmtPrice(x.price)}</div>
+    <div class="scores"><span class="alphab" title="Alpha Signal Score: actividad observada, no seguridad ni predicción">Actividad <b>${x.alpha}</b></span><span class="pill ${x.q}" title="Riesgo rápido con datos de mercado; el análisis completo es Risk Shield">Riesgo: ${lbl[x.q]}</span></div>
+    <div class="sigs">${x.q==="high"?`<span class="sig bad">Riesgo alto: sin etiqueta favorable</span>`:""}${x.warn.map(z=>`<span class="sig bad">${esc(z)}</span>`).join("")}${lc}${!blocked&&x.sig.length?x.sig.map(z=>`<span class="sig">${esc(z)}</span>`).join(""):!x.warn.length&&x.q!=="high"?`<span class="sig dim">Sin señales extra</span>`:""}</div></li>`;
 }
 async function loadAlpha(){
   const box=$("#explore-list");box.innerHTML=`<li class="busy" style="cursor:default">Buscando entre los pools nuevos y activos…</li>`;
   const cfg=alphaCfg();const f=$("#alpha-f");for(const k of Object.keys(cfg))if(f.elements[k])f.elements[k].value=cfg[k];
   try{
-    const rows=(await alphaPools()).map(p=>alphaEval(p,cfg)).filter(x=>x&&x.pass);
-    const seen=new Set();let uniq=rows.filter(x=>!seen.has(x.t)&&seen.add(x.t));
-    uniq.sort((a,b)=>((a.q==="high")-(b.q==="high"))||(b.sig.length-a.sig.length)||(b.vol1-a.vol1));
-    uniq=uniq.slice(0,25);
+    const pools=await alphaPools();const now=Date.now();const prev=store.get("pbs_alpha_liq",{});
+    const rows=pools.map(p=>{const a=p.attributes||{};return PBAlpha.evaluate(p,cfg,now,prev[String(a.address||"").toLowerCase()]||null);});
+    // Remember liquidity per pool in this browser to show its change on the next visit.
+    const next={};for(const x of rows)if(x&&x.pool&&x.liq>0)next[x.pool]={liq:x.liq,at:now};
+    for(const [k,v] of Object.entries(prev))if(!next[k]&&now-v.at<7*86400e3)next[k]=v;
+    store.set("pbs_alpha_liq",Object.fromEntries(Object.entries(next).slice(-600)));
+    let uniq=PBAlpha.rank(rows).slice(0,25);
     try{const ps=await timed(DEX+uniq.map(x=>x.t).join(","),{},9000);const img={};for(const p of ps||[]){const b=(p.baseToken&&p.baseToken.address||"").toLowerCase();if(!img[b]&&p.info&&p.info.imageUrl)img[b]=safeUrl(p.info.imageUrl);}uniq.forEach(x=>{x.img=img[x.t]||null;});}catch(e){}
-    box.innerHTML=uniq.length?`<li class="empty" style="cursor:default">${uniq.length} token(s) pasan los filtros ahora. Toca uno para el análisis completo (Risk Shield).</li>`+uniq.map(alphaRow).join(""):`<li class="empty">Ningún token pasa los filtros ahora mismo. Prueba con una edad mayor o menos liquidez mínima.</li>`;
-  }catch(e){box.innerHTML=`<li class="empty">No se pudo cargar. Prueba en un momento.</li>`;}
+    const when=new Date(alphaCache.at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+    const head=`<li class="empty" style="cursor:default">Fuente: GeckoTerminal (${pools.length} pools) · actualizado ${esc(when)}${alphaCache.failed?` · ${alphaCache.failed} consulta(s) fallaron: lista incompleta`:""}. «Actividad» es el Alpha Signal Score: mide movimiento, no seguridad ni ganancias.</li>`;
+    box.innerHTML=uniq.length?head+`<li class="empty" style="cursor:default">${uniq.length} token(s) pasan los filtros. Toca uno para el análisis completo (Risk Shield).</li>`+uniq.map(alphaRow).join(""):head+`<li class="empty">Ningún token pasa los filtros ahora mismo. Prueba con una edad mayor o menos liquidez mínima.</li>`;
+  }catch(e){box.innerHTML=`<li class="empty">Error de conexión con GeckoTerminal. Prueba en un momento.</li>`;}
 }
 $("#alpha-f").addEventListener("change",()=>{const f=$("#alpha-f");const c={};for(const k of Object.keys(ALPHA_DEFAULT)){const v=Number(f.elements[k].value);if(!isNaN(v))c[k]=v;}store.set("pbs_alpha",c);loadAlpha();});
 $("#alpha-reset").addEventListener("click",()=>{store.set("pbs_alpha",{});loadAlpha();});
@@ -1271,11 +1286,19 @@ async function loadRail(kind){
 }
 
 // ---------- chain status (public RPC) ----------
+let chainOkAt=0;
 async function chainTick(){
   try{const b=parseInt(await rpc("eth_blockNumber",[]),16);const g=parseInt(await rpc("eth_gasPrice",[]),16)/1e9;
-    $("#cblock").textContent=b.toLocaleString("es-MX");$("#cgas").textContent=(g<0.01?g.toFixed(4):g.toFixed(3))+" gwei";$("#cstate").textContent="Conectado";
-    document.querySelectorAll(".dot").forEach(d=>{d.style.background="";d.style.boxShadow="";});}
-  catch(e){$("#cstate").textContent="Sin respuesta";document.querySelectorAll(".dot").forEach(d=>{d.style.background="var(--warn)";d.style.boxShadow="none";});}
+    if(!isFinite(b)||!isFinite(g))throw new Error("invalid");
+    chainOkAt=Date.now();$("#cblock").textContent=b.toLocaleString("es-MX");$("#cgas").textContent=(g<0.01?g.toFixed(4):g.toFixed(3))+" gwei";}
+  catch(e){}
+  chainState();
+}
+// Healthy only with a successful check in the last 90 s; never a stale "Conectado".
+function chainState(){
+  const age=chainOkAt?Math.round((Date.now()-chainOkAt)/1000):null;const ok=age!=null&&age<=90;
+  $("#cstate").textContent=ok?"Conectado · hace "+age+" s":chainOkAt?"Sin comprobación reciente":"Sin respuesta";
+  document.querySelectorAll(".dot").forEach(d=>{d.style.background=ok?"":"var(--warn)";d.style.boxShadow=ok?"":"none";});
 }
 
 // ---------- views ----------
@@ -1375,22 +1398,6 @@ function renderSimView(){
 }
 
 // ---------- data confidence (how much of the review could actually be completed) ----------
-function confidenceOf(res){
-  const {checks,pair,tr,cr}=res;const has=re=>checks.some(c=>re.test(c.t));
-  const parts=[
-    ["Datos de mercado",15,!!pair],
-    ["Venta simulada",20,has(/^(La venta simulada funciona|La venta simulada falla|Pérdida (muy )?alta al vender)/)],
-    ["Código del contrato",15,!has(/^(Contrato no revisado|No hay contrato)/)],
-    ["Dueño del contrato",5,has(/^(Propiedad renunciada|El contrato tiene dueño activo)/)],
-    ["Creador identificado",10,!!(cr&&cr.creator)],
-    ["Historial del creador",10,!!(cr&&cr.creator)&&!has(/^(Historial del creador (no disponible|incompleto)|Creador no identificado)/)],
-    ["Control de la liquidez",10,!has(/^(Control de la liquidez no revisado|No sabemos quién tiene la liquidez|Liquidez en un contrato$)/)&&!!(cr&&cr.creator)],
-    ["Snipers del lanzamiento",5,!!(cr&&cr.snipers)],
-    ["Holders",5,!!(cr&&cr.holders&&cr.holders.top10!=null)],
-    ["Operaciones recientes",5,!!tr]];
-  const got=parts.reduce((t,p)=>t+(p[2]?p[1]:0),0);
-  return {score:got,parts};
-}
 // ---------- token report ----------
 function tagList(pair,cr){
   const t=[["Robinhood Chain",""]];if(pair)t.push([(pair.dexId||"")+((pair.labels||[]).length?" "+pair.labels.join(" ").toUpperCase():""),""]);
@@ -1405,17 +1412,19 @@ function linksOf(pair){
 function groupsHtml(checks){
   return CATS.map(c=>{const g=checks.filter(x=>x.c===c).sort((a,b)=>order[a.s]-order[b.s]);if(!g.length)return "";
     const ok=g.filter(x=>x.s==="ok").length;
-    return `<div class="grp"><h4>${esc(c)}<span>${ok} de ${g.length} bien</span></h4><ol class="checks">${g.map(x=>`<li><span class="pill ${x.s}">${lbl[x.s]}</span><div class="ck"><b>${esc(x.t)}</b><span>${esc(x.d)}</span>${x.src?`<em class="src">Fuente: ${esc(x.src)}</em>`:""}</div></li>`).join("")}</ol></div>`;}).join("");
+    return `<div class="grp"><h4>${esc(c)}<span>${ok} de ${g.length} bien</span></h4><ol class="checks">${g.map(x=>`<li><span class="pill ${x.s}${x.err?" err":""}">${esc(PBScore.labelOf(x))}</span><div class="ck"><b>${esc(x.t)}</b><span>${esc(x.d)}</span>${x.src?`<em class="src">Fuente: ${esc(x.src)}</em>`:""}</div></li>`).join("")}</ol></div>`;}).join("");
 }
 function render(token,res){
   const {checks,facts,notChecked,tr,cr,pair,sim}=res;lastRes={token,res};
   const n=k=>checks.filter(c=>c.s===k).length;
-  const v=verdictOf(checks),score=scoreOf(checks),cls=v[0];
+  const v=verdictOf(checks),cls=v[0];
+  // Not evaluable (no conclusive check): no number is shown or stored, never a favourable-looking score.
+  const score=PBScore.isEvaluable(checks)?scoreOf(checks):null;
   const sorted=checks.slice().sort((a,b)=>order[a.s]-order[b.s]);
   last={token,name:facts.name||token,v,score,checks:sorted};
   const info=pair&&pair.info||{};const img=safeUrl(info.imageUrl),banner=safeUrl(info.header);
   const name=(pair&&pair.baseToken&&pair.baseToken.name)||(cr&&cr.creator&&cr.creator.tokenName)||short(token),sym=pair&&pair.baseToken&&pair.baseToken.symbol||"";
-  const ringLbl={high:"Riesgo alto",warn:"Precaución",ok:"Sin alertas",unk:"Sin datos"}[cls];
+  const ringLbl=score==null?"No evaluable":{high:"Riesgo alto",warn:"Precaución",ok:"Sin alertas",unk:"Sin datos"}[cls];
   const hl=sorted.filter(c=>c.s!=="ok").slice(0,5);while(hl.length<5){const o=sorted.find(c=>c.s==="ok"&&!hl.includes(c));if(!o)break;hl.push(o);}
   const links=linksOf(pair);
   const h24=pair&&pair.txns&&pair.txns.h24||{},pc=pair&&pair.priceChange||{},vol=pair&&pair.volume||{};
@@ -1423,7 +1432,7 @@ function render(token,res){
   const chg=x=>x==null?"":`<small class="${x>=0?"pos":"neg"}">${x>=0?"+":""}${Number(x).toFixed(1)} %</small>`;
   const stats=pair?[["Precio (USD)",fmtPrice(Number(pair.priceUsd)),chg(pc.h24)],["Market cap",usd(pair.marketCap??pair.fdv),""],["Liquidez",usd(pair.liquidity&&pair.liquidity.usd),""],
     ["Volumen 24 h",usd(vol.h24),chg(null)],["Holders",cr&&cr.holders&&cr.holders.count?num(cr.holders.count):"—",""],["Antigüedad",ageTxt(ageH),""],["Transacciones 24 h",num((h24.buys||0)+(h24.sells||0)),`<small style="color:var(--muted)">${num(h24.buys)} compras · ${num(h24.sells)} ventas</small>`]]:[];
-  const sr=secRows(res);const conf=confidenceOf(res);const confCls=conf.score>=80?"ok":conf.score>=50?"warn":"high";
+  const sr=secRows(res);const conf=confidenceOf(res);const cov=PBScore.coverageOf(checks),ast=PBScore.analysisStateOf(checks);const nS=k=>checks.filter(c=>PBScore.stateOf(c)===k).length;const confCls=conf.score>=80?"ok":conf.score>=50?"warn":"high";
   const sizes=res.simSizes&&res.simSizes.length?`<div class="tw"><table class="tt"><thead><tr><th>Compra simulada</th><th>Impacto de precio</th><th>Si vendes enseguida</th></tr></thead><tbody>${res.simSizes.map(z=>`<tr><td>${z.eth} ETH</td><td class="${z.impact==null?"":z.impact>=0.15?"neg":z.impact>=0.05?"":"pos"}">${z.impact==null?"—":z.eth===0.01?"referencia":"+"+(z.impact*100).toFixed(1)+" %"}</td><td>${z.ret!=null?"recuperas "+(z.ret*100).toFixed(1)+" %":z.status==="sell_failed"?"la venta falla":"sin dato"}</td></tr>`).join("")}</tbody></table></div><div class="tnote">Compras simuladas de distinto tamaño: «impacto» = cuánto más caro sale cada token frente a la compra de 0.01 ETH. Vender enseguida recupera casi todo el impacto, por eso la última columna cambia poco; lo que pierdes ahí son comisiones e impuestos.</div>`:"";
   const rep=cr&&cr.rep;const S=cr&&cr.snipers;const H=cr&&cr.holders;
   const tbl=(title,head,rows,note,area)=>rows?`<section class="card ${area||"a-half"}"><h3>${title}</h3><div class="tw"><table class="tt"><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>${note?`<div class="tnote">${note}</div>`:""}</section>`:"";
@@ -1439,11 +1448,12 @@ function render(token,res){
     ["Creador",C?link(C.deployer):"—"],["Dueño (owner)",res.owner?(/^0x0+$/.test(res.owner)?"renunciado":link(res.owner)):"sin owner()"],["Código",C?(C.verified?"verificado en el explorador":"no verificado"):"—"]];
   const now=new Date().toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"});
   const fav=isFav(token);
-  $("#out").innerHTML=`<div class="rcard">
-   <div class="rhead"><button class="iconbtn mobile-only" data-nav="home" aria-label="Volver">‹</button><h2>Análisis de token</h2><span class="done">COMPLETADO</span><time>${esc(now)}</time>
+  $("#out").innerHTML=`<div class="rcard"><h1 class="sr">Análisis de ${esc(name)} en PreBuyScan</h1>
+   <div class="rhead"><button class="iconbtn mobile-only" data-nav="home" aria-label="Volver">‹</button><h2>Análisis de token</h2><span class="done st-${ast.key}" title="${esc(ast.detail)}">${esc(ast.label.toUpperCase())}</span><time>${esc(now)}</time>
     <div class="ractions">${pair&&pair.url?`<a class="btn2 sm" href="${esc(pair.url)}" target="_blank" rel="noopener">DexScreener ↗</a>`:""}<a class="btn2 sm" href="https://robinhoodchain.blockscout.com/token/${esc(token)}" target="_blank" rel="noopener">Explorador ↗</a>
      <button class="btn2 sm" type="button" data-act="share">Compartir</button><button class="btn2 sm" type="button" data-act="copy">Copiar enlace</button><button class="btn2 sm" type="button" data-act="img">Imagen</button>
      <button class="btn2 sm" type="button" data-act="fav" aria-pressed="${fav}">${fav?"★":"☆"} Favorito</button><span class="shmsg" role="status"></span></div></div>
+   ${ast.key!=="complete"?`<div class="astate st-${ast.key}" role="status"><b>${esc(ast.label)}.</b> ${esc(ast.detail)}${cov.errors?` <button type="button" class="btn2 sm" data-act="retry">Reintentar análisis</button>`:""}</div>`:""}
    ${banner?`<img class="banner" src="${esc(banner)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:""}
    <section class="card"><div class="rtop">
     <div><div class="ident">${img?`<img class="ticon" src="${esc(img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`:`<span class="ticon ph">${esc((sym||"?").slice(0,2))}</span>`}
@@ -1453,8 +1463,9 @@ function render(token,res){
       ${links.length?`<div class="links" style="margin-top:10px">${links.map(l=>`<a class="btn2 sm" href="${esc(l.u)}" target="_blank" rel="noopener noreferrer nofollow">${esc(l.t)} ↗</a>`).join("")}</div>`:`<div class="disc" style="margin-top:8px">Sin web ni redes registradas en DexScreener.</div>`}
     </div>
     ${liveRing(score,cls,ringLbl)}
-    <ul class="hl">${hl.map(c=>`<li><i class="${c.s}">${ICON[c.s]}</i><span>${esc(c.t)}</span></li>`).join("")}<li style="color:var(--muted);font-size:.78rem">${["high","warn","ok","unk"].filter(k=>n(k)).map(k=>n(k)+" "+lbl[k].toLowerCase()).join(" · ")}</li>
-     <li class="confline"><span>Confianza de los datos</span><span class="confbar"><i class="fill ${confCls}" style="width:${conf.score}%"></i></span><b class="s-${confCls}">${conf.score} %</b></li></ul>
+    <ul class="hl">${hl.map(c=>`<li><i class="${c.s}">${ICON[c.s]}</i><span>${esc(c.t)}</span></li>`).join("")}<li style="color:var(--muted);font-size:.78rem">${["high","warn","ok","unk","err"].filter(k=>nS(k)).map(k=>nS(k)+" "+PBScore.LABEL[k].toLowerCase()).join(" · ")}</li>
+     <li class="confline"><span>Cobertura</span><span class="confbar"><i class="fill ${cov.pct>=80?"ok":cov.pct>=50?"warn":"high"}" style="width:${cov.pct}%"></i></span><b>${cov.done} de ${cov.total}</b></li>
+     <li class="confline"><span>Data Confidence</span><span class="confbar"><i class="fill ${confCls}" style="width:${conf.score}%"></i></span><b class="s-${confCls}">${conf.score} %</b></li></ul>
    </div>
    <div class="rtabs" role="tablist">${[["resumen","Resumen"],["seguridad","Seguridad"],["actividad","Actividad"],["holders","Holders"]].map((t,i)=>`<button role="tab" data-tab="${t[0]}" aria-selected="${i===0}">${t[1]}</button>`).join("")}</div></section>
    <div class="panes">
@@ -1464,8 +1475,8 @@ function render(token,res){
     </div>
     <div class="pane" data-pane="seguridad">
      <section class="card a-sec"><h3>Seguridad del contrato</h3><ul class="secrows">${sr.map(r=>`<li><i class="s-${r[2]}">${ICON[r[2]]}</i><span class="k">${esc(r[0])}</span><span class="val s-${r[2]}">${esc(r[1])}</span></li>`).join("")}</ul>${sizes}</section>
-     <section class="card a-info"><h3>Confianza de los datos <b class="s-${confCls}">${conf.score} %</b></h3><ul class="secrows">${conf.parts.map(p=>`<li><i class="s-${p[2]?"ok":"unk"}">${p[2]?"✓":"?"}</i><span class="k">${esc(p[0])}</span><span class="val ${p[2]?"s-ok":"s-unk"}">${p[2]?"verificado":"NO VERIFICADO"}</span></li>`).join("")}</ul><div class="tnote">Qué parte de la revisión se pudo completar (peso de cada parte en %: mercado 15, venta 20, contrato 15, dueño 5, creador 10, historial 10, liquidez 10, snipers 5, holders 5, operaciones 5). Lo no verificado nunca cuenta como seguro.</div></section>
-     <section class="card a-wide"><h3>Todos los hallazgos <span class="disc">Puntuación: empieza en 100 y resta por cada alerta; lo no revisado también resta.</span></h3>${groupsHtml(checks)}</section>
+     <section class="card a-info"><h3>Data Confidence <b class="s-${confCls}">${conf.score} %</b></h3><ul class="secrows">${conf.parts.map(p=>`<li><i class="s-${p[2]?"ok":"unk"}">${p[2]?"✓":"?"}</i><span class="k">${esc(p[0])}</span><span class="val ${p[2]?"s-ok":"s-unk"}">${p[2]?"verificado":"NO VERIFICADO"}</span></li>`).join("")}</ul><div class="tnote">Qué parte de la revisión se pudo completar (peso de cada parte en %: mercado 15, venta 20, contrato 15, dueño 5, creador 10, historial 10, liquidez 10, snipers 5, holders 5, operaciones 5). Lo no verificado nunca cuenta como seguro.</div></section>
+     <section class="card a-wide"><h3>Todos los hallazgos <span class="disc">Safety Score: empieza en 100 y resta por cada alerta; lo no revisado también resta.</span></h3>${groupsHtml(checks)}</section>
     </div>
     <div class="pane on" data-pane="resumen">
      ${simCard(res,"report")}
@@ -1489,7 +1500,7 @@ function render(token,res){
 function renderProfile(addr,p){
   const checks=p.checks.map(c=>({...c,c:"Perfil"}));
   const n=k=>checks.filter(c=>c.s===k).length;
-  const v=verdictOf(checks),score=scoreOf(checks),cls=v[0];
+  const v=verdictOf(checks),cls=v[0],score=PBScore.isEvaluable(checks)?scoreOf(checks):null;
   const title={high:"Wallet de alto riesgo",warn:"Wallet con señales a revisar",ok:"Sin señales de estafa",unk:"Sin datos suficientes"}[cls];
   last={token:addr,name:"Wallet "+short(addr),v:[cls,title],score,checks:checks.slice().sort((a,b)=>order[a.s]-order[b.s])};lastRes=null;
   const age=d=>d==null?"—":d<1?Math.round(d*24)+" h":d<60?Math.round(d)+" días":Math.round(d/30)+" meses";
@@ -1498,7 +1509,7 @@ function renderProfile(addr,p){
   if(p.db)stats.push(["En la base de PreBuyScan",p.db.launched+" tokens · "+p.db.dead+" muertos"]);
   const st=l=>l==null?["","sin datos"]:l<1000?["neg","muerto"]:["pos","activo"];
   const link=a=>`<a href="?t=${esc(a)}">${esc(short(a))}</a>`;
-  const ringLbl={high:"Riesgo alto",warn:"Precaución",ok:"Sin alertas",unk:"Sin datos"}[cls];
+  const ringLbl=score==null?"No evaluable":{high:"Riesgo alto",warn:"Precaución",ok:"Sin alertas",unk:"Sin datos"}[cls];
   $("#out").innerHTML=`<div class="rcard">
    <div class="rhead"><button class="iconbtn mobile-only" data-nav="home" aria-label="Volver">‹</button><h2>Perfil de wallet</h2><span class="done">COMPLETADO</span>
     <div class="ractions"><a class="btn2 sm" href="https://robinhoodchain.blockscout.com/address/${esc(addr)}" target="_blank" rel="noopener">Explorador ↗</a><button class="btn2 sm" type="button" data-act="share">Compartir</button><button class="btn2 sm" type="button" data-act="copy">Copiar enlace</button><button class="btn2 sm" type="button" data-act="img">Imagen</button><span class="shmsg" role="status"></span></div></div>
@@ -1509,7 +1520,7 @@ function renderProfile(addr,p){
     <ul class="hl">${last.checks.slice(0,5).map(c=>`<li><i class="${c.s}">${ICON[c.s]}</i><span>${esc(c.t)}</span></li>`).join("")}</ul>
    </div></section>
    <dl class="stats">${stats.map(s=>`<div class="stat"><dt>${s[0]}</dt><dd>${s[1]}</dd></div>`).join("")}</dl>
-   <section class="card"><h3>Hallazgos</h3><ol class="checks">${last.checks.map(x=>`<li><span class="pill ${x.s}">${lbl[x.s]}</span><div class="ck"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></div></li>`).join("")}</ol></section>
+   <section class="card"><h3>Hallazgos</h3><ol class="checks">${last.checks.map(x=>`<li><span class="pill ${x.s}${x.err?" err":""}">${esc(PBScore.labelOf(x))}</span><div class="ck"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></div></li>`).join("")}</ol></section>
    ${p.created.length?`<section class="card"><h3>Tokens que creó</h3><div class="tw"><table class="tt"><thead><tr><th>Token</th><th>Liquidez hoy</th><th>Estado</th></tr></thead><tbody>${p.created.map(t=>{const x=st(t.liq);return `<tr><td class="w">${link(t.token)}${t.name?" "+esc(t.name):""}</td><td>${t.liq==null?"—":usd(Math.round(t.liq))}</td><td class="${x[0]}">${x[1]}</td></tr>`;}).join("")}</tbody></table></div><div class="tnote">«Muerto» = menos de $1,000 de liquidez hoy en DexScreener.</div></section>`:""}
    ${p.funded.length?`<section class="card"><h3>Wallets que fondeó</h3><div class="tnote" style="padding-top:0">${p.funded.slice(0,20).map(link).join(" · ")}${p.funded.length>20||p.fundedMore?" …":""}<br>De ${p.fundedSample} revisadas, ${p.fundedFresh} recibieron de esta wallet su primer ETH.</div></section>`:""}
    ${p.traded.length?`<section class="card"><h3>Tokens con los que operó hace poco</h3><div class="tw"><table class="tt"><thead><tr><th>Token</th><th>Último movimiento</th><th>Estado</th></tr></thead><tbody>${p.traded.map(t=>{const x=st(t.liq);return `<tr><td class="w">${link(t.token)}${t.symbol?" "+esc(t.symbol):""}</td><td>${t.dir}${t.ts?" · "+new Date(t.ts).toLocaleDateString("es-MX",{day:"numeric",month:"short"}):""}</td><td class="${x[0]}">${x[1]}</td></tr>`;}).join("")}</tbody></table></div></section>`:""}
@@ -1528,6 +1539,7 @@ $("#out").addEventListener("click",async e=>{
   if(act==="copyaddr"){try{await navigator.clipboard.writeText(last.token);flash("Dirección copiada");}catch(err){prompt("Copia la dirección:",last.token);}return;}
   if(act==="fav"){const r=lastRes&&lastRes.res;const p=r&&r.pair;const on=toggleFav({t:last.token,name:p&&p.baseToken&&p.baseToken.name||last.name,sym:p&&p.baseToken&&p.baseToken.symbol||"",img:p&&p.info&&safeUrl(p.info.imageUrl),score:last.score,v:last.v[0],at:Date.now(),liq:p&&p.liquidity&&p.liquidity.usd||0,price:p?Number(p.priceUsd)||0:0});
     b.setAttribute("aria-pressed",on);b.textContent=(on?"★":"☆")+" Favorito";flash(on?"Guardado en favoritos":"Quitado de favoritos");return;}
+  if(act==="retry"&&last){netCacheClear();analyze(last.token);return;}
   if(act==="cards"){makeCards(b);return;}
   if((act==="share"||act==="img")&&lastRes){const sc=$("#out .sharecards");if(sc){sc.scrollIntoView({behavior:"smooth",block:"start"});if(!shareSet||shareSet.rep.a!==lastRes.token)makeCards($("#out [data-act=cards]"));}return;}
   ({copy:copyLink,share:shareIt,img:downloadCard,map:loadMap})[act]?.(b);
@@ -1535,9 +1547,9 @@ $("#out").addEventListener("click",async e=>{
 
 const STAGES=[["Mercado y gráfico",/^Revisando 0x/],["Venta simulada",/^Simulando compra/],["Venta con montos mayores",/^Simulando montos/],["Operaciones recientes",/^Revisando operaciones/],["Contrato",/^Revisando el contrato/],["Creador, liquidez, snipers y holders",/^Revisando creador/]];
 let stageIdx=0;
-function liveRing(score,cls,lbl){const c=(2*Math.PI*52).toFixed(1),off=(2*Math.PI*52*(1-Math.max(0,Math.min(100,score))/100)).toFixed(1);
+function liveRing(score,cls,lbl){const c=(2*Math.PI*52).toFixed(1),off=score==null?c:(2*Math.PI*52*(1-Math.max(0,Math.min(100,score))/100)).toFixed(1);
   const sparks=Array.from({length:8},(_,i)=>{const a=i/8*Math.PI*2;return `<circle class="lr-spark" cx="${(60+Math.cos(a)*60).toFixed(1)}" cy="${(60+Math.sin(a)*60).toFixed(1)}" r="1.8" style="animation-delay:${(i*0.35).toFixed(2)}s"/>`;}).join("");
-  return `<div class="ring live lr-${cls}" role="img" tabindex="0" aria-label="Puntuación ${score} de 100, ${esc(lbl)}" data-score="${score}">
+  return `<div class="ring live lr-${cls}" role="img" tabindex="0" aria-label="${score==null?"Safety Score no evaluable: ninguna comprobación concluyó":"Safety Score "+score+" de 100 (100 = menor riesgo detectado), "+esc(lbl)}" data-score="${score==null?"":score}">
    <div class="lr-halo"></div><div class="lr-ripple"></div><div class="lr-ripple r2"></div>
    <svg viewBox="0 0 120 120" aria-hidden="true">
     <circle class="lr-track" cx="60" cy="60" r="52" fill="none" stroke-width="9"/>
@@ -1546,10 +1558,11 @@ function liveRing(score,cls,lbl){const c=(2*Math.PI*52).toFixed(1),off=(2*Math.P
     <g class="lr-spin2"><circle cx="60" cy="60" r="58" fill="none" stroke-width="1.2" stroke-dasharray="2 9" opacity=".6"/></g>
     <circle class="lr-ticks" cx="60" cy="60" r="43" fill="none" stroke-width="2" stroke-dasharray="1.5 5.2"/>
     ${sparks}</svg>
-   <div class="v"><b><span class="lr-num">0</span><small>/100</small></b><span class="lr-lbl">${esc(lbl)}</span></div></div>`;}
+   <div class="v"><span class="lr-cap">Safety Score</span><b><span class="lr-num">${score==null?"—":"0"}</span><small>/100</small></b><span class="lr-lbl">${esc(lbl)}</span></div></div>`;}
 function animateRings(){document.querySelectorAll("#out .ring.live:not(.go)").forEach(el=>{
   const still=matchMedia("(prefers-reduced-motion: reduce)").matches;const target=+el.dataset.score||0;const prog=el.querySelector(".lr-prog"),num=el.querySelector(".lr-num");
   el.classList.add("go");
+  if(el.dataset.score===""){num.textContent="—";el.classList.add("done");return;}
   if(still){prog.setAttribute("stroke-dashoffset",prog.dataset.off);num.textContent=target;el.classList.add("done");return;}
   requestAnimationFrame(()=>requestAnimationFrame(()=>prog.setAttribute("stroke-dashoffset",prog.dataset.off)));
   const t0=performance.now(),D=1400;const tick=t=>{const k=Math.min(1,(t-t0)/D),e=1-Math.pow(1-k,3);num.textContent=Math.round(target*e);if(k<1)requestAnimationFrame(tick);else{el.classList.add("done");}};requestAnimationFrame(tick);
@@ -1732,11 +1745,12 @@ if(isIOS&&!standalone())showInstall(true);
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 
 // ---------- start ----------
+{const b=$("#boot");if(b){b.classList.add("gone");setTimeout(()=>b.remove(),400);}}
 document.querySelectorAll(".algov").forEach(e=>{e.textContent=ALGO_VERSION;});
 showVerification();
 renderRecent();renderAlerts();checkFavourites();
 if(isDesk())loadRail("new");
-chainTick();setInterval(()=>{if(!document.hidden)chainTick();},30000);
+chainTick();setInterval(()=>{if(!document.hidden)chainTick();},30000);setInterval(chainState,10000);
 (()=>{const q=new URLSearchParams(location.search).get("t")||location.hash.slice(1);if(q&&/^0x[0-9a-fA-F]{40}$/.test(q.trim()))analyze(q.trim());})();
 matchMedia("(min-width:1100px)").addEventListener?.("change",ev=>{if(ev.matches&&$("#rail-trend").querySelector(".empty, .busy"))loadRail("new");});
 </script>
