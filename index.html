@@ -400,8 +400,15 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 .scanring .v span{font-size:.68rem;font-weight:800;letter-spacing:.08em;color:var(--accent);margin-top:5px;text-transform:uppercase;max-width:96px;line-height:1.2}
 @keyframes srPulse{0%,100%{transform:scale(.92);opacity:.6}50%{transform:scale(1.06);opacity:1}}
 @keyframes srBlip{0%{opacity:0}8%{opacity:1}60%{opacity:0}100%{opacity:0}}
-@media (max-width:520px){.scanring{width:120px;height:120px}.scanring .v b{font-size:1.5rem}}
+
 @media (prefers-reduced-motion:reduce){.scanring *{animation:none!important}}
+.rtop .scanring{justify-self:center;align-self:center}
+.scanring{width:190px;height:190px}
+.scanring .v b{font-size:2.6rem}.scanring .v span{font-size:.74rem;max-width:120px}
+.scanring .sr-glow{inset:4%}
+@media (max-width:1099px){.rtop .scanring{grid-column:1 / -1;margin:6px auto 4px}.rtop>.grow{grid-column:1 / -1}}
+@media (min-width:1100px){.scanring{width:240px;height:240px}.scanring .v b{font-size:3.3rem}.scanring .v span{font-size:.82rem;max-width:150px}}
+@media (max-width:520px){.scanring{width:180px;height:180px}.scanring .v b{font-size:2.4rem}}
 
 /* ---------- Arkham-style entity graph ---------- */
 .mapsvg.akmap{position:relative;overflow:hidden;border-top:1px solid #12324a;
@@ -453,7 +460,7 @@ footer{font-size:.78rem;color:var(--muted);padding:0 4px}
 @keyframes akPulse{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.18);opacity:.15}}
 @keyframes akIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.akmap *{animation:none!important}}
-.scanwrap{display:flex;gap:20px;align-items:center;padding:16px 16px 0;flex-wrap:wrap}.scanwrap .grow{min-width:220px}
+.scanwrap{display:flex;gap:32px;align-items:center;justify-content:center;padding:24px 16px 6px;flex-wrap:wrap}.scanwrap .grow{flex:0 1 auto;min-width:220px}
 .maploading{position:relative;height:340px;display:grid;place-items:center;border-top:1px solid #12324a;
   background:radial-gradient(ellipse at 50% 40%,#0b2033 0%,#060d16 60%,#03070c 100%);color:#8fb0c4;font-size:.86rem;overflow:hidden}
 .maploading svg{position:absolute;inset:0;width:100%;height:100%;opacity:.8}
