@@ -23,7 +23,7 @@ from datetime import datetime
 
 GT = "https://api.geckoterminal.com/api/v2/networks/robinhood/"
 WETH_ID = "robinhood_0x0bd7d308f8e1639fab988df18a8011f41eacad73"
-SCANS, OUTCOMES, RUNS = "data/scans.jsonl", "data/outcomes.jsonl", "data/runs.jsonl"
+SCANS, OUTCOMES, RUNS, INDEX = "data/scans.jsonl", "data/outcomes.jsonl", "data/runs.jsonl", "data/pool_index.jsonl"
 
 # ---- frozen parameters (see docs/GEMS_V1.md) ----
 START = 1793376000            # 2026-10-30T16:00:00Z first eligible scan
@@ -169,9 +169,9 @@ def _read(path):
 
 
 # ---------- sampling (pure) ----------
-def candidates(pages, now, seen):
-    """Pools aged MIN_AGE..MAX_AGE, one entry per token, excluding tokens already scanned."""
-    out = {}
+def parse_pages(pages):
+    """new_pools pages -> [{token, pool, pool_created}] (the non-WETH side of each pool)."""
+    out = []
     for page in pages:
         for p in page.get("data") or []:
             a, r = p.get("attributes") or {}, p.get("relationships") or {}
@@ -183,10 +183,22 @@ def candidates(pages, now, seen):
             quote = ((r.get("quote_token") or {}).get("data") or {}).get("id")
             tid = quote if base == WETH_ID else base
             token = (tid or "").split("_")[-1].lower()
-            if not re.fullmatch(r"0x[0-9a-f]{40}", token) or token in seen or token in out:
-                continue
-            if MIN_AGE <= now - created <= MAX_AGE:
-                out[token] = dict(token=token, pool=(a.get("address") or "").lower(), pool_created=created)
+            if re.fullmatch(r"0x[0-9a-f]{40}", token):
+                out.append(dict(token=token, pool=(a.get("address") or "").lower(), pool_created=created))
+    return out
+
+
+def candidates(entries, now, seen, min_age=MIN_AGE, max_age=MAX_AGE):
+    """Pools aged min_age..max_age, one entry per token (its first pool seen), excluding tokens already scanned.
+    entries come from the hourly pool index: new_pools only reaches ~1 h back, so pools are recorded when
+    they appear and scanned when they are 1-3 h old."""
+    out = {}
+    for e in sorted(entries, key=lambda e: e["pool_created"]):
+        t = e["token"]
+        if t in seen or t in out:
+            continue
+        if min_age <= now - e["pool_created"] <= max_age:
+            out[t] = dict(token=t, pool=e["pool"], pool_created=e["pool_created"])
     return list(out.values())
 
 
@@ -340,19 +352,28 @@ def collect(now=None, smoke=False):
     import threading
     now = int(now or time.time())
     target = "data/smoke_scans.jsonl" if smoke else SCANS
-    if not smoke and (now < START or now > END):
-        print("outside collection window"); return 0
-    seen = {s["token"] for s in _read(SCANS)}
+    if not smoke and not in_period(now):
+        print("outside study period"); return 0
     pages, failed = [], 0
     for p in range(1, 11):
         try:
             pages.append(get_json(GT + "new_pools?page=%d" % p)); time.sleep(2.5)
         except Exception as e:
             failed += 1; print("new_pools page", p, "failed:", type(e).__name__)
-    cands = candidates(pages, now, seen)
+    fresh = parse_pages(pages)
+    if not smoke:                                   # the pool index is built from 1 h before the window
+        known = {(e["token"], e["pool"]) for e in _read(INDEX)}
+        for e in fresh:
+            if (e["token"], e["pool"]) not in known:
+                _append(INDEX, dict(e, seen_at=now)); known.add((e["token"], e["pool"]))
+    if not smoke and (now < START or now > END):
+        print("outside scan window (pool index updated)"); return 0
+    seen = {s["token"] for s in _read(SCANS)}
+    entries = fresh if smoke else _read(INDEX)
+    cands = candidates(entries, now, seen, *((15 * 60, MAX_AGE) if smoke else (MIN_AGE, MAX_AGE)))
     chosen = pick(cands, 2 if smoke else PER_RUN)
-    _append("data/smoke_runs.jsonl" if smoke else RUNS, dict(at=now, pools=sum(len(pg.get("data") or []) for pg in pages),
-                                                             pages_failed=failed, eligible=len(cands), chosen=len(chosen)))
+    _append("data/smoke_runs.jsonl" if smoke else RUNS, dict(at=now, pools=len(fresh), pages_failed=failed,
+                                                             index=0 if smoke else len(entries), eligible=len(cands), chosen=len(chosen)))
     if not chosen:
         print("no eligible tokens"); return 0
     handler = lambda *a, **k: http.server.SimpleHTTPRequestHandler(*a, directory="scanner", **k)

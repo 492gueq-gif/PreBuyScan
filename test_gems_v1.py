@@ -30,10 +30,19 @@ class Sampling(unittest.TestCase):
                   (now - 30 * 60, "0xp2", "robinhood_0x" + "b" * 40, W),     # too young
                   (now - 200 * 60, "0xp3", "robinhood_0x" + "c" * 40, W),    # too old
                   (now - 120 * 60, "0xp4", W, "robinhood_0x" + "d" * 40),    # WETH base -> quote token
-                  (now - 100 * 60, "0xp5", T, W))                            # duplicate token
-        c = G.candidates([pg], now, seen=set())
+                  (now - 100 * 60, "0xp5", T, W))                            # second pool of the same token
+        e = G.parse_pages([pg])
+        self.assertEqual(len(e), 5)
+        c = G.candidates(e, now, seen=set())
         self.assertEqual(sorted(x["token"] for x in c), ["0x" + "a" * 40, "0x" + "d" * 40])
-        self.assertEqual(G.candidates([pg], now, seen={"0x" + "a" * 40, "0x" + "d" * 40}), [])
+        self.assertEqual([x["pool"] for x in c if x["token"] == "0x" + "a" * 40], ["0xp5"])   # first pool created
+        self.assertEqual(G.candidates(e, now, seen={"0x" + "a" * 40, "0x" + "d" * 40}), [])
+
+    def test_index_lets_pools_seen_young_be_scanned_later(self):
+        t0 = G.START
+        young = G.parse_pages([page((t0 - 20 * 60, "0xp1", T, W))])          # seen at 20 min old
+        self.assertEqual(G.candidates(young, t0, set()), [])                  # too young now
+        self.assertEqual(len(G.candidates(young, t0 + 3600, set())), 1)       # 80 min old one hour later
 
     def test_pick_deterministic(self):
         cands = [dict(token="0x%040x" % i) for i in range(40)]

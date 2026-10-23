@@ -22,10 +22,11 @@ Si la página pública cambia, el estudio NO cambia de escáner.
 
 ## Universo y muestra (prospectiva, sin sesgo de supervivencia)
 
-- **Fuente:** listado público `new_pools` de GeckoTerminal para Robinhood Chain, páginas 1 a 10, consultado cada hora. Cada corrida queda en `data/runs.jsonl`.
+- **Fuente:** listado público `new_pools` de GeckoTerminal para Robinhood Chain, páginas 1 a 10, consultado cada hora.
+- **Índice de pools:** ese listado solo alcanza aproximadamente la última hora de lanzamientos (prueba de humo del 23 oct: 180 pools, ninguno de más de 1 h). Por eso, cada hora se anotan todos los pools que aparecen en `data/pool_index.jsonl`, desde 1 h antes de la ventana. Cada corrida queda en `data/runs.jsonl`.
 - **Elegibles:**
-  - pools con **1 a 3 horas** de edad al consultarlos;
-  - un registro por token, y los tokens ya escaneados se excluyen;
+  - pools del índice con **1 a 3 horas** de edad en el momento del escaneo;
+  - un registro por token (su primer pool creado), y los tokens ya escaneados se excluyen;
   - si WETH es el token base, el token estudiado es el otro.
 - **Muestra por corrida:** los **10** elegibles con menor SHA-256 de su dirección. El criterio no depende de precio, liquidez ni volumen.
 - **Ventana de escaneos:** desde **2026-10-30T16:00Z** hasta **2026-11-13T16:00Z** (14 días).
