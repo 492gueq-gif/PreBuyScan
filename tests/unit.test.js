@@ -293,3 +293,56 @@ test("explorer cache: BigInt round trip, TTL expiry, failures and nulls never ca
     assert.ok(C.TTL.reputation <= 15 * 60000 && C.TTL.holders <= 5 * 60000);
   } finally { delete globalThis.localStorage; }
 });
+
+// ---------- explorer resilience: launch buys from chain logs, history fallback to v2 ----------
+function fakeChain({ b0 = 1000, t0 = 1_700_000_000, rate = 4, head = 1000 + 4 * 86400, logs = [] }) {
+  const tsOf = n => t0 + Math.floor((n - b0) / rate);
+  const calls = [];
+  return { calls, tsOf, rpc: async (m, p) => {
+    calls.push(m);
+    if (m === "eth_blockNumber") return "0x" + head.toString(16);
+    if (m === "eth_getBlockByNumber") return { timestamp: "0x" + tsOf(parseInt(p[0], 16)).toString(16) };
+    if (m === "eth_getLogs") { const lo = parseInt(p[0].fromBlock, 16), hi = parseInt(p[0].toBlock, 16); return logs.filter(l => parseInt(l.blockNumber, 16) >= lo && parseInt(l.blockNumber, 16) <= hi); }
+    throw new Error("unexpected " + m);
+  } };
+}
+const T = a => "0x" + "0".repeat(24) + a.slice(2);
+const logAt = (block, from, to, v, idx = 0) => ({ blockNumber: "0x" + block.toString(16), logIndex: "0x" + idx.toString(16), topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", T(from), T(to)], data: "0x" + BigInt(v).toString(16) });
+
+test("launch buys from chain logs: 60 s window from the launch, routers and pools excluded", async () => {
+  const POOL = "0x" + "11".repeat(20), A = "0x" + "aa".repeat(20), B = "0x" + "bb".repeat(20), LATE = "0x" + "cc".repeat(20);
+  const b0 = 1000, rate = 4, t0 = 1_700_000_000, launchS = t0 + 3600, lb = b0 + 3600 * rate;
+  const ch = fakeChain({ b0, rate, t0, logs: [logAt(lb + 4, POOL, A, 500), logAt(lb + 100, POOL, B, 300, 1), logAt(lb + 400, POOL, LATE, 900)] });
+  globalThis.PBSellSim = { _rpc: ch.rpc };
+  try {
+    const isBuy = t => t.from.toLowerCase() === POOL;
+    const r = await globalThis.PBCreator._launchBuysRpc("0xtok", { pairCreatedAt: launchS * 1000 }, { createdBlock: b0, createdAt: t0 * 1000 }, isBuy);
+    assert.equal(r.source, "rpc");
+    assert.deepEqual(r.buys.map(x => x.to), [A, B]);      // +1 s and +25 s are in; +100 s is out
+    assert.equal(r.buys[0].value, "500");
+    // A range that cannot be verified to cover the launch is refused (caller falls back), never "no snipers".
+    await assert.rejects(globalThis.PBCreator._launchBuysRpc("0xtok", { pairCreatedAt: (t0 + 86400 * 2) * 1000 }, { createdBlock: b0, createdAt: t0 * 1000 }, isBuy));
+    await assert.rejects(globalThis.PBCreator._launchBuysRpc("0xtok", { pairCreatedAt: launchS * 1000 }, { createdBlock: null, createdAt: t0 * 1000 }, isBuy));
+  } finally { delete globalThis.PBSellSim; }
+});
+
+test("creator history: one legacy attempt, then the v2 API with paging when rate-limited", async () => {
+  const seen = [];
+  const page = (n, more) => ({ items: Array.from({ length: n }, (_, i) => ({ hash: "0x" + i, from: { hash: "0xdep" }, to: null, value: "0", raw_input: "0x60806040",
+    created_contract: { hash: "0x" + "c".repeat(39) + i }, status: "ok", timestamp: "2026-10-20T00:00:00Z" })), next_page_params: more ? { block_number: 1, index: 2 } : null });
+  const orig = globalThis.fetch;
+  globalThis.fetch = async url => {
+    seen.push(url);
+    if (url.includes("module=account")) return { status: 429, ok: false, json: async () => ({ message: "Too many requests" }) };
+    const second = url.includes("block_number=1");
+    return { status: 200, ok: true, json: async () => page(second ? 3 : 50, !second) };
+  };
+  try {
+    const h = await globalThis.PBCreator._creatorHistory("0xdep");
+    assert.equal(h.source, "v2");
+    assert.equal(h.txs.length, 53);
+    assert.equal(h.truncated, false);
+    assert.equal(h.txs[0].contractAddress, "0x" + "c".repeat(39) + "0");
+    assert.equal(seen.filter(u => u.includes("module=account")).length, 1);   // the legacy API is hit once, no retry burst
+  } finally { globalThis.fetch = orig; }
+});
