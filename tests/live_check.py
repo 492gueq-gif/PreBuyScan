@@ -24,7 +24,8 @@ try:
         pg.screenshot(path=str(OUT / "live_result.png"))
         pg.evaluate("setView('explore',{kind:'alpha'})")
         pg.wait_for_selector("#explore-list li.al, #explore-list li.empty:not(.busy)", timeout=60000); pg.wait_for_timeout(3000)
-        res["alpha"] = dict(rows=pg.locator("#explore-list li.al").count(), head=pg.inner_text("#explore-list li >> nth=0")[:200])
+        res["alpha"] = dict(rows=pg.locator("#explore-list li.al").count(), head=pg.inner_text("#explore-list li >> nth=0")[:200],
+                            failures=pg.evaluate("alphaCache&&alphaCache.reasons"), net=pg.evaluate("PBNet.stats"))
         pg.screenshot(path=str(OUT / "live_alpha.png"))
         b.close()
 finally:

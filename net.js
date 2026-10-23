@@ -10,7 +10,7 @@
   const CACHE_TTL = 30000;
   const CACHEABLE = /^https:\/\/api\.(dexscreener\.com|geckoterminal\.com)\//;
   // Minimum spacing per host (GeckoTerminal's public API allows ~30 requests/minute).
-  const HOST_GAP = { "api.geckoterminal.com": 1500 };
+  const HOST_GAP = { "api.geckoterminal.com": 2100 };
 
   function netError(kind, message, status) {
     const e = new Error(message); e.kind = kind; if (status) e.status = status; return e;

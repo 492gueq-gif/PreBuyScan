@@ -205,7 +205,7 @@ test("GeckoTerminal requests are spaced and 429 without Retry-After backs off lo
   await c.fetchJSON("https://api.geckoterminal.com/api/v2/b");
   await c.fetchJSON("https://api.geckoterminal.com/api/v2/c");
   // b and c wait for the per-host gap; c's 429 without Retry-After waits 2 s (not 0.4 s).
-  assert.deepEqual(waits, [1500, 1500, 2000]);
+  assert.deepEqual(waits, [2100, 2100, 2000]);
   assert.equal(f.calls.length, 4);
 });
 

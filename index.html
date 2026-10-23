@@ -1238,9 +1238,10 @@ async function alphaPools(){
   const paths=["new_pools?page=1","new_pools?page=2","new_pools?page=3","trending_pools?page=1","pools?page=1&sort=h24_volume_usd_desc","pools?page=2&sort=h24_volume_usd_desc","pools?page=1&sort=h24_tx_count_desc"];
   const pools={};
   let failed=0;
-  for(const pth of paths){try{const j=await timed(B+pth,{},12000);for(const p of j.data||[]){const a=p.attributes||{};if(a.address)pools[a.address.toLowerCase()]=p;}}catch(e){failed++;}}
+  const reasons=[];
+  for(const pth of paths){try{const j=await timed(B+pth,{},12000);for(const p of j.data||[]){const a=p.attributes||{};if(a.address)pools[a.address.toLowerCase()]=p;}}catch(e){failed++;reasons.push(pth.split("?")[0]+":"+(e.kind||"error")+(e.status?" "+e.status:""));}}
   if(failed===paths.length)throw new Error("GeckoTerminal unavailable");
-  const list=Object.values(pools);alphaCache={at:Date.now(),pools:list,failed};return list;
+  const list=Object.values(pools);alphaCache={at:Date.now(),pools:list,failed,reasons};return list;
 }
 function alphaRow(x,i){
   const blocked=!x.favourable;
