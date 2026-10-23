@@ -193,7 +193,23 @@
     const zoom = d3.zoom().scaleExtent([0.35, 5]).on("zoom", ev => world.attr("transform", ev.transform));
     svg.call(zoom).on("dblclick.zoom", null);
 
-    const curve = l => { const sx = l.source.x, sy = l.source.y, tx = l.target.x, ty = l.target.y;
+    // ---- 3D "molecule" projection: nodes get depth, the graph turns toward the pointer ----
+    const cx = W / 2, cy = H / 2, depth = Math.min(W, H) * 0.34, FOC = 900;
+    const gz = {}; nodes.forEach((n, i) => { const g0 = n.group || 0; if (g0 && gz[g0] == null) gz[g0] = (Math.sin(g0 * 12.9898) * 0.5) * depth;
+      n.z = (g0 ? gz[g0] : 0) + (Math.sin(i * 78.233 + 1.7) * 0.5) * depth * (g0 ? 0.5 : 1.3); n.ph = i * 1.618; n.px = n.x; n.py = n.y; n.ps = 1; n.pz = 0; });
+    const view = { ax: 0, ay: 0, tax: 0, tay: 0, spin: 0, active: 0, act: 0, drag: false, t: 0 };
+    const project = () => {
+      const cax = Math.cos(view.ax), sax = Math.sin(view.ax), cay = Math.cos(view.ay + view.spin), say = Math.sin(view.ay + view.spin);
+      const amp = 1.2 + view.act * 3.2, t = view.t;
+      for (const n of nodes) {
+        const jx = Math.sin(t * 1.3 + n.ph) * amp, jy = Math.cos(t * 1.1 + n.ph * 1.3) * amp, jz = Math.sin(t * 0.9 + n.ph * 0.7) * amp * 4;
+        const dx = n.x - cx + jx, dy = n.y - cy + jy, dz = (n.z + jz) * view.act;
+        const x1 = dx * cay + dz * say, z1 = -dx * say + dz * cay;
+        const y1 = dy * cax - z1 * sax, z2 = dy * sax + z1 * cax;
+        const p = FOC / (FOC + z2); n.px = cx + x1 * p; n.py = cy + y1 * p; n.ps = p; n.pz = z2;
+      }
+    };
+    const curve = l => { const sx = l.source.px, sy = l.source.py, tx = l.target.px, ty = l.target.py;
       const mx = (sx + tx) / 2, my = (sy + ty) / 2, dx = tx - sx, dy = ty - sy, k = 0.18;
       return [sx, sy, mx - dy * k, my + dx * k, tx, ty]; };
     const linkSel = world.append("g").attr("class", "ak-links").selectAll("path").data(links).join("path")
@@ -231,7 +247,7 @@
     tool("−", "Alejar", () => svg.transition().duration(250).call(zoom.scaleBy, 1 / 1.4));
     tool("⟲", "Centrar", () => fit(400));
     let flowing = !still;
-    const fb = tool(flowing ? "⏸" : "▶", "Pausar o reanudar el flujo", () => { flowing = !flowing; fb.text(flowing ? "⏸" : "▶"); if (flowing) loop(); });
+    const fb = tool(flowing ? "⏸" : "▶", "Pausar o reanudar el flujo", () => { flowing = !flowing; fb.text(flowing ? "⏸" : "▶"); });
     tool("⤢", "Pantalla completa", () => { const x = el; if (document.fullscreenElement) document.exitFullscreen(); else if (x.requestFullscreen) x.requestFullscreen().catch(() => {}); });
     const tip = wrap.append("div").attr("class", "ak-tip").style("opacity", 0);
     const card = wrap.append("div").attr("class", "ak-card").attr("hidden", true);
@@ -258,12 +274,12 @@
     };
     const pick = (n, center) => {
       picked = n; focus(n); showCard(n); if (opts.onPick) opts.onPick(n);
-      if (center) { const t = d3.zoomTransform(svg.node()); svg.transition().duration(450).call(zoom.translateTo, n.x, n.y); void t; }
+      if (center) { const t = d3.zoomTransform(svg.node()); svg.transition().duration(450).call(zoom.translateTo, n.px, n.py); void t; }
     };
-    nodeG.on("mouseenter", (ev, n) => { if (!picked) focus(n);
+    nodeG.on("mouseenter", (ev, n) => { hovered = n; if (!picked) focus(n);
         tip.style("opacity", 1).html(`<b>${n.creator ? "Creador" : short(n.id)}</b><span>${role(n)}${n.pct ? " · " + n.pct.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " %" : ""}</span>`); })
       .on("mousemove", ev => { const b = el.getBoundingClientRect(); tip.style("left", (ev.clientX - b.left + 14) + "px").style("top", (ev.clientY - b.top + 14) + "px"); })
-      .on("mouseleave", () => { tip.style("opacity", 0); if (!picked) focus(null); else focus(picked); })
+      .on("mouseleave", () => { hovered = null; tip.style("opacity", 0); if (!picked) focus(null); else focus(picked); })
       .on("click", (ev, n) => { ev.stopPropagation(); pick(n); })
       .on("keydown", (ev, n) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(n, true); } });
     svg.on("click", () => { picked = null; card.attr("hidden", true); focus(null); });
@@ -273,14 +289,31 @@
       .force("charge", d3.forceManyBody().strength(n => -60 - r(n) * 4))
       .force("collide", d3.forceCollide(n => r(n) + 10))
       .force("x", d3.forceX(W / 2).strength(0.05)).force("y", d3.forceY(H / 2).strength(0.07));
+    let frame = 0;
     const paint = () => {
-      linkSel.attr("d", l => { const c = curve(l); return `M${c[0]},${c[1]}Q${c[2]},${c[3]} ${c[4]},${c[5]}`; });
-      nodeG.attr("transform", n => `translate(${n.x},${n.y})`);
+      project();
+      const dmax = depth * 1.2;
+      linkSel.attr("d", l => { const c = curve(l); return `M${c[0]},${c[1]}Q${c[2]},${c[3]} ${c[4]},${c[5]}`; })
+        .attr("stroke-opacity", l => Math.max(.12, .45 - ((l.source.pz + l.target.pz) / 2 / dmax) * .3));
+      nodeG.attr("transform", n => `translate(${n.px},${n.py}) scale(${(n.ps * (n === hovered ? 1.22 : 1)).toFixed(3)})`)
+        .each(function (n) { this.style.opacity = this.classList.contains("dim") ? "" : Math.max(.35, Math.min(1, 1 - (n.pz / dmax) * .55)).toFixed(2); });
+      if (++frame % 8 === 0) nodeG.sort((a, b) => b.pz - a.pz);
     };
+    let hovered = null;
     nodeG.call(d3.drag()
-      .on("start", (ev, n) => { if (!ev.active) sim.alphaTarget(0.25).restart(); n.fx = n.x; n.fy = n.y; })
+      .subject((ev, n) => ({ x: n.px, y: n.py }))
+      .on("start", (ev, n) => { view.drag = true; if (!ev.active) sim.alphaTarget(0.25).restart(); n.fx = n.x; n.fy = n.y; })
       .on("drag", (ev, n) => { n.fx = ev.x; n.fy = ev.y; })
-      .on("end", (ev, n) => { if (!ev.active) sim.alphaTarget(0); n.fx = null; n.fy = null; }));
+      .on("end", (ev, n) => { view.drag = false; if (!ev.active) sim.alphaTarget(0); n.fx = null; n.fy = null; }));
+    // pointer over the map → 3D mode; leaving → eases back to flat
+    let idleT = 0;
+    const svgEl = svg.node();
+    const aim = ev => { const b = svgEl.getBoundingClientRect(); const mx = (ev.clientX - b.left) / b.width - .5, my = (ev.clientY - b.top) / b.height - .5;
+      view.tay = mx * 1.25; view.tax = -my * .9; view.active = 1; clearTimeout(idleT); };
+    svgEl.addEventListener("pointermove", aim); svgEl.addEventListener("pointerdown", aim);
+    svgEl.addEventListener("pointerenter", aim);
+    svgEl.addEventListener("pointerleave", () => { idleT = setTimeout(() => { view.active = 0; view.tax = 0; view.tay = 0; }, 900); });
+    svgEl.addEventListener("pointerup", ev => { if (ev.pointerType !== "mouse") idleT = setTimeout(() => { view.active = 0; view.tax = 0; view.tay = 0; }, 4000); });
     function fit(ms) {
       if (!nodes.length) return; const pad = 40;
       const x0 = d3.min(nodes, n => n.x - r(n)), x1 = d3.max(nodes, n => n.x + r(n)), y0 = d3.min(nodes, n => n.y - r(n)), y1 = d3.max(nodes, n => n.y + r(n) + 30);
@@ -289,18 +322,24 @@
       (ms ? svg.transition().duration(ms) : svg).call(zoom.transform, t);
     }
     if (still) { sim.stop(); for (let i = 0; i < 300; i++) sim.tick(); paint(); fit(0); }
-    else { sim.on("tick", paint); let fitted = false; sim.on("end", () => { if (!fitted) { fitted = true; fit(700); } }); setTimeout(() => { if (!fitted) { fitted = true; fit(700); } }, 2600); }
+    else { sim.on("tick", () => {}); let fitted = false; sim.on("end", () => { if (!fitted) { fitted = true; fit(700); } }); setTimeout(() => { if (!fitted) { fitted = true; fit(700); } }, 2600); }
 
     let raf = 0;
     function loop() {
       cancelAnimationFrame(raf);
       const stepF = () => {
         if (!el.isConnected) return;
-        if (flowing && !document.hidden) {
-          partSel.each(function (p) { p.t += p.v; if (p.t > 1) p.t -= 1; const c = curve(p.l), u = p.t, a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, d = u * u;
+        raf = requestAnimationFrame(stepF);
+        if (document.hidden) return;
+        view.t += 0.016 * (0.6 + view.act * 1.4);
+        const want = view.drag ? 0 : view.active;
+        view.act += (want - view.act) * 0.06;
+        const tx = view.drag ? 0 : view.tax, ty = view.drag ? 0 : view.tay;
+        view.ax += (tx - view.ax) * 0.07; view.ay += (ty - view.ay) * 0.07;
+        if (view.active && !view.drag) view.spin += 0.0025; else view.spin *= 0.96;
+        paint();
+        if (flowing) partSel.each(function (p) { p.t += p.v; if (p.t > 1) p.t -= 1; const c = curve(p.l), u = p.t, a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, d = u * u;
             this.setAttribute("cx", a * c[0] + b * c[2] + d * c[4]); this.setAttribute("cy", a * c[1] + b * c[3] + d * c[5]); });
-        }
-        if (flowing) raf = requestAnimationFrame(stepF);
       };
       raf = requestAnimationFrame(stepF);
     }

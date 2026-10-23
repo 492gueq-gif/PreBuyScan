@@ -1477,7 +1477,7 @@ function render(token,res){
     <div class="pane" data-pane="actividad">${winners}${bigs}${snip}${launches}${!winners&&!bigs&&!snip&&!launches?`<section class="card a-wide"><div class="empty">Sin actividad para mostrar.</div></section>`:""}</div>
     <div class="pane" data-pane="holders">${holders}
      <section class="card mapsec a-wide a-map"><h3>Mapa de wallets <span class="disc">grafo de entidades · en vivo</span></h3>
-      <div class="mapintro"><p>Burbujas = mayores holders. Las une quién les dio su primer ETH o si se pasaron el token. Un grupo de color suele ser una sola persona con varias wallets.</p>
+      <div class="mapintro"><p>Pasa el cursor o el dedo sobre el mapa para verlo en 3D. Burbujas = mayores holders. Las une quién les dio su primer ETH o si se pasaron el token. Un grupo de color suele ser una sola persona con varias wallets.</p>
       <button class="btn2" type="button" data-act="map">Ver mapa de wallets</button></div><div id="mapout"></div></section></div>
    </div>
    <div class="note">${notChecked.length?"No revisado: "+esc(notChecked.join("; "))+". ":""}Liquidez bloqueada en contratos de terceros: no se verifica hasta cuándo.<br>Revisado ${res.block?"en el bloque "+res.block.toLocaleString("es-MX")+" · ":""}${esc(new Date(res.scannedAt||Date.now()).toLocaleString("es-MX"))} · algoritmo ${esc(res.algo||ALGO_VERSION)} · <a href="#metodo" data-nav="method">cómo calculamos</a>.</div>
