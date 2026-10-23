@@ -162,6 +162,46 @@ def main():
                 check("alpha_no_errors", not errs, errs[:5])
                 ctx.close()
 
+            def report_visuals_block():
+                # Exercise the actual report DOM at phone and desktop widths, without live APIs.
+                for w, h in ((360, 780), (1440, 900)):
+                    ctx, pg, errs = page(b, w, h, mode="blocked")
+                    pg.goto(BASE)
+                    pg.evaluate("""() => {
+                      window.mapBuilds=0; window.d3={};
+                      PBMap.build=async()=>{window.mapBuilds++;return {nodes:[],groups:[],partial:{},creatorPct:0,holdersShown:0}};
+                      PBMap.draw=el=>{el.textContent='Fixture map ready'};
+                      window.reportPair={pairAddress:'0x'+'12'.repeat(20),baseToken:{name:'Fixture token',symbol:'FIX'},quoteToken:{symbol:'ETH'},priceUsd:'1',liquidity:{usd:20000}};
+                      setView('result');renderPartial('""" + TOKEN + """',{pair:reportPair,facts:{}});
+                    }""")
+                    check("scan_no_chart_%d" % w, pg.locator("#out iframe").count() == 0)
+                    check("scan_no_map_%d" % w, pg.evaluate("mapBuilds") == 0)
+                    pg.evaluate("""() => render('""" + TOKEN + """',{
+                      checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'},
+                        {s:'high',t:'Concentración crítica',d:'fixture',c:'Holders'},
+                        {s:'unk',t:'Venta no simulada',d:'fixture',c:'Venta'}],
+                      facts:{name:'Fixture token'},notChecked:[],cr:{},pair:reportPair,pairs:[reportPair],
+                      block:123,scannedAt:Date.parse('2026-10-23T00:00:00Z')})""")
+                    pg.wait_for_function("mapBuilds===1 && document.querySelector('#mapsvg')?.textContent==='Fixture map ready'")
+                    reason=pg.inner_text(".score-reason")
+                    check("reason_priority_%d" % w, reason.index("Concentración crítica") < reason.index("Liquidez baja"))
+                    check("reason_pending_not_risk_%d" % w, "no prueban una vulnerabilidad" in reason and "Venta no simulada" not in reason)
+                    check("reason_below_marker_%d" % w, pg.evaluate("document.querySelector('.score-reason').getBoundingClientRect().top >= document.querySelector('.rtop').getBoundingClientRect().bottom"))
+                    check("report_chart_auto_%d" % w, pg.locator("#out .chart iframe[loading=eager]").count() == 1)
+                    check("report_map_auto_%d" % w, pg.locator("#mapsvg").is_visible() and pg.evaluate("mapBuilds") == 1)
+                    check("report_no_overflow_%d" % w, pg.evaluate("document.documentElement.scrollWidth") <= w)
+                    shot(pg,"report_visuals_%d" % w)
+                    # Exercise English mode on the rendered report, including async translation.
+                    pg.evaluate("localStorage.setItem('pbs_lang',JSON.stringify('en'))")
+                    pg.reload()
+                    pg.evaluate("""() => {setView('result'); render('""" + TOKEN + """',{
+                      checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'}],
+                      facts:{name:'English fixture'},notChecked:[],cr:{},pair:null,pairs:[]});}""")
+                    pg.wait_for_timeout(500)
+                    check("report_english_%d" % w, "Summary" in pg.inner_text("#out") and "Findings" in pg.inner_text("#out"))
+                    check("report_no_errors_%d" % w, not errs, errs[:5])
+                    ctx.close()
+
             def cards_block():
                 # 10/11. share cards from a fixture analysis + QR decode + verification page
                 ctx, pg, errs = page(b, 1440, 900)
@@ -196,7 +236,7 @@ def main():
                 check("cards_no_errors", not errs, errs[:5])
                 ctx.close()
 
-            for n, fn in (("home", home_block), ("conn_error", conn_error_block), ("alpha", alpha_block), ("cards", cards_block)):
+            for n, fn in (("home", home_block), ("conn_error", conn_error_block), ("alpha", alpha_block), ("cards", cards_block), ("report_visuals", report_visuals_block)):
                 guarded(n, fn)
             b.close()
     finally:
