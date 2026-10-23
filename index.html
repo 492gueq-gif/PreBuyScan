@@ -1124,9 +1124,9 @@ async function showVerification(){
 
 // Subresource Integrity for every third-party script (hashes computed in CI from the served files).
 const SRI={
- "https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js":"sha384-PENDING",
- "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js":"sha384-PENDING",
- "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js":"sha384-PENDING"};
+ "https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js":"sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i",
+ "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js":"sha384-mZT2gIty7ZDdOGkxfP6joZcYdMW1Jvj9dRlfpTmaJAKKXTqzygtB22k7FLe+KZC1",
+ "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js":"sha384-8FWZA6BGMXhsfO+BLtrJK0We6gg5o1JyO8xQm6peWDEUs17ACA5ziE/NIAkl9z2k"};
 function loadScript(src){return new Promise((ok,ko)=>{const s=document.createElement("script");s.src=src;
   const h=SRI[src];if(h&&!/PENDING/.test(h)){s.integrity=h;s.crossOrigin="anonymous";}
   s.onload=ok;s.onerror=ko;document.head.appendChild(s);});}

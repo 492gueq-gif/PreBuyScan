@@ -67,7 +67,7 @@ def axe(pg, tag):
         check("a11y_" + tag, False, "axe-core not installed")
         return
     pg.add_script_tag(path=str(AXE))
-    res = pg.evaluate("async()=>{const r=await axe.run(document,{resultTypes:['violations']});return r.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.length}))}")
+    res = pg.evaluate("async()=>{const r=await axe.run(document,{resultTypes:['violations']});return r.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.length,targets:v.nodes.slice(0,6).map(n=>n.target.join(' ')+' :: '+(n.any[0]&&n.any[0].message||'').slice(0,90))}))}")
     critical = [v for v in res if v["impact"] == "critical"]
     results["a11y_" + tag + "_all"] = res
     check("a11y_" + tag + "_no_critical", not critical, critical)
@@ -108,7 +108,9 @@ def main():
                 pg.wait_for_timeout(1200)
                 check("home_%s_no_errors" % tag, not errs, errs[:5])
                 check("home_%s_boot_removed" % tag, pg.locator("#boot").count() == 0)
-                check("home_%s_no_overflow" % tag, pg.evaluate("document.documentElement.scrollWidth") <= w)
+                sw = pg.evaluate("document.documentElement.scrollWidth")
+                wide = pg.evaluate("w=>[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();return r.right>w+0.5&&r.width>0}).slice(0,8).map(e=>e.tagName+'.'+e.className+':'+Math.round(e.getBoundingClientRect().right))", w)
+                check("home_%s_no_overflow" % tag, sw <= w, dict(scrollWidth=sw, wide=wide))
                 check("home_%s_vector_logo" % tag, pg.evaluate("[...document.querySelectorAll('img[src=\"logo.svg\"]')].some(i=>i.naturalWidth>0)"))
                 visual("home_" + tag, shot(pg, "home_" + tag))
                 axe(pg, "home_" + tag)
@@ -160,7 +162,7 @@ def main():
                 qr:s.qr,url:s.link.url,id:s.link.id,premium:s.cards.premium.toDataURL('image/png'),xpng:s.cards.x.toDataURL('image/png'),
                 alerts:s.rep.x.map(a=>a[1])}}""")
             check("cards_sizes", (data["x"], data["t"], data["p"]) == ([1600, 900], [1080, 1080], [1080, 1350]))
-            check("cards_qr_drawn", bool(data["qr"]) and data["qr"]["size"] >= 250, data["qr"])
+            check("cards_qr_drawn", bool(data["qr"]) and data["qr"]["size"] >= 200 and data["qr"]["size"] // (data["qr"]["modules"] + 8) >= 3, data["qr"])
             check("cards_error_state_kept", "ERROR TÉCNICO" in data["alerts"], data["alerts"])
             (OUT / "card_premium.png").write_bytes(base64.b64decode(data["premium"].split(",")[1]))
             (OUT / "card_x.png").write_bytes(base64.b64decode(data["xpng"].split(",")[1]))

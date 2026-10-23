@@ -196,6 +196,19 @@ test("RPC POSTs are retried only on transport failures and never cached", async 
   assert.equal(f.calls.length, 3);
 });
 
+test("GeckoTerminal requests are spaced and 429 without Retry-After backs off longer", async () => {
+  let t = 0; const waits = [];
+  const sleep = async ms => { waits.push(ms); t += ms; };
+  const f = fakeFetch([[200, {}], [200, {}], [429, null], [200, {}]]);
+  const c = Net.makeClient({ fetch: f, sleep, now: () => t, random: () => 0 });
+  await c.fetchJSON("https://api.geckoterminal.com/api/v2/a");
+  await c.fetchJSON("https://api.geckoterminal.com/api/v2/b");
+  await c.fetchJSON("https://api.geckoterminal.com/api/v2/c");
+  // b and c wait for the per-host gap; c's 429 without Retry-After waits 2 s (not 0.4 s).
+  assert.deepEqual(waits, [1500, 1500, 2000]);
+  assert.equal(f.calls.length, 4);
+});
+
 test("market GETs are cached for 30 s, then refreshed", async () => {
   let t = 0;
   const f = fakeFetch([[200, { v: 1 }], [200, { v: 2 }]]);

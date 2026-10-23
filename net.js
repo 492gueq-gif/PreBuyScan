@@ -9,6 +9,8 @@
   "use strict";
   const CACHE_TTL = 30000;
   const CACHEABLE = /^https:\/\/api\.(dexscreener\.com|geckoterminal\.com)\//;
+  // Minimum spacing per host (GeckoTerminal's public API allows ~30 requests/minute).
+  const HOST_GAP = { "api.geckoterminal.com": 1500 };
 
   function netError(kind, message, status) {
     const e = new Error(message); e.kind = kind; if (status) e.status = status; return e;
@@ -24,6 +26,16 @@
     const retries = opts.retries == null ? 2 : opts.retries;
     const cache = new Map();
     const stats = { requests: 0, retries: 0, failures: 0, cacheHits: 0, lastError: null };
+    const gaps = opts.gaps || HOST_GAP;
+    const nextAt = {};
+    async function pace(url) {
+      let host; try { host = new URL(url).host; } catch (e) { return; }
+      const gap = gaps[host]; if (!gap) return;
+      const at = Math.max(now(), nextAt[host] || 0);
+      nextAt[host] = at + gap;           // reserve a slot so concurrent callers queue up
+      const wait = at - now();
+      if (wait > 0) await sleep(wait);
+    }
 
     async function once(url, init, ms) {
       const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
@@ -32,8 +44,9 @@
       catch (e) { throw netError(e && e.name === "AbortError" ? "timeout" : "network", "request failed"); }
       finally { clearTimeout(t); }
       if (r.status === 429) {
-        const after = Number(r.headers && r.headers.get && r.headers.get("Retry-After"));
-        const err = netError("rate_limited", "HTTP 429", 429); err.retryAfter = isFinite(after) ? after : null; throw err;
+        const raw = r.headers && r.headers.get ? r.headers.get("Retry-After") : null;
+        const after = raw == null || raw === "" ? NaN : Number(raw);   // absent header is not "retry in 0 s"
+        const err = netError("rate_limited", "HTTP 429", 429); err.retryAfter = isFinite(after) && after >= 0 ? after : null; throw err;
       }
       if (!r.ok) throw netError("http", "HTTP " + r.status, r.status);
       try { return await r.json(); } catch (e) { throw netError("invalid_json", "invalid JSON"); }
@@ -51,6 +64,7 @@
       for (;;) {
         stats.requests++;
         try {
+          await pace(url);
           const value = await once(url, init, ms);
           if (key) cache.set(key, { at: now(), value });
           return value;
@@ -64,7 +78,9 @@
           }
           attempt++; stats.retries++;
           const base = 400 * Math.pow(2, attempt - 1);
-          const wait = e.retryAfter != null ? Math.min(10000, e.retryAfter * 1000) : base + Math.floor(random() * base);
+          // 429 without Retry-After: wait longer than for transient network errors.
+          const wait = e.retryAfter != null ? Math.min(10000, e.retryAfter * 1000)
+            : e.kind === "rate_limited" ? 2000 * Math.pow(2, attempt - 1) : base + Math.floor(random() * base);
           await sleep(wait);
         }
       }
@@ -72,7 +88,7 @@
     return { fetchJSON, clear: () => cache.clear(), stats, cache };
   }
 
-  const api = Object.assign(makeClient(), { makeClient, CACHE_TTL, CACHEABLE });
+  const api = Object.assign(makeClient(), { makeClient, CACHE_TTL, CACHEABLE, HOST_GAP });
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PBNet = api;
 })(typeof window !== "undefined" ? window : globalThis);
