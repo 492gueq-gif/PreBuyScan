@@ -254,3 +254,17 @@ test("no secrets and CDN scripts carry integrity", () => {
   for (const lib of ["d3/7.9.0/d3.min.js", "qrcode-generator/1.4.4/qrcode.min.js", "qrcode-generator@1.4.4/qrcode.js"])
     assert.match(html, new RegExp(lib.replace(/[.@/]/g, m => "\\" + m) + "\":\"sha384-[A-Za-z0-9+/]{64}\""), lib);
 });
+
+test("explorer time budget: 60 s default, 120 s on retry; timeout told apart from provider failure", () => {
+  const C = globalThis.PBCreator;
+  assert.equal(C.BUDGET_MS, 60000);
+  assert.equal(C.RETRY_BUDGET_MS, 120000);
+  const out = { errors: ["reputation: time budget", "lp: HTTP 404", "snipers: unavailable", "holders: time budget"] };
+  assert.equal(C.failReason(out, "reputation"), "timeout");
+  assert.equal(C.failReason(out, "holders"), "timeout");
+  assert.equal(C.failReason(out, "lp"), "provider");
+  assert.equal(C.failReason(out, "snipers"), "provider");
+  assert.equal(C.failReason(out, "creator"), null);
+  assert.equal(C.failReason({ errors: ["reputationX: time budget"] }, "reputation"), null);
+  assert.equal(C.failReason(null, "lp"), null);
+});
