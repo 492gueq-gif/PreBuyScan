@@ -79,9 +79,13 @@
           }
           attempt++; stats.retries++;
           const base = 400 * Math.pow(2, attempt - 1);
-          // 429 without Retry-After: wait longer than for transient network errors.
+          // 429 without Retry-After waits longer than a transient network error. On rate-limited
+          // hosts (HOST_GAP) a browser reports a 429 sent without CORS headers as a network error,
+          // so those network errors get the same longer wait.
+          let paced = false; try { paced = !!gaps[new URL(url).host]; } catch (x) {}
           const wait = e.retryAfter != null ? Math.min(10000, e.retryAfter * 1000)
-            : e.kind === "rate_limited" ? 2000 * Math.pow(2, attempt - 1) : base + Math.floor(random() * base);
+            : e.kind === "rate_limited" || (e.kind === "network" && paced) ? 2000 * Math.pow(2, attempt - 1)
+            : base + Math.floor(random() * base);
           await sleep(wait);
         }
       }

@@ -209,6 +209,19 @@ test("GeckoTerminal requests are spaced and 429 without Retry-After backs off lo
   assert.equal(f.calls.length, 4);
 });
 
+test("network errors on a rate-limited host back off like a hidden 429", async () => {
+  let t = 0; const waits = [];
+  const sleep = async ms => { waits.push(ms); t += ms; };
+  const f = fakeFetch(["network", "network", [200, { ok: 1 }]]);
+  const c = Net.makeClient({ fetch: f, sleep, now: () => t, random: () => 0 });
+  assert.deepEqual(await c.fetchJSON("https://api.geckoterminal.com/api/v2/n"), { ok: 1 });
+  assert.deepEqual(waits, [2000, 100, 4000]);   // 2 s, gap remainder, 4 s
+  const g = fakeFetch(["network", [200, { ok: 1 }]]); const w2 = [];
+  const c2 = Net.makeClient({ fetch: g, sleep: async ms => w2.push(ms), random: () => 0 });
+  await c2.fetchJSON("https://example.org/n");
+  assert.deepEqual(w2, [400]);                  // other hosts keep the short backoff
+});
+
 test("market GETs are cached for 30 s, then refreshed", async () => {
   let t = 0;
   const f = fakeFetch([[200, { v: 1 }], [200, { v: 2 }]]);
