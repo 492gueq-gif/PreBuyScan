@@ -93,7 +93,12 @@
   }
 
   // ---------- V4 pool key from the Initialize event ----------
+  const keyCache = {};
   async function v4Key(poolId, createdAtMs, o) {
+    if (keyCache[poolId]) return keyCache[poolId];
+    const k = await v4KeyUncached(poolId, createdAtMs, o); keyCache[poolId] = k; return k;
+  }
+  async function v4KeyUncached(poolId, createdAtMs, o) {
     const head = BigInt(await rpc("eth_blockNumber", [], o));
     const hb = await rpc("eth_getBlockByNumber", ["0x" + head.toString(16), false], o);
     const pastN = head > 1000000n ? head - 1000000n : 1n;
@@ -124,7 +129,8 @@
   // ---------- main ----------
   async function simulate(token, pair, o = {}) {
     token = token.toLowerCase();
-    const out = { status: "unknown", spentWei: BUY_WEI.toString() };
+    const BUY = o.buyWei ? BigInt(o.buyWei) : BUY_WEI;           // simulated ETH amount (default 0.01)
+    const out = { status: "unknown", spentWei: BUY.toString() };
     try {
       const pa = (pair.pairAddress || "").toLowerCase(), labels = (pair.labels || []).map(x => x.toLowerCase());
       let kind = /^0x[0-9a-f]{64}$/.test(pa) ? "v4" : labels.includes("v3") ? "v3" : labels.includes("v2") ? "v2" : null;
@@ -137,7 +143,7 @@
       let measure, sellCalls;
       if (kind === "v2") {
         push("tokBefore", tx(token, balanceOf(token, ACTOR)));
-        push("buy", tx(V2_ROUTER, v2Buy(token), BUY_WEI));
+        push("buy", tx(V2_ROUTER, v2Buy(token), BUY));
         push("tokAfter", tx(token, balanceOf(token, ACTOR)));
         measure = { before: tx(WETH, balanceOf(WETH, ACTOR)), asset: "WETH" };
         sellCalls = amt => [tx(token, approve(V2_ROUTER, amt)), tx(V2_ROUTER, v2Sell(token, amt))];
@@ -146,7 +152,7 @@
         const t0 = "0x" + strip(await call(pa, "0x0dfe1681", o)).slice(-40), t1 = "0x" + strip(await call(pa, "0xd21220a7", o)).slice(-40);
         if (![t0, t1].includes(WETH)) { out.status = "unsupported"; out.detail = "El par principal no es contra WETH."; return out; }
         push("tokBefore", tx(token, balanceOf(token, ACTOR)));
-        push("buy", tx(V3_ROUTER, v3Swap(WETH, token, fee, BUY_WEI), BUY_WEI));
+        push("buy", tx(V3_ROUTER, v3Swap(WETH, token, fee, BUY), BUY));
         push("tokAfter", tx(token, balanceOf(token, ACTOR)));
         measure = { before: tx(WETH, balanceOf(WETH, ACTOR)), asset: "WETH" };
         sellCalls = amt => [tx(token, approve(V3_ROUTER, amt)), tx(V3_ROUTER, v3Swap(token, WETH, fee, amt))];
@@ -164,12 +170,12 @@
           tx(PERMIT2, "0x87517c45" + addr(tkn) + addr(router) + word(MAX160) + word(DEADLINE))];
         push("tokBefore", tx(token, balanceOf(token, ACTOR)));
         if (other === eth) {
-          push("buy", tx(router, v4Execute(key, buyZeroForOne, BUY_WEI, eth, token), BUY_WEI));
+          push("buy", tx(router, v4Execute(key, buyZeroForOne, BUY, eth, token), BUY));
           measure = { before: ethBalance(), asset: "ETH" };
         } else {                     // wrap the simulated ETH into WETH, then pay through Permit2
-          push("wrap", tx(WETH, "0xd0e30db0", BUY_WEI));
+          push("wrap", tx(WETH, "0xd0e30db0", BUY));
           const [a1, a2] = permit(WETH); push("wapprove", a1); push("wpermit", a2);
-          push("buy", tx(router, v4Execute(key, buyZeroForOne, BUY_WEI, WETH, token)));
+          push("buy", tx(router, v4Execute(key, buyZeroForOne, BUY, WETH, token)));
           measure = { before: tx(WETH, balanceOf(WETH, ACTOR)), asset: "WETH" };
         }
         push("tokAfter", tx(token, balanceOf(token, ACTOR)));
@@ -177,7 +183,7 @@
       } else { out.status = "unsupported"; out.detail = "Tipo de pool no reconocido."; return out; }
 
       // First simulation: the buy, to learn the exact amount received.
-      const base = { [ACTOR]: { balance: "0x" + (BUY_WEI * 10n).toString(16) } };
+      const base = { [ACTOR]: { balance: "0x" + (BUY * 10n).toString(16) } };
       const sim = async cs => {
         const r = await rpc("eth_simulateV1", [{ blockStateCalls: [{ stateOverrides: base, calls: cs }], validation: false }, "latest"], o);
         if (!Array.isArray(r) || !r[0] || !Array.isArray(r[0].calls)) throw new Error("invalid simulation");
@@ -212,7 +218,7 @@
       const received = uint(r[ma].returnData) - uint(r[mi].returnData);
       const left = uint(decodeOrNull(r[tAfter]));
       out.receivedWei = received.toString();
-      out.retention = Number(received * 10000n / BUY_WEI) / 10000;   // fraction of the ETH spent that came back
+      out.retention = Number(received * 10000n / BUY) / 10000;   // fraction of the ETH spent that came back
       out.tokensLeftRaw = left.toString();
       out.status = received > 0n ? "round_trip_ok" : "sell_failed";
       out.detail = received > 0n ? "Compra y venta simuladas con éxito." : "La venta no devolvió nada.";
@@ -224,6 +230,6 @@
     }
   }
 
-  const api = { simulate, v4Key, _abi: { abi, encBytes, encBytesArray, word, addr, v4Execute }, BUY_WEI };
+  const api = { simulate, v4Key, _rpc: rpc, _abi: { abi, encBytes, encBytesArray, word, addr, v4Execute }, BUY_WEI };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.PBSellSim = api;
 })(typeof window !== "undefined" ? window : globalThis);
