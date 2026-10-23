@@ -14,7 +14,7 @@ with sync_playwright() as p:
         pg.wait_for_selector("#out .scanring",timeout=60000);pg.wait_for_timeout(600);pg.screenshot(path=f"{tag}_ring0.png")
         try:
             pg.wait_for_selector("#out .rcard .scanring",timeout=60000);pg.wait_for_timeout(1500)
-            el=pg.locator("#out .scanring");el.hover();pg.mouse.move(*[v+20 for v in (el.bounding_box()["x"],el.bounding_box()["y"])]);pg.wait_for_timeout(300)
+            el=pg.locator("#out .scanring");el.hover(force=True);pg.mouse.move(*[v+20 for v in (el.bounding_box()["x"],el.bounding_box()["y"])]);pg.wait_for_timeout(300)
             pg.screenshot(path=f"{tag}_ring1.png");el.click();pg.wait_for_timeout(300);note(tag+"_ring",{"text":el.inner_text(),"aria":el.get_attribute("aria-label")})
             el.screenshot(path=f"{tag}_ring_el.png")
         except Exception as e: note(tag+"_ring_err",{"e":str(e)[:200]})
@@ -32,8 +32,8 @@ with sync_playwright() as p:
             info={"nodes":nodes.count(),"links":pg.locator("#out .akmap .ak-links path").count(),"parts":pg.locator("#out .akmap .ak-parts circle").count()}
             # pick biggest node
             idx=pg.evaluate("()=>{const a=[...document.querySelectorAll('#out .akmap .ak-node')];let bi=0,br=0;a.forEach((g,i)=>{const r=+g.querySelector('.ak-core').getAttribute('r');if(r>br){br=r;bi=i;}});return bi;}")
-            n=nodes.nth(idx);n.hover();pg.wait_for_timeout(400);pg.locator("#out .akmap").screenshot(path=f"{tag}_map_hover.png")
-            n.click();pg.wait_for_timeout(600);pg.locator("#out .akmap").screenshot(path=f"{tag}_map_card.png")
+            n=nodes.nth(idx);n.hover(force=True);pg.wait_for_timeout(400);pg.locator("#out .akmap").screenshot(path=f"{tag}_map_hover.png")
+            n.click(force=True);pg.wait_for_timeout(600);pg.locator("#out .akmap").screenshot(path=f"{tag}_map_card.png")
             info["card"]=pg.locator("#out .ak-card").inner_text()[:300]
             # particle motion check
             p1=pg.evaluate("()=>{const c=document.querySelector('#out .ak-parts circle');return c?[c.getAttribute('cx'),c.getAttribute('cy')]:null}");pg.wait_for_timeout(500)

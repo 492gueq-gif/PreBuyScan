@@ -172,7 +172,7 @@
     links.forEach(l => { nb.get(l.source).add(l.target); nb.get(l.target).add(l.source); });
     const maxPct = Math.max(1, ...nodes.map(n => n.pct || 0));
     const r = n => n.kind === "magic" ? 7 : 7 + Math.sqrt((n.pct || 0) / maxPct) * Math.min(W, H) * 0.075;
-    const color = n => n.creator ? "#ffffff" : n.group ? PALETTE[(n.group - 1) % PALETTE.length] : "#7f93a3";
+    const color = n => n.creator ? "#ffffff" : n.group ? PALETTE[(n.group - 1) % PALETTE.length] : n.contract ? "#b9a7ff" : n.kind === "magic" ? "#7f93a3" : "#4cb8ff";
     const role = n => n.creator ? "Creador" : n.sniper ? "Sniper del primer minuto" : n.timeNode ? "Contrato fondeador (misma hora)" : n.deployer ? "Creó el contrato fondeador" : n.kind === "magic" ? "Conector (no es holder)" : n.contract ? "Contrato" + (n.name ? " · " + n.name : "") : "Holder";
     nodes.forEach((n, i) => { const a = i * 2.399; n.x = W / 2 + Math.cos(a) * 8 * Math.sqrt(i); n.y = H / 2 + Math.sin(a) * 8 * Math.sqrt(i); });
 
