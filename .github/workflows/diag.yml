@@ -12,7 +12,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python tests/probe_api.py
+      - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
+      - run: python tests/probe_browser.py
       - if: always()
         run: |
           mkdir -p /tmp/o && cp -r out/. /tmp/o/ || true
