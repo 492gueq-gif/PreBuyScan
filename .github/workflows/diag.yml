@@ -1,4 +1,4 @@
-name: Audit probes (temporary)
+name: Audit cases (temporary)
 on:
   push:
     branches: [fix/audit-ext]
@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install playwright==1.56.0 && python -m playwright install --with-deps chromium
-      - run: python tests/probe_browser.py
+      - run: python tests/audit_cases.py
       - if: always()
         run: |
           mkdir -p /tmp/o && cp -r out/. /tmp/o/ || true

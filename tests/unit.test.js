@@ -240,7 +240,7 @@ test("market GETs are cached for 30 s, then refreshed", async () => {
 // ---------- 2. Robinhood Chain compatibility ----------
 test("Robinhood Chain identity is fixed in the page and reports", () => {
   const fs = require("node:fs");
-  const html = fs.readFileSync(require("node:path").join(__dirname, "..", "index.html"), "utf8");
+  const html = fs.readFileSync(require("node:path").join(__dirname, "..", "app.js"), "utf8");
   assert.match(html, /const RPC="https:\/\/rpc\.mainnet\.chain\.robinhood\.com"/);
   assert.match(html, /tokens\/v1\/robinhood\//);
   assert.match(fs.readFileSync(require("node:path").join(__dirname, "..", "share.js"), "utf8"), /c: 4663/);
@@ -254,7 +254,7 @@ test("no secrets and CDN scripts carry integrity", () => {
     const text = fs.readFileSync(path.join(root, f), "utf8");
     assert.doesNotMatch(text, /(api[_-]?key|secret|alchemy\.com\/v2\/|infura\.io\/v3\/)\s*[:=]?\s*["'][A-Za-z0-9_-]{16,}/i, f);
   }
-  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const html = fs.readFileSync(path.join(root, "app.js"), "utf8");
   for (const lib of ["d3/7.9.0/d3.min.js", "qrcode-generator/1.4.4/qrcode.min.js", "qrcode-generator@1.4.4/qrcode.js"])
     assert.match(html, new RegExp(lib.replace(/[.@/]/g, m => "\\" + m) + "\":\"sha384-[A-Za-z0-9+/]{64}\""), lib);
 });

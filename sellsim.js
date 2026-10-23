@@ -8,6 +8,10 @@
 (function (root) {
   "use strict";
   const RPC = "https://rpc.mainnet.chain.robinhood.com";
+  // Public fallbacks with CORS and eth_simulateV1 (checked from a browser on 23 oct 2026). Their log
+  // queries are limited (recent blocks / small ranges), so they serve calls and simulations.
+  const FALLBACKS = ["https://robinhood-rpc.publicnode.com", "https://robinhood.drpc.org", "https://robinhood.daybreak-rpc.network"];
+  const usage = { primary: 0, fallback: {} };          // per-analysis counters, reset by the page
   const WETH = "0x0bd7d308f8e1639fab988df18a8011f41eacad73";
   const V2_ROUTER = "0x89e5db8b5aa49aa85ac63f691524311aeb649eba";
   const V3_ROUTER = "0xcaf681a66d020601342297493863e78c959e5cb2";      // SwapRouter02
@@ -44,15 +48,26 @@
   let rpcId = 0, lastCall = 0;
   const pause = ms => new Promise(s => setTimeout(s, ms));
   async function rpc(method, params, opt = {}) {
+    try { const r = await rpcAt(opt.rpc || RPC, method, params, opt, 3); usage.primary++; return r; }
+    catch (e) {
+      if (e.rpc || opt.rpc || opt.noFallback) throw e;  // a real JSON-RPC answer is not a transport failure
+      for (const url of FALLBACKS) {
+        try { const r = await rpcAt(url, method, params, opt, 1); const h = new URL(url).host; usage.fallback[h] = (usage.fallback[h] || 0) + 1; return r; }
+        catch (e2) { /* next fallback */ }
+      }
+      throw e;
+    }
+  }
+  async function rpcAt(url, method, params, opt, tries) {
     let lastErr;
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < tries; attempt++) {
       // Space calls out: the public RPC rate-limits bursts, and in a browser a 429 without
       // CORS headers surfaces as a generic network error ("Failed to fetch").
       const wait = 250 - (Date.now() - lastCall); if (wait > 0) await pause(wait); lastCall = Date.now();
       const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
       const t = ctl ? setTimeout(() => ctl.abort(), opt.timeout || 15000) : null;
       try {
-        const r = await fetch(opt.rpc || RPC, { method: "POST", headers: { "Content-Type": "application/json" },
+        const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ jsonrpc: "2.0", id: ++rpcId, method, params }), signal: ctl ? ctl.signal : undefined });
         if (r.status === 429) { await new Promise(s => setTimeout(s, 800 * (attempt + 1))); continue; }
         if (!r.ok) throw new Error("HTTP " + r.status);
@@ -240,6 +255,6 @@
     }
   }
 
-  const api = { simulate, v4Key, _rpc: rpc, _abi: { abi, encBytes, encBytesArray, word, addr, v4Execute }, BUY_WEI };
+  const api = { simulate, v4Key, _rpc: rpc, RPC, FALLBACKS, usage, resetUsage: () => { usage.primary = 0; for (const k in usage.fallback) delete usage.fallback[k]; }, _abi: { abi, encBytes, encBytesArray, word, addr, v4Execute }, BUY_WEI };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.PBSellSim = api;
 })(typeof window !== "undefined" ? window : globalThis);
