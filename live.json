@@ -1,0 +1,39 @@
+{
+ "kind": "REAL_SERVICES",
+ "analysis": {
+  "seconds": 27.6,
+  "badge": "ANÁLISIS COMPLETADO",
+  "score": "50",
+  "label": "Precaución",
+  "confline": [
+   "Dueño del contrato no identificado",
+   "4 precaución · 5 bien · 2 sin datos",
+   "Cobertura",
+   "9 de 11",
+   "Data Confidence",
+   "85 %"
+  ],
+  "errors": [],
+  "technical_errors": 0
+ },
+ "alpha": {
+  "rows": 8,
+  "head": "Fuente: GeckoTerminal (96 pools) · actualizado 06:50 p.m. · 2 consulta(s) fallaron: lista incompleta. «Actividad» es el Alpha Signal Score: mide movimiento, no seguridad ni ganancias.",
+  "failures": [
+   "pools:network",
+   "pools:network"
+  ],
+  "net": {
+   "requests": 69,
+   "retries": 6,
+   "failures": 2,
+   "cacheHits": 1,
+   "lastError": {
+    "kind": "network",
+    "status": null,
+    "at": 56613.79999999993
+   }
+  }
+ },
+ "published_in_sync_with_gh_pages": true
+}
