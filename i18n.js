@@ -91,7 +91,6 @@
     [/^(\d+) de (\d+)$/, "$1 of $2"],
     [/^(\d+) (riesgo alto|precaución|bien|sin datos|error técnico)$/, (m,n,t)=>n+" "+tr(t)],
     [/^hace (.+)$/, "$1 ago"],
-    [/^(.+) operaciones\.$/, (m,t)=>tr(t)+" trades."],
     // dynamic titles
     [/^(\d+) pools con comisión abusiva$/, "$1 pools with abusive fees"],
     [/^Precio frágil: solo (.+) del suministro está en los pools$/, "Fragile price: only $1 of the supply is in the pools"],

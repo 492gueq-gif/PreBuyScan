@@ -63,6 +63,11 @@
     "Valor total si todos los tokens valieran el precio actual (Fully Diluted Valuation).":"Total value if all tokens were valued at the current price (Fully Diluted Valuation).", "Bots o wallets que compran en el primer minuto del lanzamiento para revender.":"Bots or wallets buying in the first minute after launch to resell.", "Bot o wallet que compra en el primer minuto del lanzamiento para revender.":"A bot or wallet buying in the first minute after launch to resell.", "Diferencia entre el precio que ves y el que realmente pagas o recibes por el tamaño de tu operación (slippage).":"Difference between the displayed price and what you actually pay or receive for your trade size (slippage).", "Diferencia entre el precio que ves y el que realmente pagas o recibes (deslizamiento).":"Difference between the displayed price and what you actually pay or receive (slippage).", "Token que deja comprar pero no vender.":"A token that allows buying but blocks selling.", "El creador retira la liquidez y el token se queda sin valor.":"The creator withdraws the liquidity, leaving the token worthless.", "Tokens que representan la liquidez aportada a un pool.":"Tokens representing liquidity deposited into a pool.", "Wallets que tienen el token.":"Wallets holding the token.", "El propio equipo compra en el lanzamiento con varias wallets para vender después.":"The team buys at launch through several wallets to sell later.", "Compras y ventas entre wallets del mismo dueño para inflar el volumen.":"Buys and sells between wallets with the same owner to inflate volume.", "Contrato que delega en otro y puede cambiar su código.":"A contract that delegates to another contract and can change its code.", "Código extra de un pool Uniswap V4 que puede cambiar reglas o comisiones.":"Extra code in a Uniswap V4 pool that can change rules or fees.", "Tiempo de espera obligatorio entre operaciones.":"A mandatory waiting period between trades."
   };
   Object.assign(entries, {
+    "RIESGO CONFIRMADO":"CONFIRMED RISK", "SEÑAL SOSPECHOSA":"SUSPICIOUS SIGNAL", "SIMULACIÓN PENDIENTE":"SIMULATION PENDING", "IDENTIDAD NO VERIFICADA":"IDENTITY UNVERIFIED", "NO DISPONIBLE":"UNAVAILABLE", "pendiente":"pending", "no disponible":"unavailable",
+    "Simulador de compra/venta":"Buy/sell simulator", "Compra":"Buy", "Monto (USD)":"Amount (USD)", "Slippage máximo":"Maximum slippage", "Tokens a recibir":"Tokens to receive", "Precio por token":"Price per token", "Si vendieras enseguida":"If you sold immediately", "Valor a vender":"Value to sell", "Resultado estimado":"Estimated result", "Escenarios hipotéticos":"Hypothetical scenarios", "Cálculo con el precio actual y la venta simulada de PreBuyScan. No compra ni vende nada; los escenarios de subida son hipotéticos, no predicciones.":"Calculated using the current price and PreBuyScan's simulated sale. Nothing is bought or sold; upside scenarios are hypothetical, not predictions.",
+    "Gráfico en vivo de GeckoTerminal del par principal.":"Live GeckoTerminal chart for the main pair.", "Abrir en GeckoTerminal":"Open in GeckoTerminal", "Grupo":"Group", "Del creador ★":"Creator's group ★", "Toca una burbuja para ver la wallet.":"Select a bubble to view the wallet.", "S sniper del primer minuto":"S first-minute sniper", "fondeó":"funded", "transfirió el token":"transferred the token", "no es holder (solo conecta)":"not a holder (connection only)", "Este grupo no cambia la puntuación de arriba.":"This group does not change the score above."
+  });
+  Object.assign(entries, {
     "Compras sin ventas (posible venta bloqueada)":"Buys without sells (selling may be blocked)", "Volumen 5× la liquidez (posible wash trading)":"Volume 5× liquidity (possible wash trading)", "Pocas wallets hacen muchas compras":"Few wallets making many buys", "Riesgo alto: sin etiqueta favorable":"High risk: no favorable label", "Sin señales extra":"No additional signals", "Ningún token pasa los filtros ahora mismo. Prueba con una edad mayor o menos liquidez mínima.":"No tokens pass the filters right now. Try a higher maximum age or lower minimum liquidity.", "Reporte no verificado":"Report not verified",
     "El contenido de este enlace coincide con su huella SHA-256 (":"The content of this link matches its SHA-256 fingerprint (", "): no fue alterado desde que se generó.":"): it has not been altered since generation.", "Analizado el":"Analyzed on", "con el algoritmo":"with algorithm", "confianza de los datos":"data confidence", "Sin firma digital todavía: esto prueba que el reporte no cambió, no quién lo generó. Abajo está el análisis actualizado de hoy para comparar.":"No digital signature yet: this proves the report has not changed, not who generated it. Today's updated analysis is below for comparison.", "No confíes en la imagen que te compartieron; abajo está el análisis real de hoy.":"Do not trust the shared image; today's actual analysis is below.",
     "Error de conexión":"Connection error", "Análisis parcial":"Partial analysis", "Imagen descargada":"Image downloaded", "Enlace verificable copiado":"Verifiable link copied", "Guardado en favoritos":"Saved to favorites",
@@ -79,6 +84,36 @@
   // Sentence fragments used around live values. Longest match wins; never touch raw data.
   const fragments = `
 La puntuación de |The score of 
+El creador tiene |The creator has 
+tokens; los |tokens; the 
+El par no reporta liquidez.|The pair reports no liquidity.
+El FDV es |FDV is 
+en 1 h: puede ser una salida masiva o un rug en curso.|in 1 h: there may be a mass exit or an ongoing rug pull.
+El par reporta |The pair reports 
+En los pools|In the pools
+El contrato declara compra |The contract declares a buy tax of 
+entre las variantes conocidas.|among known variants.
+no encontramos otros tokens, pero no revisamos las anteriores.|we found no other tokens, but did not check earlier transactions.
+Una sola wallet tiene |A single wallet holds 
+Ya se puede retirar.|It can now be withdrawn.
+%. Parte puede retirarse.|%. Some can be withdrawn.
+El mayor proveedor (|The largest provider (
+) tiene |) holds 
+El creador no tiene posiciones en este pool (|The creator holds no positions in this pool (
+El contrato usa AccessControl pero no lista a sus administradores y no pudimos identificar al creador.|The contract uses AccessControl but does not list its administrators, and the creator could not be identified.
+Una wallet tiene |One wallet holds 
+Ya no tiene mercado en DexScreener|No longer has a market on DexScreener
+El creador controla |The creator controls 
+Su wallet tiene |Its wallet holds 
+wallets ligadas al creador (por fondeo o transferencias) tienen |wallets linked to the creator (through funding or transfers) hold 
+wallets ligadas al creador|wallets linked to the creator
+wallet(s) ligadas al creador entre los holders revisados.|wallet(s) linked to the creator among the reviewed holders.
+Otro grupo controla |Another group controls 
+Mostramos |Showing 
+holders (los mayores, sin pools ni quemado, más los snipers que aún tienen tokens). Exchanges y puentes con miles de transacciones no cuentan como «mismo dueño».|holders (the largest, excluding pools and burned tokens, plus snipers still holding tokens). Exchanges and bridges with thousands of transactions are not treated as the same owner.
+ · grupo | · group 
+ · contrato| · contract
+ · precio | · price 
 Hay |There are 
 Precio +|Price +
 % en 1 h|% in 1 h
