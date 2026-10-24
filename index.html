@@ -593,6 +593,74 @@ body:not([data-view="home"]) .hero .globe::before,body:not([data-view="home"]) .
 @keyframes accuracy-fill{0%,8%{transform:scaleX(0)}48%,92%{transform:scaleX(1)}100%{transform:scaleX(0)}}
 body:not([data-view="home"]) .acc .fill{animation-play-state:paused}
 @media(prefers-reduced-motion:reduce){.acc .fill{animation:none;transform:none}}
+
+/* Clean screener theme: flat surfaces, compact rows and restrained accents. */
+:root:not([data-theme="light"]){--bg:#061019;--bg2:#09131c;--sheet:#121e28;--sheet2:#192630;--line:#293641;--line2:#32414d;--ink:#edf3f7;--muted:#92a6b8;--dim:#8296a6;--accent:#00dfaa;--accent2:#00cfa0;--glow:none;--r:10px;--hero1:#121e28;--hero2:#121e28;--featbg:#16232d}
+body{background:var(--bg);font-size:14px}
+.topbar{background:var(--bg);backdrop-filter:none}
+.brand .mark{filter:none}
+.brand b,.vh h2,.card h3,.h3{letter-spacing:-.015em}
+.brand small{letter-spacing:.14em}
+.field{border-radius:8px;background:var(--sheet);padding-top:3px;padding-bottom:3px}
+.field:focus-within{box-shadow:none}
+.cta{border-radius:7px;background:var(--accent);box-shadow:none;color:var(--accent-ink);font-family:var(--body)}
+.search .cta{border-radius:6px}
+.btn2,.chip{border-radius:6px;box-shadow:none}
+.chainpill,.chaincard{border-radius:8px;box-shadow:none}
+.side button{font-weight:500;border-radius:7px}
+.side button[aria-current="page"]{color:var(--accent);background:var(--ok-bg);box-shadow:none}
+.card{border-radius:10px}
+.card h3,.h3{font-family:var(--body);font-weight:700}
+.hero{border-radius:10px;background:var(--sheet)}
+.hero > .globe{opacity:.22}
+.hero .eye{border:0;border-radius:10px;box-shadow:none}
+.hero h1{font-family:var(--body);font-weight:750}
+.hero p{font-size:.92rem}
+.feat{border-radius:7px;background:var(--featbg);box-shadow:none}
+.pill,.tag{border-radius:5px;box-shadow:none}
+.list li{gap:10px;border-color:var(--line)}
+.list li:nth-child(even){background:color-mix(in srgb,var(--sheet2) 40%,transparent)}
+.list li:hover{background:var(--sheet2)}
+.av{border-radius:50%}
+.stats{gap:8px}
+.stat{border-radius:8px;background:var(--sheet);box-shadow:none}
+table.tt{font-family:var(--mono);font-size:.8rem}
+table.tt th{font-family:var(--body);font-weight:500;text-transform:none;letter-spacing:0;background:var(--sheet)}
+table.tt tr:nth-child(even){background:color-mix(in srgb,var(--sheet2) 40%,transparent)}
+table.tt td{padding-top:10px;padding-bottom:10px}
+#v-explore{align-content:start;grid-auto-rows:max-content}
+#v-explore > .filters{gap:0;border-bottom:1px solid var(--line);overflow:visible}
+#v-explore > .filters .chip{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--muted);padding:13px 8px;font-weight:600}
+#v-explore > .filters .chip[aria-pressed="true"]{color:var(--accent);border-bottom-color:var(--accent);background:transparent}
+.market-tabs{gap:0;border-bottom:1px solid var(--line)}
+.market-tabs button{border-radius:0;box-shadow:none}
+.explore-columns{display:none}
+@media(max-width:600px){.chainpill{font-size:0;gap:5px;max-width:none;width:auto;padding:5px}.chainpill .dot{width:6px;height:6px}}
+@media(min-width:1100px){
+ body[data-view="explore"] .rail{display:none}
+ body[data-view="explore"] main{grid-column:2 / -1}
+ .topbar{padding-top:10px;padding-bottom:10px;gap:18px}
+ .brand b{font-size:1.35rem}
+ .brand .mark{width:36px;height:36px}
+ .brand small{font-size:.6rem}
+ main{padding-top:20px;gap:14px}
+ .side{padding:16px 10px;gap:2px}
+ .side button{padding:9px 12px;font-size:.92rem}
+ .rail{gap:14px;padding-top:20px}
+ .hero{padding:24px;gap:16px;grid-template-columns:minmax(0,1fr) 170px}
+ .hero .eye{width:160px;height:160px}
+ .hero h1{font-size:2rem;line-height:1.15}
+ .hero .feats{margin-top:0;gap:10px}
+ .feat{padding:10px 12px}
+ #v-explore .card{border-color:var(--line)}
+ #v-explore:is([data-mode="new"],[data-mode="trending"],[data-mode="volume"],[data-mode="gainers"]) .explore-columns{display:grid;grid-template-columns:minmax(0,1fr) 150px 115px;gap:14px;padding:11px 18px 11px 90px;color:var(--muted);font-size:.8rem;border-bottom:1px solid var(--line)}
+ .explore-columns span:not(:first-child){text-align:right}
+ #v-explore:is([data-mode="new"],[data-mode="trending"],[data-mode="volume"],[data-mode="gainers"]) #explore-list > li:not(.empty):not(.busy){display:grid;grid-template-columns:22px 32px minmax(100px,1fr) 150px 115px;gap:14px;padding:10px 18px}
+ #v-explore #explore-list .av{width:32px;height:32px}
+ #v-explore #explore-list .pill{justify-self:end}
+ #v-explore #explore-list .num{text-align:right}
+}
+
 </style></head><body data-view="home">
 <div id="boot" aria-hidden="true"><img src="logo.svg" alt="" width="96" height="96"><b>PreBuy<span>Scan</span></b><small>Scan before the scam</small></div>
 <script src="theme.js"></script>
@@ -709,7 +777,7 @@ body:not([data-view="home"]) .acc .fill{animation-play-state:paused}
           <label>FDV máximo (USD)<input name="fdv" type="number" min="0" step="50000"></label>
         </form>
         <div class="tnote">Valores iniciales configurables, no garantías de calidad. «Actividad» (Alpha Signal Score, 0–100) mide volumen frente a liquidez, transacciones, presión compradora, aceleración y edad; es independiente del Safety Score y no predice precio ni está validado. Un token con riesgo alto o señales de manipulación nunca recibe una etiqueta favorable y queda al final. Busca entre los ~150 pools más nuevos y activos de Robinhood Chain (GeckoTerminal).</div></section>
-      <section class="card"><ul class="list" id="explore-list"><li class="empty">Cargando…</li></ul>
+      <section class="card"><div class="explore-columns" aria-hidden="true"><span>Token</span><span>Precio (USD) / 24 h</span><span>Riesgo</span></div><ul class="list" id="explore-list"><li class="empty">Cargando…</li></ul>
         <div class="tnote">Veredicto rápido solo con datos de mercado (GeckoTerminal), con las reglas cuya precisión publicamos. Toca un token para el análisis completo.</div></section>
     </div>
 

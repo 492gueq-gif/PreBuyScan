@@ -132,6 +132,8 @@ def main():
                 pg.click('.side [data-nav=explore]:not([data-kind])')
                 tabs=pg.locator('#v-explore [data-k]').all_text_contents()
                 check('explore_tabs_without_alpha', [x.strip() for x in tabs]==['Nuevos','Tendencias','Mayor volumen','Ganadores','Favoritos','Historial'], tabs)
+                pg.wait_for_selector('#explore-list [data-scan]',timeout=60000)
+                shot(pg,'explore_clean')
                 pg.click('[data-k=fav]')
                 check('explore_empty_favourites', 'Aún no tienes favoritos' in pg.inner_text('#explore-list'))
                 pg.evaluate("""() => {store.set('pbs_fav',[{t:'"""+TOKEN+"""',name:'Favorito guardado',score:70}]);store.set('pbs_hist',[{t:'"""+TOKEN+"""',name:'Historial guardado',score:60}]);}""")
