@@ -292,6 +292,32 @@ def main():
                 ctx, pg, errs = page(b, 1440, 900)
                 pg.goto(BASE)
                 pg.wait_for_timeout(600)
+                button_fixture="""() => {
+                  window.d3={}; PBMap.build=async()=>({nodes:[],groups:[],partial:{},creatorPct:0,holdersShown:0});PBMap.draw=()=>{};
+                  window.cardFixture={checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'}],facts:{},notChecked:[],cr:{},pair:null,pairs:[],block:123,scannedAt:Date.parse('2026-10-23T00:00:00Z')};
+                  setView('result');render('"""+TOKEN+"""',cardFixture);
+                }"""
+                pg.evaluate(button_fixture)
+                pg.click('#out [data-act=cards]')
+                pg.wait_for_selector('#out .sc-grid img',timeout=30000)
+                check('cards_button_displays_three',pg.locator('#out .sc-grid img').count()==3)
+                check('cards_button_exports',pg.evaluate("[...document.querySelectorAll('#out .sc-grid img')].every(i=>i.src.startsWith('data:image/png;base64,')&&i.complete&&i.naturalWidth>=1080)"))
+                check('cards_button_reenabled',pg.locator('#out [data-act=cards]').is_enabled())
+                # An old generation finishing after another report must not overwrite it.
+                pg.evaluate("""()=>{window.savedCards=shareSet;window.originalMakeAll=PBShare.makeAll;PBShare.makeAll=()=>new Promise(r=>window.finishOldCards=r)}""")
+                pg.click('#out [data-act=cards]')
+                pg.locator("#out .busy",has_text="Generando").wait_for(state="visible")
+                pg.evaluate("""async()=>{render('0x2222222222222222222222222222222222222222',cardFixture);shareSet=null;finishOldCards(savedCards);await Promise.resolve();await Promise.resolve();PBShare.makeAll=originalMakeAll;}""")
+                check('cards_old_result_ignored',pg.locator('#out .sc-grid img').count()==0 and pg.evaluate('shareSet===null'))
+                pg.click('#langbtn')
+                pg.wait_for_selector('html[lang=en]')
+                pg.evaluate(button_fixture)
+                pg.click('#out [data-act=cards]')
+                pg.wait_for_selector('#out .sc-grid img',timeout=30000)
+                pg.locator('#out [data-dl=premium]:not([data-fmt])',has_text='Download premium report').wait_for(state='visible')
+                check('cards_button_english',pg.locator('#out .sc-grid img').count()==3 and 'No se pudieron generar' not in pg.inner_text('#out'))
+                pg.click('#langbtn')
+                pg.wait_for_selector('html[lang=es]')
                 data = pg.evaluate("""async()=>{await ensureQR();
                   const res={checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'},{s:'unk',err:true,t:'Holders no revisados',d:'fixture',c:'Holders'},{s:'ok',t:'La venta simulada funciona',d:'fixture',c:'Venta'}],
                     pair:null,cr:{},block:123,scannedAt:Date.parse('2026-10-23T00:00:00Z')};
