@@ -6,8 +6,8 @@
 (function (root) {
   "use strict";
   const n0 = x => (x == null || x === "" || isNaN(Number(x)) ? null : Number(x));
-  const usd = v => v == null ? "—" : "$" + Number(v).toLocaleString("es-MX", { maximumFractionDigits: v < 1 ? 6 : 0 });
-  const pctTxt = v => (Math.round(v * 100) / 100).toLocaleString("es-MX") + " %";
+  const usd = v => v == null ? "—" : "$" + Number(v).toLocaleString((globalThis.PBI18N?.locale||"es-MX"), { maximumFractionDigits: v < 1 ? 6 : 0 });
+  const pctTxt = v => (Math.round(v * 100) / 100).toLocaleString((globalThis.PBI18N?.locale||"es-MX")) + " %";
   const lc = s => String(s || "").toLowerCase();
   const short = a => a.slice(0, 6) + "…" + a.slice(-4);
   const GT_SRC = "GeckoTerminal (todos los pools del token)";
@@ -72,7 +72,7 @@
       return { s: "warn", t: "Operaciones repetidas por pocas wallets", d: num(tx) + " operaciones de solo " + num(traders) + " wallets en 24 h" + where + " (" + Math.round(tx / traders) + " por wallet): típico de bots que inflan la actividad." };
     return null;
   }
-  const num = v => Number(v).toLocaleString("es-MX");
+  const num = v => Number(v).toLocaleString((globalThis.PBI18N?.locale||"es-MX"));
 
   /* DexScreener vs GeckoTerminal for the SAME pool (the main pair): liquidity and price. Different pool
      counts are normal (DexScreener lists fewer pools); disagreement on the same pool is not. */

@@ -13,9 +13,10 @@ const RPC="https://rpc.mainnet.chain.robinhood.com";
 const DEX="https://api.dexscreener.com/tokens/v1/robinhood/";
 const V4_POOL_MANAGER="0x8366a39cc670b4001a1121b8f6a443a643e40951";
 const $=s=>document.querySelector(s);
+const uiText=s=>window.PBI18N?.lang==="en"?PBI18N.tr(s):s;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const usd=v=>v==null||isNaN(v)?"—":"$"+Number(v).toLocaleString("es-MX",{maximumFractionDigits:v<1?8:0});
-const num=v=>v==null||isNaN(v)?"—":Number(v).toLocaleString("es-MX");
+const usd=v=>v==null||isNaN(v)?"—":"$"+Number(v).toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{maximumFractionDigits:v<1?8:0});
+const num=v=>v==null||isNaN(v)?"—":Number(v).toLocaleString((globalThis.PBI18N?.locale||"es-MX"));
 
 // net.js: timeout, bounded retries with backoff, Retry-After, JSON validation, 30 s market cache.
 const timed=(url,opts={},ms=9000)=>PBNet.fetchJSON(url,opts,ms);
@@ -35,7 +36,7 @@ async function rpc(method,params){
   if(j.error)throw new Error("rpc");return j.result;
 }
 const hasSel=(code,sels)=>sels.some(s=>code.includes("63"+s));
-const pct=v=>v==null||isNaN(v)?"—":(v>0?"+":"")+Number(v).toLocaleString("es-MX",{maximumFractionDigits:1})+" %";
+const pct=v=>v==null||isNaN(v)?"—":(v>0?"+":"")+Number(v).toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{maximumFractionDigits:1})+" %";
 const word=a=>a.toLowerCase().replace(/^0x/,"").padStart(64,"0");
 async function uintCall(to,data){const r=await rpc("eth_call",[{to,data},"latest"]);if(!r||r==="0x")throw new Error("empty");return BigInt(r.slice(0,66));}
 const GT="https://api.geckoterminal.com/api/v2/networks/robinhood/pools/";
@@ -82,7 +83,7 @@ function dbCreatorCheck(K,DBC,createdAt){const r=dbCreatorCheck0(K,DBC);r.src="B
   return r;}
 function dbCreatorCheck0(K,DBC){
   const kd=K[1],kk=K[1]+K[2];
-  const since=new Date(DBC.since*1000).toLocaleDateString("es-MX",{day:"numeric",month:"short"});
+  const since=new Date(DBC.since*1000).toLocaleDateString((globalThis.PBI18N?.locale||"es-MX"),{day:"numeric",month:"short"});
   const src="Base de creadores de PreBuyScan (todos los tokens nuevos de Robinhood Chain desde el "+since+"): ";
   if(kk>=3&&kd/kk>=0.7)return {s:"high",t:"Creador serial: lanzó "+K[0]+" tokens y "+kd+" murieron",d:src+"de "+kk+" tokens con resultado, "+kd+" quedaron sin liquidez a las 24–72 h."};
   if(kd>0)return {s:"warn",t:kd===1?"El creador tiene 1 token muerto":"El creador tiene "+kd+" tokens muertos",d:src+"lanzó "+K[0]+" tokens; "+kd+" de "+kk+" con resultado murieron."};
@@ -90,7 +91,7 @@ function dbCreatorCheck0(K,DBC){
   if(K[0]>=3){const h=Math.max(1,(K[5]-K[4])/3600);return {s:"warn",t:"Lanza tokens en serie: "+K[0]+" en "+(h<48?Math.round(h)+" h":Math.round(h/24)+" días"),d:src+"esta wallet creó "+K[0]+" tokens; aún no tienen resultado (se revisa a las 24 h). Quien lanza muchos tokens seguidos suele abandonarlos."};}
   return {s:"unk",t:"Creador con tokens recientes",d:src+"lanzó "+K[0]+" tokens; ninguno tiene resultado todavía (se revisa a las 24 h)."};
 }
-const lockTxt=u=>u?" Bloqueada hasta el "+new Date(u*1000).toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"})+".":" No pudimos leer hasta cuándo.";
+const lockTxt=u=>u?" Bloqueada hasta el "+new Date(u*1000).toLocaleDateString((globalThis.PBI18N?.locale||"es-MX"),{day:"numeric",month:"short",year:"numeric"})+".":" No pudimos leer hasta cuándo.";
 const lockState=(u,okState)=>!u?okState:u*1000<Date.now()?"high":u*1000-Date.now()<30*864e5?"warn":"ok";
 let dbPromise=null;
 function creatorDB(){
@@ -451,34 +452,35 @@ function chartSection(pair,defer){
 let lastRes=null;
 let stopMarket=()=>{};
 const linkFor=t=>location.origin+location.pathname+"?t="+t;
-function flash(m){const e=$("#out .shmsg");if(!e)return;if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent="";},3000);}}
-async function copyLink(){try{await navigator.clipboard.writeText(linkFor(last.token));flash("Enlace copiado");}catch(e){prompt("Copia el enlace:",linkFor(last.token));}}
+function flash(m){m=uiText(m);const e=$("#out .shmsg");if(!e)return;if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent="";},3000);}}
+async function copyLink(){try{await navigator.clipboard.writeText(linkFor(last.token));flash("Enlace copiado");}catch(e){prompt(uiText("Copia el enlace:"),linkFor(last.token));}}
 function cardCanvas(){
   const W=1200,Hh=630,c=document.createElement("canvas");c.width=W;c.height=Hh;const g=c.getContext("2d");
+  const fill=(t,...args)=>g.fillText(uiText(t),...args);
   const col={high:"#ff5f6d",warn:"#ffb547",ok:"#27e6a3",unk:"#8ba1ae"}[last.v[0]];
   g.fillStyle="#060b10";g.fillRect(0,0,W,Hh);
   const mk=$(".brand .mark");if(mk&&mk.complete&&mk.naturalWidth)try{g.drawImage(mk,60,42,96,96);}catch(e){}
-  g.fillStyle="#e3e9ed";g.font="800 44px Sora, Arial, sans-serif";g.fillText("PreBuy",176,90);
-  const pw=g.measureText("PreBuy").width;g.fillStyle="#27e6a3";g.fillText("Scan",176+pw,90);
-  g.fillStyle="#93a3ae";g.font="500 26px Manrope, Arial, sans-serif";g.fillText("Scan before the scam · Robinhood Chain",176,130);
+  g.fillStyle="#e3e9ed";g.font="800 44px Sora, Arial, sans-serif";fill("PreBuy",176,90);
+  const pw=g.measureText("PreBuy").width;g.fillStyle="#27e6a3";fill("Scan",176+pw,90);
+  g.fillStyle="#93a3ae";g.font="500 26px Manrope, Arial, sans-serif";fill("Scan before the scam · Robinhood Chain",176,130);
   g.fillStyle="#e3e9ed";g.font="700 50px Sora, Arial, sans-serif";
   let name=last.name;while(g.measureText(name).width>760&&name.length>4)name=name.slice(0,-2);if(name!==last.name)name+="…";
   g.fillText(name,60,225);
-  g.fillStyle="#93a3ae";g.font="400 24px 'JetBrains Mono', monospace";g.fillText(last.token,60,265);
+  g.fillStyle="#93a3ae";g.font="400 24px 'JetBrains Mono', monospace";fill(last.token,60,265);
   g.save();g.translate(1010,200);g.rotate(-0.05);g.strokeStyle=col;g.lineWidth=6;g.strokeRect(-150,-95,300,190);
-  g.fillStyle=col;g.textAlign="center";g.font="800 34px Sora, Arial, sans-serif";g.fillText(last.v[1].toUpperCase(),0,-35);
-  g.font="800 84px Sora, Arial, sans-serif";g.fillText(String(last.score),0,40);g.font="600 24px Sora, Arial, sans-serif";g.fillText("/100",0,80);g.restore();
+  g.fillStyle=col;g.textAlign="center";g.font="800 34px Sora, Arial, sans-serif";fill(last.v[1].toUpperCase(),0,-35);
+  g.font="800 84px Sora, Arial, sans-serif";fill(String(last.score),0,40);g.font="600 24px Sora, Arial, sans-serif";fill("/100",0,80);g.restore();
   g.textAlign="left";let y=345;
   for(const ck of last.checks.filter(x=>x.s!=="ok").slice(0,4)){
     const cc={high:"#ff5f6d",warn:"#ffb547",unk:"#8ba1ae"}[ck.s];g.fillStyle=cc;g.beginPath();g.arc(72,y-9,9,0,7);g.fill();
-    g.fillStyle="#e3e9ed";g.font="500 30px Manrope, Arial, sans-serif";let t=ck.t;while(g.measureText(t).width>1040&&t.length>4)t=t.slice(0,-2);g.fillText(t,95,y);y+=52;
+    g.fillStyle="#e3e9ed";g.font="500 30px Manrope, Arial, sans-serif";let t=uiText(ck.t);while(g.measureText(t).width>1040&&t.length>4)t=t.slice(0,-2);fill(t,95,y);y+=52;
   }
-  if(y===345){g.fillStyle="#27e6a3";g.font="500 30px Manrope, Arial, sans-serif";g.fillText("Sin alertas en las revisiones (no garantiza que sea seguro)",60,y);}
+  if(y===345){g.fillStyle="#27e6a3";g.font="500 30px Manrope, Arial, sans-serif";fill("Sin alertas en las revisiones (no garantiza que sea seguro)",60,y);}
   // Origin proof: report id + SHA-256 of the canonical report (verifiable with the link), analysis date and block.
   const R=lastRes&&lastRes.token===last.token?lastRes.res:null,P=last.proof;
-  g.fillStyle="#27e6a3";g.font="600 22px Manrope, Arial, sans-serif";g.fillText("492gueq-gif.github.io/PreBuyScan/?t="+last.token.slice(0,10)+"…"+(P?"&r="+P.id:""),60,572);
+  g.fillStyle="#27e6a3";g.font="600 22px Manrope, Arial, sans-serif";fill("492gueq-gif.github.io/PreBuyScan/?t="+last.token.slice(0,10)+"…"+(P?"&r="+P.id:""),60,572);
   g.fillStyle="#93a3ae";g.font="500 16px 'JetBrains Mono', monospace";
-  g.fillText((P?"Reporte "+P.id+" · SHA-256 "+P.hash.slice(0,16)+"… · ":"")+"Analizado "+new Date(R&&R.scannedAt||Date.now()).toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"})+(R&&R.block?" · bloque "+R.block.toLocaleString("es-MX"):""),60,606);
+  fill((P?"Reporte "+P.id+" · SHA-256 "+P.hash.slice(0,16)+"… · ":"")+"Analizado "+new Date(R&&R.scannedAt||Date.now()).toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{dateStyle:"medium",timeStyle:"short"})+(R&&R.block?" · bloque "+R.block.toLocaleString((globalThis.PBI18N?.locale||"es-MX")):""),60,606);
   return c;
 }
 async function ensureProof(){
@@ -526,7 +528,7 @@ async function makeCards(btn){
       El enlace y el QR llevan una copia del reporte: la página recalcula su huella y confirma que no fue alterado. Todavía no hay firma digital (requiere servidor), así que no prueba quién lo generó.</div>`;
   }catch(e){box.innerHTML=`<div class="empty">No se pudieron generar las tarjetas en este navegador.</div>`;if(btn)btn.disabled=false;}
 }
-function scMsg(m){const e=$("#out .sc-msg");if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent="";},4000);}}
+function scMsg(m){m=uiText(m);const e=$("#out .sc-msg");if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent="";},4000);}}
 const shareText=()=>{const r=shareSet.rep;const v={high:"Riesgo alto",warn:"Precaución",ok:"Sin alertas",unk:"Sin datos"}[r.vd];return (r.n||r.s||"Token")+(r.s?" ($"+r.s+")":"")+": "+v+" · "+r.sc+"/100 en PreBuyScan (100 = menor riesgo). Reporte "+shareSet.link.id+". Scan before the scam.";};
 function dl(kind,fmt){const c=shareSet.cards[kind];const type=fmt==="webp"?"image/webp":"image/png";
   c.toBlob(b=>{if(!b)return scMsg("Tu navegador no pudo exportar la imagen.");const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="prebuyscan-"+kind+"-"+shareSet.link.id+(fmt==="webp"?".webp":".png");document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);scMsg("Descargada");},type,0.95);}
@@ -536,19 +538,19 @@ $("#out").addEventListener("click",async e=>{
   const k=sh.dataset.share,url=shareSet.link.url,text=shareText();
   if(k==="x")window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(text)+"&url="+encodeURIComponent(url),"_blank","noopener");
   else if(k==="tg")window.open("https://t.me/share/url?url="+encodeURIComponent(url)+"&text="+encodeURIComponent(text),"_blank","noopener");
-  else if(k==="copy"){try{await navigator.clipboard.writeText(url);scMsg("Enlace verificable copiado");}catch(err){prompt("Copia el enlace:",url);}}
+  else if(k==="copy"){try{await navigator.clipboard.writeText(url);scMsg("Enlace verificable copiado");}catch(err){prompt(uiText("Copia el enlace:"),url);}}
   else if(k==="native"){try{const b=await new Promise(r=>shareSet.cards.x.toBlob(r,"image/png"));const f=new File([b],"prebuyscan-"+shareSet.link.id+".png",{type:"image/png"});
     if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f],text,url});else{dl("x");scMsg("Tu navegador no comparte imágenes: la descargué.");}}catch(err){}}
 });
 async function showVerification(){
   if(!window.PBShare)return;const v=await window.PBShare.verifyFromLocation(location);if(!v)return;
   const box=$("#verify");const r=v.rep||{};
-  const when=r.ts?new Date(r.ts*1000).toLocaleString("es-MX",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}):"—";
+  const when=r.ts?new Date(r.ts*1000).toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}):"—";
   const vtxt={high:"Riesgo alto",warn:"Precaución",ok:"Sin alertas",unk:"Sin datos"}[r.vd]||"—";
   const ic=a=>a[0]==="confirmed"?["high","✕"]:a[0]==="suspicious"?["warn","!"]:a[0]==="clear"?["ok","✓"]:["unk","?"];
   box.innerHTML=v.ok?`<section class="card verifybox ok"><h3>✓ Reporte verificado <span class="tag ok">${esc(v.id)}</span></h3><div class="tnote" style="font-size:.86rem;padding-top:0">
      El contenido de este enlace coincide con su huella SHA-256 (<span style="font-family:var(--mono)">${esc(v.hash.slice(0,24))}…</span>): no fue alterado desde que se generó.
-     Analizado el ${esc(when)}${r.b?" en el bloque "+Number(r.b).toLocaleString("es-MX"):""} con el algoritmo ${esc(r.al||"")}: <b>${esc(vtxt)} · ${esc(r.sc)}/100</b>, confianza de los datos ${esc(r.cf)} %.
+     Analizado el ${esc(when)}${r.b?" en el bloque "+Number(r.b).toLocaleString((globalThis.PBI18N?.locale||"es-MX")):""} con el algoritmo ${esc(r.al||"")}: <b>${esc(vtxt)} · ${esc(r.sc)}/100</b>, confianza de los datos ${esc(r.cf)} %.
      <br>Sin firma digital todavía: esto prueba que el reporte no cambió, no quién lo generó. Abajo está el análisis actualizado de hoy para comparar.</div>
      <ul class="secrows">${(r.x||[]).map(a=>`<li><i class="s-${ic(a)[0]}">${ic(a)[1]}</i><span class="k">${esc(a[2])}</span><span class="val">${esc(a[1])}</span></li>`).join("")}</ul></section>`
    :`<section class="card verifybox bad"><h3>✕ Reporte no verificado</h3><div class="tnote" style="font-size:.86rem;padding-top:0">${esc(v.reason)} No confíes en la imagen que te compartieron; abajo está el análisis real de hoy.</div></section>`;
@@ -604,11 +606,11 @@ function renderMap(g,cr){
    <div id="mapsvg" class="mapsvg"></div>
    <div class="maplegend"><span>★ creador</span><span>S sniper del primer minuto</span><span><i class="lg dash"></i> fondeó</span><span><i class="lg"></i> transfirió el token</span><span><i class="lg ring"></i> no es holder (solo conecta)</span></div>
    <div id="mapinfo" class="mapinfo" aria-live="polite">Toca una burbuja para ver la wallet.</div>
-   ${g.groups.length?`<div class="tw"><table class="tt"><thead><tr><th>Grupo</th><th>Wallets</th><th>% del total</th></tr></thead><tbody>${g.groups.slice(0,8).map(x=>`<tr><td><i class="dot" style="background:${P[(x.n-1)%P.length]}"></i> ${x.creator?"Del creador ★":"Grupo "+x.n}</td><td>${x.holders}</td><td>${x.pct.toLocaleString("es-MX",{maximumFractionDigits:2})} %</td></tr>`).join("")}</tbody></table></div>`:""}
+   ${g.groups.length?`<div class="tw"><table class="tt"><thead><tr><th>Grupo</th><th>Wallets</th><th>% del total</th></tr></thead><tbody>${g.groups.slice(0,8).map(x=>`<tr><td><i class="dot" style="background:${P[(x.n-1)%P.length]}"></i> ${x.creator?"Del creador ★":"Grupo "+x.n}</td><td>${x.holders}</td><td>${x.pct.toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{maximumFractionDigits:2})} %</td></tr>`).join("")}</tbody></table></div>`:""}
    <div class="tnote">Mostramos ${g.holdersShown} holders (los mayores, sin pools ni quemado, más los snipers que aún tienen tokens). Exchanges y puentes con miles de transacciones no cuentan como «mismo dueño».${part} Este grupo no cambia la puntuación de arriba.</div>`;
   window.PBMap.draw($("#mapsvg"),g,{onPick:n=>{
     const f=g.nodes.find(m=>m.id===n.id);
-    $("#mapinfo").innerHTML=`<b class="w">${esc(n.id.split("@")[0])}</b> · ${n.creator?"creador · ":""}${n.sniper?"sniper · ":""}${n.timeNode?"contrato que fondeó a varias wallets en la misma hora: "+esc(n.id.split("@")[0])+" · ":""}${n.deployer?"creó el contrato que fondeó · ":""}${n.kind==="magic"?"no es holder":(n.pct||0).toLocaleString("es-MX",{maximumFractionDigits:2})+" % del total"}${n.contract?" · contrato"+(n.name?" ("+esc(n.name)+")":""):""}${n.group?" · grupo "+n.group:""}`;
+    $("#mapinfo").innerHTML=`<b class="w">${esc(n.id.split("@")[0])}</b> · ${n.creator?"creador · ":""}${n.sniper?"sniper · ":""}${n.timeNode?"contrato que fondeó a varias wallets en la misma hora: "+esc(n.id.split("@")[0])+" · ":""}${n.deployer?"creó el contrato que fondeó · ":""}${n.kind==="magic"?"no es holder":(n.pct||0).toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{maximumFractionDigits:2})+" % del total"}${n.contract?" · contrato"+(n.name?" ("+esc(n.name)+")":""):""}${n.group?" · grupo "+n.group:""}`;
   }});
 }
 
@@ -665,7 +667,7 @@ async function exploreRows(kind){
   exploreCache[kind]={at:Date.now(),rows};return rows;
 }
 const SUB="₀₁₂₃₄₅₆₇₈₉";
-const fmtPrice=p=>{if(p==null||isNaN(p))return "—";if(p>=1)return "$"+p.toLocaleString("es-MX",{maximumFractionDigits:2});if(p>=0.001)return "$"+p.toPrecision(3);
+const fmtPrice=p=>{if(p==null||isNaN(p))return "—";if(p>=1)return "$"+p.toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{maximumFractionDigits:2});if(p>=0.001)return "$"+p.toPrecision(3);
   if(p<=0)return "$0";const z=Math.floor(-Math.log10(p));const digits=Math.round(p*Math.pow(10,z+3));return "$0.0"+String(z).split("").map(d=>SUB[d]).join("")+String(digits).slice(0,4).replace(/0+$/,"");};
 function exploreRow(x,i){return `<li data-scan="${esc(x.t)}"><span class="num" style="width:1.4rem;color:var(--muted)">${i+1}</span>${avatar(x.img,x.nm)}<div class="grow"><b>${esc(x.nm.slice(0,18))}</b><small>${usd(x.liq==null?null:Math.round(x.liq))} liq. · ${ageTxt(x.ageH)}</small></div><div class="num">${fmtPrice(x.price)}<br>${x.ch==null?"":`<span class="${x.ch>=0?"pos":"neg"}">${x.ch>=0?"+":""}${x.ch.toFixed(1)} %</span>`}</div><span class="pill ${x.q}">${lbl[x.q]}</span></li>`;}
 // ---------- Alpha Radar: early-activity filters + observed signals (no opportunity score until validated) ----------
@@ -704,7 +706,7 @@ async function loadAlpha(){
     store.set("pbs_alpha_liq",Object.fromEntries(Object.entries(next).slice(-600)));
     let uniq=PBAlpha.rank(rows).slice(0,25);
     try{const ps=await timed(DEX+uniq.map(x=>x.t).join(","),{},9000);const img={};for(const p of ps||[]){const b=(p.baseToken&&p.baseToken.address||"").toLowerCase();if(!img[b]&&p.info&&p.info.imageUrl)img[b]=safeUrl(p.info.imageUrl);}uniq.forEach(x=>{x.img=img[x.t]||null;});}catch(e){}
-    const when=new Date(alphaCache.at).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+    const when=new Date(alphaCache.at).toLocaleTimeString((globalThis.PBI18N?.locale||"es-MX"),{hour:"2-digit",minute:"2-digit"});
     const head=`<li class="empty" style="cursor:default">Fuente: GeckoTerminal (${pools.length} pools) · actualizado ${esc(when)}${alphaCache.failed?` · ${alphaCache.failed} consulta(s) fallaron: lista incompleta`:""}. «Actividad» es el Alpha Signal Score: mide movimiento, no seguridad ni ganancias.</li>`;
     box.innerHTML=uniq.length?head+`<li class="empty" style="cursor:default">${uniq.length} token(s) pasan los filtros. Toca uno para el análisis completo (Risk Shield).</li>`+uniq.map(alphaRow).join(""):head+`<li class="empty">Ningún token pasa los filtros ahora mismo. Prueba con una edad mayor o menos liquidez mínima.</li>`;
   }catch(e){if(exploreKind==="alpha")box.innerHTML=`<li class="empty">Error de conexión con GeckoTerminal. Prueba en un momento.</li>`;}
@@ -740,7 +742,7 @@ let chainOkAt=0;
 async function chainTick(){
   try{const b=parseInt(await rpc("eth_blockNumber",[]),16);const g=parseInt(await rpc("eth_gasPrice",[]),16)/1e9;
     if(!isFinite(b)||!isFinite(g))throw new Error("invalid");
-    chainOkAt=Date.now();$("#cblock").textContent=b.toLocaleString("es-MX");$("#cgas").textContent=(g<0.01?g.toFixed(4):g.toFixed(3))+" gwei";}
+    chainOkAt=Date.now();$("#cblock").textContent=b.toLocaleString((globalThis.PBI18N?.locale||"es-MX"));$("#cgas").textContent=(g<0.01?g.toFixed(4):g.toFixed(3))+" gwei";}
   catch(e){}
   chainState();
 }
@@ -827,7 +829,7 @@ function bindSim(root,res){
       const amt=Math.max(0,Number(box.querySelector(".s-amt").value)||0),slip=Number(box.querySelector(".s-slip").value);
       const tokens=amt/price;const rows=[];
       if(mode==="buy"){
-        rows.push(["Tokens a recibir",tokens.toLocaleString("es-MX",{maximumFractionDigits:tokens<10?4:0})],["Precio por token",fmtPrice(price)],["Costo máximo (slippage "+Math.round(slip*100)+" %)",usd(+(amt*(1+slip)).toFixed(2))],
+        rows.push(["Tokens a recibir",tokens.toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{maximumFractionDigits:tokens<10?4:0})],["Precio por token",fmtPrice(price)],["Costo máximo (slippage "+Math.round(slip*100)+" %)",usd(+(amt*(1+slip)).toFixed(2))],
           ["Si vendieras enseguida",ret==null?"sin simulación":usd(+(amt*ret).toFixed(2))+" ("+(ret*100).toFixed(1)+" %)"]);
       }else rows.push(["Valor a vender",usd(amt)],["Recibirías (venta simulada)",ret==null?"sin simulación":usd(+(amt*ret).toFixed(2))],["Pérdida por comisiones e impacto",ret==null?"—":usd(+(amt*(1-ret)).toFixed(2))]);
       const sc=[0.5,1,3].map(x=>{const v=amt*(1+x)*(ret==null?1:ret);return `<div>+${x*100} % → ${fmtPrice(price*(1+x))}</div><div class="${v>=amt?"pos":"neg"}">${usd(+v.toFixed(2))} (${v>=amt?"+":"−"}${usd(Math.abs(+(v-amt).toFixed(2)))})</div>`;}).join("");
@@ -909,14 +911,14 @@ function render(token,res){
   const link=a=>`<a href="?t=${esc(a)}">${esc(short(a))}</a>`;
   const winners=tr&&tr.top.length?tbl("Mayores ganadores al vender",["Wallet","Compró","Vendió","Resultado"],tr.top.map(x=>`<tr><td class="w">${link(x.addr)}${tr.clone.some(c=>c.addr===x.addr)?" ⚑":""}${cr&&cr.creator&&x.addr===cr.creator.deployer?" ★":""}</td><td>${usd(Math.round(x.bought))} <small>(${x.nb})</small></td><td>${usd(Math.round(x.sold))} <small>(${x.ns})</small></td><td class="${x.pnl>=0?"pos":"neg"}">${x.pnl>=0?"+":"−"}${usd(Math.round(Math.abs(x.pnl)))}</td></tr>`).join(""),"Últimas "+tr.n+" operaciones del par principal (GeckoTerminal). Entre paréntesis, número de operaciones."):"";
   const bigs=tr&&tr.bigSells&&tr.bigSells.length?tbl("Ventas más grandes recientes",["Wallet","Vendió","Hace"],tr.bigSells.map(b=>`<tr><td class="w">${link(b.addr)}${cr&&cr.creator&&b.addr===cr.creator.deployer?" ★":""}</td><td>${usd(Math.round(b.v))}</td><td>${ago(b.ts).replace("hace ","")}</td></tr>`).join(""),""):"";
-  const snip=S&&S.wallets&&S.wallets.length?tbl("Compradores del primer minuto",["Wallet","Compró","Tiene hoy","Fondeo"],S.wallets.map(w=>`<tr><td class="w">${link(w.addr)}${w.creator?" ★":""}</td><td>${w.boughtPct==null?"—":w.boughtPct.toLocaleString("es-MX",{maximumFractionDigits:2})+" %"}</td><td class="${w.sold?"pos":""}">${w.pct==null?"—":w.pct.toLocaleString("es-MX",{maximumFractionDigits:2})+" %"}${w.sold?" (vendió)":""}</td><td class="${w.linked?"neg":""}">${w.creator?"creador":w.linked?"del creador":w.funder?(w.shared?"compartido ":"")+link(w.funder):"—"}</td></tr>`).join(""),"% del suministro total. «Fondeo» = de dónde recibieron su primer ETH. ★ = creador."):"";
+  const snip=S&&S.wallets&&S.wallets.length?tbl("Compradores del primer minuto",["Wallet","Compró","Tiene hoy","Fondeo"],S.wallets.map(w=>`<tr><td class="w">${link(w.addr)}${w.creator?" ★":""}</td><td>${w.boughtPct==null?"—":w.boughtPct.toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{maximumFractionDigits:2})+" %"}</td><td class="${w.sold?"pos":""}">${w.pct==null?"—":w.pct.toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{maximumFractionDigits:2})+" %"}${w.sold?" (vendió)":""}</td><td class="${w.linked?"neg":""}">${w.creator?"creador":w.linked?"del creador":w.funder?(w.shared?"compartido ":"")+link(w.funder):"—"}</td></tr>`).join(""),"% del suministro total. «Fondeo» = de dónde recibieron su primer ETH. ★ = creador."):"";
   const launches=rep&&rep.launches&&rep.launches.length?tbl("Otros tokens del creador",["Token","Liquidez hoy","Estado"],rep.launches.map(l=>`<tr><td class="w">${l.addr?link(l.addr):"—"}</td><td>${l.liq==null?"—":usd(Math.round(l.liq))}</td><td class="${l.liq==null?"":l.liq<1000?"neg":"pos"}">${l.liq==null?"sin datos":l.liq<1000?"muerto":"activo"}</td></tr>`).join(""),"«Muerto» = menos de $1,000 de liquidez hoy."):"";
-  const holders=H&&H.top&&H.top.length?tbl("Mayores holders",["Wallet","Tipo","% del total"],H.top.map(x=>`<tr><td class="w">${link(x.addr)}${cr.creator&&x.addr===cr.creator.deployer?" ★":""}</td><td>${x.contract?esc(x.name||"contrato"):"wallet"}</td><td>${x.pct.toLocaleString("es-MX",{maximumFractionDigits:2})} %</td></tr>`).join(""),"Sin pools"+(H.pools?" ("+H.pools.toFixed(1)+" %)":"")+" ni quemado"+(H.burned?" ("+H.burned.toFixed(1)+" %)":"")+". ★ = creador."):"";
+  const holders=H&&H.top&&H.top.length?tbl("Mayores holders",["Wallet","Tipo","% del total"],H.top.map(x=>`<tr><td class="w">${link(x.addr)}${cr.creator&&x.addr===cr.creator.deployer?" ★":""}</td><td>${x.contract?esc(x.name||"contrato"):"wallet"}</td><td>${x.pct.toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{maximumFractionDigits:2})} %</td></tr>`).join(""),"Sin pools"+(H.pools?" ("+H.pools.toFixed(1)+" %)":"")+" ni quemado"+(H.burned?" ("+H.burned.toFixed(1)+" %)":"")+". ★ = creador."):"";
   const C=cr&&cr.creator;
   const infoRows=[["Dirección",`<span>${esc(short(token))}</span> <button class="iconbtn" style="width:auto;height:auto;display:inline" data-act="copyaddr" aria-label="Copiar dirección">⧉</button>`],["Red","Robinhood Chain (4663)"],["Tipo","ERC-20"],
-    ["Creado",C&&C.createdAt?new Date(C.createdAt).toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"}):pair&&pair.pairCreatedAt?new Date(pair.pairCreatedAt).toLocaleDateString("es-MX"):"—"],
+    ["Creado",C&&C.createdAt?new Date(C.createdAt).toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{dateStyle:"medium",timeStyle:"short"}):pair&&pair.pairCreatedAt?new Date(pair.pairCreatedAt).toLocaleDateString((globalThis.PBI18N?.locale||"es-MX")):"—"],
     ["Creador",C?link(C.deployer):"—"],["Dueño (owner)",res.owner?(/^0x0+$/.test(res.owner)?"renunciado":link(res.owner)):"sin owner()"],["Código",C?(C.verified?"verificado en el explorador":"no verificado"):"—"]];
-  const now=new Date().toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"});
+  const now=new Date().toLocaleString((globalThis.PBI18N?.locale||"es-MX"),{dateStyle:"medium",timeStyle:"short"});
   const fav=isFav(token);
   $("#out").innerHTML=`<div class="rcard"><h1 class="sr">Análisis de ${esc(name)} en PreBuyScan</h1>
    <div class="rhead"><button class="iconbtn mobile-only" data-nav="home" aria-label="Volver">‹</button><h2>Análisis de token</h2><span class="done st-${ast.key}" title="${esc(ast.detail)}">${esc(ast.label.toUpperCase())}</span><time>${esc(now)}</time>
@@ -928,7 +930,7 @@ function render(token,res){
    ${banner?`<img class="banner" src="${esc(banner)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-onerr="remove">`:""}
    <section class="card"><div class="rtop">
     <div><div class="ident">${img?`<img class="ticon" src="${esc(img)}" alt="" referrerpolicy="no-referrer" data-onerr="remove">`:`<span class="ticon ph">${esc((sym||"?").slice(0,2))}</span>`}
-      <div style="min-width:0"><h2>${esc(name)}</h2><div class="sym">${esc(sym)}${pair&&pair.quoteToken?" / "+esc(pair.quoteToken.symbol):""}</div>
+      <div style="min-width:0"><h2 data-no-translate>${esc(name)}</h2><div class="sym">${esc(sym)}${pair&&pair.quoteToken?" / "+esc(pair.quoteToken.symbol):""}</div>
       <span class="addr">${esc(short(token))}<button type="button" data-act="copyaddr" aria-label="Copiar dirección">⧉</button></span></div></div>
       ${tagList(pair,cr)}
       ${links.length?`<div class="links" style="margin-top:10px">${links.map(l=>`<a class="btn2 sm" href="${esc(l.u)}" target="_blank" rel="noopener noreferrer nofollow">${esc(l.t)} ↗</a>`).join("")}</div>`:`<div class="disc" style="margin-top:8px">Sin web ni redes registradas en DexScreener.</div>`}
@@ -964,7 +966,7 @@ function render(token,res){
       <div class="mapintro"><p>Pasa el cursor o el dedo sobre el mapa para verlo en 3D. Burbujas = mayores holders. Las une quién les dio su primer ETH o si se pasaron el token. Un grupo de color suele ser una sola persona con varias wallets.</p>
       <button class="btn2" type="button" data-act="map">Reintentar mapa de wallets</button></div><div id="mapout"></div></section></div>
    </div>
-   <div class="note">${notChecked.length?"No revisado: "+esc(notChecked.join("; "))+". ":""}Liquidez bloqueada en contratos de terceros: no se verifica hasta cuándo.<br>Revisado ${res.block?"en el bloque "+res.block.toLocaleString("es-MX")+" · ":""}${esc(new Date(res.scannedAt||Date.now()).toLocaleString("es-MX"))} · algoritmo ${esc(res.algo||ALGO_VERSION)} · <a href="#metodo" data-nav="method">cómo calculamos</a>.</div>
+   <div class="note">${notChecked.length?"No revisado: "+esc(notChecked.join("; "))+". ":""}Liquidez bloqueada en contratos de terceros: no se verifica hasta cuándo.<br>Revisado ${res.block?"en el bloque "+res.block.toLocaleString((globalThis.PBI18N?.locale||"es-MX"))+" · ":""}${esc(new Date(res.scannedAt||Date.now()).toLocaleString((globalThis.PBI18N?.locale||"es-MX")))} · algoritmo ${esc(res.algo||ALGO_VERSION)} · <a href="#metodo" data-nav="method">cómo calculamos</a>.</div>
   </div>`;
   arrangeReportColumns();bindSim($("#out"),res);autoMap();animateRings();
   stopMarket();
@@ -998,7 +1000,7 @@ function renderProfile(addr,p){
    <section class="card"><h3>Hallazgos</h3><ol class="checks">${last.checks.map(x=>`<li><span class="pill ${x.s}${x.err?" err":""}">${esc(PBScore.labelOf(x))}</span><div class="ck"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></div></li>`).join("")}</ol></section>
    ${p.created.length?`<section class="card"><h3>Tokens que creó</h3><div class="tw"><table class="tt"><thead><tr><th>Token</th><th>Liquidez hoy</th><th>Estado</th></tr></thead><tbody>${p.created.map(t=>{const x=st(t.liq);return `<tr><td class="w">${link(t.token)}${t.name?" "+esc(t.name):""}</td><td>${t.liq==null?"—":usd(Math.round(t.liq))}</td><td class="${x[0]}">${x[1]}</td></tr>`;}).join("")}</tbody></table></div><div class="tnote">«Muerto» = menos de $1,000 de liquidez hoy en DexScreener.</div></section>`:""}
    ${p.funded.length?`<section class="card"><h3>Wallets que fondeó</h3><div class="tnote" style="padding-top:0">${p.funded.slice(0,20).map(link).join(" · ")}${p.funded.length>20||p.fundedMore?" …":""}<br>De ${p.fundedSample} revisadas, ${p.fundedFresh} recibieron de esta wallet su primer ETH.</div></section>`:""}
-   ${p.traded.length?`<section class="card"><h3>Tokens con los que operó hace poco</h3><div class="tw"><table class="tt"><thead><tr><th>Token</th><th>Último movimiento</th><th>Estado</th></tr></thead><tbody>${p.traded.map(t=>{const x=st(t.liq);return `<tr><td class="w">${link(t.token)}${t.symbol?" "+esc(t.symbol):""}</td><td>${t.dir}${t.ts?" · "+new Date(t.ts).toLocaleDateString("es-MX",{day:"numeric",month:"short"}):""}</td><td class="${x[0]}">${x[1]}</td></tr>`;}).join("")}</tbody></table></div></section>`:""}
+   ${p.traded.length?`<section class="card"><h3>Tokens con los que operó hace poco</h3><div class="tw"><table class="tt"><thead><tr><th>Token</th><th>Último movimiento</th><th>Estado</th></tr></thead><tbody>${p.traded.map(t=>{const x=st(t.liq);return `<tr><td class="w">${link(t.token)}${t.symbol?" "+esc(t.symbol):""}</td><td>${t.dir}${t.ts?" · "+new Date(t.ts).toLocaleDateString((globalThis.PBI18N?.locale||"es-MX"),{day:"numeric",month:"short"}):""}</td><td class="${x[0]}">${x[1]}</td></tr>`;}).join("")}</tbody></table></div></section>`:""}
    <div class="note">${p.partial.length?"No revisado: "+esc(p.partial.join(", "))+". ":""}Datos públicos del explorador, la RPC y DexScreener. Un perfil limpio no garantiza nada.</div></div>`;
   animateRings();
   addHistory({t:addr,name:"Wallet "+short(addr),sym:"W",img:null,score,v:cls,at:Date.now(),type:"wallet"});
@@ -1015,7 +1017,7 @@ $("#out").addEventListener("click",async e=>{
   const gl=e.target.closest("abbr.gl");if(gl&&matchMedia("(hover: none)").matches){flash(gl.textContent+": "+gl.title);return;}
   const b=e.target.closest("[data-act]");if(!b||!last)return;
   const act=b.dataset.act;
-  if(act==="copyaddr"){try{await navigator.clipboard.writeText(last.token);flash("Dirección copiada");}catch(err){prompt("Copia la dirección:",last.token);}return;}
+  if(act==="copyaddr"){try{await navigator.clipboard.writeText(last.token);flash("Dirección copiada");}catch(err){prompt(uiText("Copia la dirección:"),last.token);}return;}
   if(act==="fav"){const r=lastRes&&lastRes.res;const p=r&&r.pair;const on=toggleFav({t:last.token,name:p&&p.baseToken&&p.baseToken.name||last.name,sym:p&&p.baseToken&&p.baseToken.symbol||"",img:p&&p.info&&safeUrl(p.info.imageUrl),score:last.score,v:last.v[0],at:Date.now(),liq:p&&p.liquidity&&p.liquidity.usd||0,price:p?Number(p.priceUsd)||0:0});
     b.setAttribute("aria-pressed",on);b.textContent=(on?"★":"☆")+" Favorito";flash(on?"Guardado en favoritos":"Quitado de favoritos");return;}
   if(act==="retry"&&last){netCacheClear();nextExplorerBudget=window.PBCreator?window.PBCreator.RETRY_BUDGET_MS:0;analyze(last.token);return;}
@@ -1134,7 +1136,7 @@ function renderPartial(token,{pair,facts}){
    ${banner?`<img class="banner" src="${esc(banner)}" alt="" referrerpolicy="no-referrer" data-onerr="remove">`:""}
    <section class="card"><div class="rtop scanning">
     <div><div class="ident">${img?`<img class="ticon" src="${esc(img)}" alt="" referrerpolicy="no-referrer" data-onerr="remove">`:`<span class="ticon ph">${esc((sym||"?").slice(0,2))}</span>`}
-      <div style="min-width:0"><h2>${esc(name)}</h2><div class="sym">${esc(sym)}${pair.quoteToken?" / "+esc(pair.quoteToken.symbol):""}</div><span class="addr">${esc(short(token))}</span></div></div>
+      <div style="min-width:0"><h2 data-no-translate>${esc(name)}</h2><div class="sym">${esc(sym)}${pair.quoteToken?" / "+esc(pair.quoteToken.symbol):""}</div><span class="addr">${esc(short(token))}</span></div></div>
       ${tagList(pair,null)}
       ${links.length?`<div class="links" style="margin-top:10px">${links.map(l=>`<a class="btn2 sm" href="${esc(l.u)}" target="_blank" rel="noopener noreferrer nofollow">${esc(l.t)} ↗</a>`).join("")}</div>`:""}</div>
     ${scanRing()}
@@ -1167,7 +1169,7 @@ async function analyze(raw){
 }
 for(const id of ["#f","#f2"])$(id).addEventListener("submit",e=>{e.preventDefault();analyze(e.target.querySelector(".addr-in").value);});
 const ADDR_RE=/^0x[0-9a-fA-F]{40}$/;
-function hint(form,m){const h=form.querySelector(".pastehint");if(h){h.textContent=m;if(m)setTimeout(()=>{if(h.textContent===m)h.textContent="";},6000);}}
+function hint(form,m){m=uiText(m);const h=form.querySelector(".pastehint");if(h){h.textContent=m;if(m)setTimeout(()=>{if(h.textContent===m)h.textContent="";},6000);}}
 document.querySelectorAll(".paste").forEach(btn=>btn.addEventListener("click",async()=>{
   const form=btn.closest("form"),inp=form.querySelector(".addr-in");
   try{
@@ -1245,7 +1247,7 @@ $("#notif-off").addEventListener("click",()=>{store.set("pbs_notif",false);notif
 async function notify(a){
   if(!notifOn())return;
   const lastAt=store.get("pbs_notif_last",0);if(Date.now()-lastAt<60e3)return;store.set("pbs_notif_last",Date.now());   // at most one per minute
-  const opts={body:a.msg,icon:"icon-192.png",badge:"icon-192.png",tag:a.key,data:{url:"./?t="+a.t}};
+  const opts={body:uiText(a.msg),icon:"icon-192.png",badge:"icon-192.png",tag:a.key,data:{url:"./?t="+a.t}};
   try{const reg=await navigator.serviceWorker?.ready;if(reg)return reg.showNotification("PreBuyScan · "+(a.name||short(a.t)),opts);}catch(e){}
   try{new Notification("PreBuyScan · "+(a.name||short(a.t)),opts);}catch(e){}
 }

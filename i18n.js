@@ -1,10 +1,11 @@
 /* PreBuyScan English mode (window.PBI18N). The page is written in Spanish; with English selected,
  * visible text and labels are translated in place (exact strings and patterns), including content
  * rendered later (reports, lists). Addresses, numbers and token names are left as they are.
- * Strings without a translation stay in Spanish. Choice saved in this browser ("pbs_lang").
+ * UI catalog + dynamic-value patterns. Choice saved in this browser ("pbs_lang").
  */
 (function (root) {
   "use strict";
+  if (typeof module !== "undefined" && module.exports) require("./i18n-en.js");
   const KEY = "pbs_lang";
   let lang = "es";
   try { lang = JSON.parse(root.localStorage.getItem(KEY)) || "es"; } catch (e) { lang = "es"; }
@@ -84,7 +85,12 @@
     "Un comprador del lanzamiento lo fondeó el creador": "A launch buyer was funded by the creator", "Venta grande reciente": "Large recent sale",
     "Holders repartidos": "Holders spread out", "Reparto de holders engañoso": "Misleading holder spread", "Liquidez no confirmada": "Liquidity not confirmed", "Sin dueño ni administradores": "No owner or administrators", "Holders no revisados": "Holders not checked"
   };
+  Object.assign(EXACT, root.PBEN || {});
   const PATTERNS = [
+    [/^La puntuación de (.+)\/100 se debe principalmente a: (.+)$/, (m,s,t)=>"The score of "+s+"/100 is mainly due to: "+tr(t)],
+    [/^(\d+) de (\d+)$/, "$1 of $2"],
+    [/^(\d+) (riesgo alto|precaución|bien|sin datos|error técnico)$/, (m,n,t)=>n+" "+tr(t)],
+    [/^hace (.+)$/, "$1 ago"],
     // dynamic titles
     [/^(\d+) pools con comisión abusiva$/, "$1 pools with abusive fees"],
     [/^Precio frágil: solo (.+) del suministro está en los pools$/, "Fragile price: only $1 of the supply is in the pools"],
@@ -134,14 +140,22 @@
   function tr(text) {
     const t = text.trim(); if (!t) return text;
     if (Object.prototype.hasOwnProperty.call(EXACT, t)) return text.replace(t, EXACT[t]);
+    const folded = caseMap.get(t.toLowerCase());
+    if(folded) return text.replace(t,t===t.toUpperCase()?folded.toUpperCase():folded);
     for (const [re, out] of PATTERNS) if (re.test(t)) return text.replace(t, t.replace(re, out));
-    return text;
+    return text.replace(fragmentRE, m=>fragmentMap.get(m));
   }
-  const SKIP = new Set(["SCRIPT", "STYLE", "CODE", "TEXTAREA", "INPUT"]);
+  const caseMap = new Map(Object.entries(EXACT).map(([s,t])=>[s.toLowerCase(),t]));
+  const fragmentMap = new Map((root.PBEN_FRAGMENTS || []).map(([s,t])=>[s.trim(),t.trim()]));
+  for(const [s,t] of Object.entries(EXACT)) if(s.length>=4) fragmentMap.set(s,t);
+  const escapeRE=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  const fragmentRE = new RegExp([...fragmentMap.keys()].sort((a,b)=>b.length-a.length).map(s=>(/^[\p{L}\p{N}_]/u.test(s)?String.raw`(?<![\p{L}\p{N}_])`:"")+escapeRE(s)+(/[\p{L}\p{N}_]$/u.test(s)?String.raw`(?![\p{L}\p{N}_])`:"")).join("|"),"gu");
+  const SKIP = new Set(["SCRIPT", "STYLE", "CODE", "TEXTAREA"]);
   function walk(node) {
+    if(node.nodeType === 3 && node.parentElement?.closest('[data-no-translate],.addr,.sym,.av,.grow > b,.w a')) return;
     if (node.nodeType === 3) { const n = tr(node.nodeValue); if (n !== node.nodeValue) node.nodeValue = n; return; }
-    if (node.nodeType !== 1 || SKIP.has(node.tagName) || (node.classList && node.classList.contains("addr"))) return;
-    for (const a of ["placeholder", "aria-label", "title"]) if (node.hasAttribute && node.hasAttribute(a)) { const v = node.getAttribute(a), n = tr(v); if (n !== v) node.setAttribute(a, n); }
+    if (node.nodeType !== 1 || SKIP.has(node.tagName)) return;
+    for (const a of ["placeholder", "aria-label", "title", "alt"]) if (node.hasAttribute && node.hasAttribute(a)) { const v = node.getAttribute(a), n = tr(v); if (n !== v) node.setAttribute(a, n); }
     for (let c = node.firstChild; c; c = c.nextSibling) walk(c);
   }
   function setLang(l) { try { root.localStorage.setItem(KEY, JSON.stringify(l)); } catch (e) { /* private mode */ } root.location.reload(); }
@@ -155,11 +169,11 @@
     walk(root.document.body);
     let pending = new Set(), t = null;
     new MutationObserver(ms => {
-      for (const m of ms) { if (m.type === "characterData") pending.add(m.target); else m.addedNodes.forEach(n => pending.add(n)); }
+      for (const m of ms) { if (m.type === "characterData") pending.add(m.target); else if(m.type === "attributes") pending.add(m.target); else m.addedNodes.forEach(n => pending.add(n)); }
       if (!t) t = setTimeout(() => { t = null; const p = pending; pending = new Set(); p.forEach(walk); }, 30);
-    }).observe(root.document.body, { childList: true, subtree: true, characterData: true });
+    }).observe(root.document.body, { childList: true, subtree: true, characterData: true, attributes:true, attributeFilter:["placeholder","aria-label","title","alt"] });
   }
-  const api = { get lang() { return lang; }, tr, EXACT, PATTERNS, setLang, start };
+  const api = { get lang() { return lang; }, get locale() { return lang === "en" ? "en-US" : "es-MX"; }, tr, EXACT, PATTERNS, setLang, start };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else { root.PBI18N = api; if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", start); else start(); }
 })(typeof window !== "undefined" ? window : globalThis);

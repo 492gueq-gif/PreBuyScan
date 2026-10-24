@@ -235,7 +235,7 @@
     nodeG.filter(n => n.sniper && !n.creator).append("text").text("S").attr("text-anchor", "middle").attr("dy", "0.36em").attr("font-size", 11).attr("font-weight", 800).attr("fill", "#050b12");
     const lab = nodeG.filter(n => n.creator || n.sniper || n.timeNode || (n.pct || 0) >= Math.max(0.8, maxPct * 0.12)).append("g").attr("class", "ak-lab");
     lab.append("text").attr("class", "ak-addr").attr("text-anchor", "middle").attr("y", n => r(n) + 15).text(n => n.creator ? "CREADOR" : short(n.id));
-    lab.append("text").attr("class", "ak-pct").attr("text-anchor", "middle").attr("y", n => r(n) + 28).text(n => n.pct ? n.pct.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " %" : role(n).split(" ")[0]);
+    lab.append("text").attr("class", "ak-pct").attr("text-anchor", "middle").attr("y", n => r(n) + 28).text(n => n.pct ? n.pct.toLocaleString((globalThis.PBI18N?.locale||"es-MX"), { maximumFractionDigits: 2 }) + " %" : role(n).split(" ")[0]);
 
     // overlays
     const wrap = d3.select(el);
@@ -265,9 +265,9 @@
       const id = n.id.split("@")[0];
       card.attr("hidden", null).html(`<button type="button" class="ak-x" aria-label="Cerrar">×</button>
         <div class="ak-role" style="color:${color(n)}">${role(n)}</div><div class="ak-id">${id}</div>
-        <dl><div><dt>Suministro</dt><dd>${n.kind === "magic" ? "no es holder" : (n.pct || 0).toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " %"}</dd></div>
+        <dl><div><dt>Suministro</dt><dd>${n.kind === "magic" ? "no es holder" : (n.pct || 0).toLocaleString((globalThis.PBI18N?.locale||"es-MX"), { maximumFractionDigits: 2 }) + " %"}</dd></div>
         <div><dt>Grupo</dt><dd>${n.group ? "#" + n.group : "—"}</dd></div><div><dt>Conexiones</dt><dd>${nb.get(n).size}</dd></div></dl>
-        ${ns.length ? `<div class="ak-sub">Conectada con</div><ul>${ns.map(m => `<li data-id="${m.id}"><i style="background:${color(m)}"></i>${m.creator ? "Creador" : short(m.id)}<span>${m.pct ? m.pct.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " %" : ""}</span></li>`).join("")}</ul>` : ""}
+        ${ns.length ? `<div class="ak-sub">Conectada con</div><ul>${ns.map(m => `<li data-id="${m.id}"><i style="background:${color(m)}"></i>${m.creator ? "Creador" : short(m.id)}<span>${m.pct ? m.pct.toLocaleString((globalThis.PBI18N?.locale||"es-MX"), { maximumFractionDigits: 2 }) + " %" : ""}</span></li>`).join("")}</ul>` : ""}
         <div class="ak-acts">${/^0x[0-9a-f]{40}$/i.test(id) && !n.contract ? `<a href="?t=${id}">Perfil de la wallet</a>` : ""}<a href="https://robinhoodchain.blockscout.com/address/${id}" target="_blank" rel="noopener">Explorador ↗</a></div>`);
       card.select(".ak-x").on("click", () => { picked = null; card.attr("hidden", true); focus(null); });
       card.selectAll("li").on("click", function () { const m = byId[this.dataset.id]; if (m) pick(m, true); });
@@ -277,7 +277,7 @@
       if (center) { const t = d3.zoomTransform(svg.node()); svg.transition().duration(450).call(zoom.translateTo, n.px, n.py); void t; }
     };
     nodeG.on("mouseenter", (ev, n) => { hovered = n; if (!picked) focus(n);
-        tip.style("opacity", 1).html(`<b>${n.creator ? "Creador" : short(n.id)}</b><span>${role(n)}${n.pct ? " · " + n.pct.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " %" : ""}</span>`); })
+        tip.style("opacity", 1).html(`<b>${n.creator ? "Creador" : short(n.id)}</b><span>${role(n)}${n.pct ? " · " + n.pct.toLocaleString((globalThis.PBI18N?.locale||"es-MX"), { maximumFractionDigits: 2 }) + " %" : ""}</span>`); })
       .on("mousemove", ev => { const b = el.getBoundingClientRect(); tip.style("left", (ev.clientX - b.left + 14) + "px").style("top", (ev.clientY - b.top + 14) + "px"); })
       .on("mouseleave", () => { hovered = null; tip.style("opacity", 0); if (!picked) focus(null); else focus(picked); })
       .on("click", (ev, n) => { ev.stopPropagation(); pick(n); })
