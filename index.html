@@ -628,12 +628,14 @@ table.tt{font-family:var(--mono);font-size:.8rem}
 table.tt th{font-family:var(--body);font-weight:500;text-transform:none;letter-spacing:0;background:var(--sheet)}
 table.tt tr:nth-child(even){background:color-mix(in srgb,var(--sheet2) 40%,transparent)}
 table.tt td{padding-top:10px;padding-bottom:10px}
+#v-explore{align-content:start;grid-auto-rows:max-content}
 #v-explore > .filters{gap:0;border-bottom:1px solid var(--line);overflow:visible}
 #v-explore > .filters .chip{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--muted);padding:13px 8px;font-weight:600}
 #v-explore > .filters .chip[aria-pressed="true"]{color:var(--accent);border-bottom-color:var(--accent);background:transparent}
 .market-tabs{gap:0;border-bottom:1px solid var(--line)}
 .market-tabs button{border-radius:0;box-shadow:none}
 .explore-columns{display:none}
+@media(max-width:600px){.chainpill{font-size:0;gap:5px;max-width:none;width:auto;padding:5px}.chainpill .dot{width:6px;height:6px}}
 @media(min-width:1100px){
  body[data-view="explore"] .rail{display:none}
  body[data-view="explore"] main{grid-column:2 / -1}
