@@ -146,9 +146,21 @@
     const w = g.measureText("PreBuy").width; g.fillStyle = C.teal; g.fillText("Scan", x + size * 1.35 + w, y);
     if (sub) txt(g, sub, x + size * 1.38, y + size * 0.52, Math.round(size * 0.34), 600, C.gray);
   }
-  function chainIcon(g, x, y, s) {
-    g.save(); g.strokeStyle = C.teal; g.lineWidth = s * 0.12; g.lineCap = "round";
-    rr(g, x, y + s * 0.25, s * 0.6, s * 0.5, s * 0.25); g.stroke(); rr(g, x + s * 0.4, y + s * 0.25, s * 0.6, s * 0.5, s * 0.25); g.stroke(); g.restore();
+  let ROBINHOOD = null;
+  function loadRobinhood() {
+    if (ROBINHOOD) return ROBINHOOD;
+    ROBINHOOD = new Promise((resolve, reject) => {
+      const im = new Image();
+      const timer = setTimeout(() => reject(new Error("Robinhood logo timed out")), 5000);
+      im.onload = () => { clearTimeout(timer); resolve(im); };
+      im.onerror = () => { clearTimeout(timer); reject(new Error("Robinhood logo unavailable")); };
+      im.src = "robinhood-avatar.jpg";
+    }).catch(error => { ROBINHOOD = null; throw error; });
+    return ROBINHOOD;
+  }
+  function chainIcon(g, image, x, y, s) {
+    g.save(); rr(g, x, y, s, s, s * 0.12); g.clip();
+    g.drawImage(image, x, y, s, s); g.restore();
   }
   function gauge(g, cx, cy, r, score, verdict, color) {
     g.save(); g.lineCap = "round";
@@ -215,12 +227,13 @@
 
   // ---------- templates ----------
   async function drawX(rep, meta) {
+    const robinhood = await loadRobinhood();
     protectedNames.add(rep.n);protectedNames.add(rep.s);
     const W = 1600, H = 900, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
     const [vl, vc] = VERDICT[rep.vd] || VERDICT.unk; const addr = checksum(rep.a);
     frame(g, W, H); decoCandles(g, 1250, 230, 320, 560, rep.a);
     brand(g, 56, 132, 92, "Scan before the scam · Robinhood Chain");
-    box(g, 1060, 44, 480, 124, 22, "rgba(11,23,36,.85)", C.teal, 12, 2.5); chainIcon(g, 1092, 76, 60);
+    box(g, 1060, 44, 480, 124, 22, "rgba(11,23,36,.85)", C.teal, 12, 2.5); chainIcon(g, robinhood, 1092, 76, 60);
     txt(g, "Robinhood Chain", 1180, 104, 38, 800, C.white, FONT_D); txt(g, "Chain ID 4663", 1180, 146, 32, 700, C.teal, FONT_D);
     box(g, 46, 200, 1170, 182, 22, "rgba(11,23,36,.92)", C.line, 0, 2);
     const logoOk = tokenLogo(g, 140, 291, 66, meta.logo, rep.s, vc);
@@ -243,12 +256,13 @@
     return c;
   }
   async function drawTelegram(rep, meta) {
+    const robinhood = await loadRobinhood();
     protectedNames.add(rep.n);protectedNames.add(rep.s);
     const W = 1080, H = 1080, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
     const [vl, vc] = VERDICT[rep.vd] || VERDICT.unk; const addr = checksum(rep.a);
     frame(g, W, H);
     brand(g, 52, 112, 70, null);
-    box(g, 700, 50, 330, 84, 42, "rgba(11,23,36,.85)", C.teal, 10, 2.5); chainIcon(g, 726, 70, 44);
+    box(g, 700, 50, 330, 84, 42, "rgba(11,23,36,.85)", C.teal, 10, 2.5); chainIcon(g, robinhood, 726, 70, 44);
     txt(g, "Robinhood Chain", 790, 101, 27, 800, C.white, FONT_D); txt(g, "4663", 790, 125, 19, 700, C.teal, FONT_D);
     const logoOk = tokenLogo(g, 120, 236, 56, meta.logo, rep.s, vc);
     const nm = fit(g, rep.n || rep.s || "Token", 560, 62, 800, FONT_D, 28); txt(g, nm.t, 200, 232, nm.s, 800, C.white, FONT_D);
@@ -275,12 +289,13 @@
     return { modules: n, size: real };
   }
   async function drawPremium(rep, meta) {
+    const robinhood = await loadRobinhood();
     protectedNames.add(rep.n);protectedNames.add(rep.s);
     const W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
     const [vl, vc] = VERDICT[rep.vd] || VERDICT.unk; const addr = checksum(rep.a);
     frame(g, W, H);
     brand(g, 52, 104, 62, "Scan before the scam");
-    box(g, 760, 46, 270, 76, 38, "rgba(11,23,36,.85)", C.teal, 10, 2.5); txt(g, "Robinhood Chain", 895, 80, 24, 800, C.white, FONT_D, "center"); txt(g, "Chain ID 4663", 895, 106, 18, 700, C.teal, FONT_D, "center");
+    box(g, 760, 46, 270, 76, 38, "rgba(11,23,36,.85)", C.teal, 10, 2.5); chainIcon(g, robinhood, 776, 64, 40); txt(g, "Robinhood Chain", 826, 80, 23, 800, C.white, FONT_D); txt(g, "Chain ID 4663", 826, 106, 18, 700, C.teal, FONT_D);
     // 1 identity
     box(g, 40, 160, 1000, 196, 20, "rgba(11,23,36,.92)", C.line, 0, 2);
     const logoOk = tokenLogo(g, 118, 238, 52, meta.logo, rep.s, vc);
