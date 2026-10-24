@@ -63,6 +63,9 @@
     "Valor total si todos los tokens valieran el precio actual (Fully Diluted Valuation).":"Total value if all tokens were valued at the current price (Fully Diluted Valuation).", "Bots o wallets que compran en el primer minuto del lanzamiento para revender.":"Bots or wallets buying in the first minute after launch to resell.", "Bot o wallet que compra en el primer minuto del lanzamiento para revender.":"A bot or wallet buying in the first minute after launch to resell.", "Diferencia entre el precio que ves y el que realmente pagas o recibes por el tamaño de tu operación (slippage).":"Difference between the displayed price and what you actually pay or receive for your trade size (slippage).", "Diferencia entre el precio que ves y el que realmente pagas o recibes (deslizamiento).":"Difference between the displayed price and what you actually pay or receive (slippage).", "Token que deja comprar pero no vender.":"A token that allows buying but blocks selling.", "El creador retira la liquidez y el token se queda sin valor.":"The creator withdraws the liquidity, leaving the token worthless.", "Tokens que representan la liquidez aportada a un pool.":"Tokens representing liquidity deposited into a pool.", "Wallets que tienen el token.":"Wallets holding the token.", "El propio equipo compra en el lanzamiento con varias wallets para vender después.":"The team buys at launch through several wallets to sell later.", "Compras y ventas entre wallets del mismo dueño para inflar el volumen.":"Buys and sells between wallets with the same owner to inflate volume.", "Contrato que delega en otro y puede cambiar su código.":"A contract that delegates to another contract and can change its code.", "Código extra de un pool Uniswap V4 que puede cambiar reglas o comisiones.":"Extra code in a Uniswap V4 pool that can change rules or fees.", "Tiempo de espera obligatorio entre operaciones.":"A mandatory waiting period between trades."
   };
   Object.assign(entries, {
+    "La venta falla con montos grandes":"Selling fails for large amounts", "El par principal no es contra WETH.":"The main pair is not paired with WETH.", "Pool V4 contra un activo distinto de ETH/WETH; simulación no disponible.":"V4 pool paired with an asset other than ETH/WETH; simulation unavailable.", "Preparación de WETH simulada fallida.":"Simulated WETH preparation failed.", "El hook del pool rechazó la compra desde los routers estándar de Uniswap: solo permite operar desde su propio router.":"The pool hook rejected the buy through standard Uniswap routers: only its own router is allowed.", "La compra simulada no entregó tokens.":"The simulated buy returned no tokens.", "La aprobación simulada falló.":"Simulated approval failed.", "La simulación no fue consistente (el saldo cambió entre llamadas).":"The simulation was inconsistent (the balance changed between calls).", "La compra funcionó pero la venta falló: posible honeypot.":"The buy worked but the sale failed: possible honeypot.", "Compra y venta simuladas con éxito.":"Buy and sale simulated successfully.", "La venta no devolvió nada.":"The sale returned nothing.", "Simulación no disponible.":"Simulation unavailable."
+  });
+  Object.assign(entries, {
     "RIESGO CONFIRMADO":"CONFIRMED RISK", "SEÑAL SOSPECHOSA":"SUSPICIOUS SIGNAL", "SIMULACIÓN PENDIENTE":"SIMULATION PENDING", "IDENTIDAD NO VERIFICADA":"IDENTITY UNVERIFIED", "NO DISPONIBLE":"UNAVAILABLE", "pendiente":"pending", "no disponible":"unavailable",
     "Simulador de compra/venta":"Buy/sell simulator", "Compra":"Buy", "Monto (USD)":"Amount (USD)", "Slippage máximo":"Maximum slippage", "Tokens a recibir":"Tokens to receive", "Precio por token":"Price per token", "Si vendieras enseguida":"If you sold immediately", "Valor a vender":"Value to sell", "Resultado estimado":"Estimated result", "Escenarios hipotéticos":"Hypothetical scenarios", "Cálculo con el precio actual y la venta simulada de PreBuyScan. No compra ni vende nada; los escenarios de subida son hipotéticos, no predicciones.":"Calculated using the current price and PreBuyScan's simulated sale. Nothing is bought or sold; upside scenarios are hypothetical, not predictions.",
     "Gráfico en vivo de GeckoTerminal del par principal.":"Live GeckoTerminal chart for the main pair.", "Abrir en GeckoTerminal":"Open in GeckoTerminal", "Grupo":"Group", "Del creador ★":"Creator's group ★", "Toca una burbuja para ver la wallet.":"Select a bubble to view the wallet.", "S sniper del primer minuto":"S first-minute sniper", "fondeó":"funded", "transfirió el token":"transferred the token", "no es holder (solo conecta)":"not a holder (connection only)", "Este grupo no cambia la puntuación de arriba.":"This group does not change the score above."
@@ -84,6 +87,16 @@
   // Sentence fragments used around live values. Longest match wins; never touch raw data.
   const fragments = `
 La puntuación de |The score of 
+holders tienen entre |holders own between 
+y hoy tiene |and now holds 
+una parte|a share
+Solo se puede vender hasta ~|You can only sell up to ~
+la compra|the buy
+la venta|the sale
+falla desde |fails from 
+Monto máximo vendible encontrado: ~|Maximum sellable amount found: ~
+Causa probable: |Probable cause: 
+no es realizable.|cannot be realized.
 El creador tiene |The creator has 
 tokens; los |tokens; the 
 El par no reporta liquidez.|The pair reports no liquidity.
