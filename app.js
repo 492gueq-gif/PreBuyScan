@@ -506,13 +506,16 @@ async function ensureQR(){
 }
 function shareCtx(){const res=lastRes.res;return {score:scoreOf(res.checks),verdict:verdictOf(res.checks)[0],confidence:confidenceOf(res).score,algo:ALGO_VERSION,logoUrl:res.pair&&res.pair.info&&safeUrl(res.pair.info.imageUrl)};}
 async function makeCards(btn){
-  if(!lastRes||!window.PBShare)return;const box=$("#out .sc-out");const token=lastRes.token;
+  if(!lastRes||!window.PBShare)return;const box=$("#out .sc-out");if(!box)return;const {token,res}=lastRes;
+  const ctx=shareCtx();
+  const current=()=>box.isConnected&&$("#out .sc-out")===box&&lastRes?.token===token&&lastRes.res===res;
   if(!PBScore.isEvaluable(lastRes.res.checks)){box.innerHTML=`<div class="empty">Este análisis no tiene ninguna comprobación concluyente: no se genera una tarjeta para compartir. Reintenta el análisis.</div>`;return;}
   if(btn)btn.disabled=true;box.innerHTML=`<div class="busy"><span>Generando las tres tarjetas…</span></div>`;
   try{
     await ensureQR();
-    shareSet=await window.PBShare.makeAll(token,lastRes.res,shareCtx());
+    const generated=await window.PBShare.makeAll(token,res,ctx);
     if(!current())return;
+    shareSet=generated;
     const im=(c,alt)=>`<img src="${c.toDataURL("image/png")}" alt="${esc(alt)}" loading="lazy">`;
     const id=shareSet.link.id;
     box.innerHTML=`<div class="sc-grid">
@@ -526,7 +529,8 @@ async function makeCards(btn){
       <button type="button" class="btn2" data-share="copy">Copiar enlace verificable</button><span class="shmsg sc-msg" role="status"></span></div>
      <div class="tnote">Reporte <b>${esc(id)}</b> · SHA-256 <span style="font-family:var(--mono)">${esc(shareSet.link.hash.slice(0,32))}…</span>${shareSet.qr?" · QR de "+shareSet.qr.modules+" módulos":" · QR no disponible"}. X y Telegram no permiten adjuntar una imagen desde un enlace: el botón abre la publicación con el texto y el enlace; descarga la imagen y súbela tú. Nada se publica sin que tú lo envíes.
       El enlace y el QR llevan una copia del reporte: la página recalcula su huella y confirma que no fue alterado. Todavía no hay firma digital (requiere servidor), así que no prueba quién lo generó.</div>`;
-  }catch(e){box.innerHTML=`<div class="empty">No se pudieron generar las tarjetas en este navegador.</div>`;if(btn)btn.disabled=false;}
+  }catch(e){if(current())box.innerHTML=`<div class="empty">No se pudieron generar las tarjetas en este navegador.</div>`;}
+  finally{if(btn?.isConnected)btn.disabled=false;}
 }
 function scMsg(m){m=uiText(m);const e=$("#out .sc-msg");if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent="";},4000);}}
 const shareText=()=>{const r=shareSet.rep;const v={high:"Riesgo alto",warn:"Precaución",ok:"Sin alertas",unk:"Sin datos"}[r.vd];return (r.n||r.s||"Token")+(r.s?" ($"+r.s+")":"")+": "+v+" · "+r.sc+"/100 en PreBuyScan (100 = menor riesgo). Reporte "+shareSet.link.id+". Scan before the scam.";};
