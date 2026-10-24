@@ -119,13 +119,16 @@
     rr(g, x, y, w, h, r); if (fill) { g.fillStyle = fill; g.fill(); }
     if (stroke) { g.save(); if (glow) { g.shadowColor = stroke; g.shadowBlur = glow; } g.strokeStyle = stroke; g.lineWidth = lw || 2; g.stroke(); g.restore(); }
   }
+  const protectedNames = new Set();
+  const localText=t=>root.PBI18N?.lang==="en"&&!protectedNames.has(t)?root.PBI18N.tr(t):t;
   function fit(g, text, maxW, size, weight, family, min) {
+    text=localText(text);
     let s = size; g.font = weight + " " + s + "px " + family;
     while (g.measureText(text).width > maxW && s > (min || 18)) { s -= 2; g.font = weight + " " + s + "px " + family; }
     let t = text; if (g.measureText(t).width > maxW) { while (t.length > 3 && g.measureText(t + "…").width > maxW) t = t.slice(0, -1); t += "…"; }
     return { t, s };
   }
-  function txt(g, t, x, y, size, weight, color, family, align) { g.font = weight + " " + size + "px " + (family || FONT_B); g.fillStyle = color; g.textAlign = align || "left"; g.textBaseline = "alphabetic"; g.fillText(t, x, y); g.textAlign = "left"; }
+  function txt(g, t, x, y, size, weight, color, family, align) { g.font = weight + " " + size + "px " + (family || FONT_B); g.fillStyle = color; g.textAlign = align || "left"; g.textBaseline = "alphabetic"; g.fillText(localText(t), x, y); g.textAlign = "left"; }
   function shield(g, x, y, s) {
     g.save(); g.translate(x, y); g.scale(s / 100, s / 100);
     g.beginPath(); g.moveTo(50, 4); g.lineTo(92, 18); g.lineTo(92, 50); g.bezierCurveTo(92, 76, 72, 92, 50, 100); g.bezierCurveTo(28, 92, 8, 76, 8, 50); g.lineTo(8, 18); g.closePath();
@@ -194,7 +197,7 @@
   const shortAddr = a => a.slice(0, 8) + "…" + a.slice(-6);
   function when(ts) {
     const d = new Date(ts * 1000);
-    return d.toLocaleString("es-MX", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+    return d.toLocaleString((globalThis.PBI18N?.locale||"es-MX"), { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
   }
   async function loadLogo(url) {
     if (!url) return null;
@@ -212,6 +215,7 @@
 
   // ---------- templates ----------
   async function drawX(rep, meta) {
+    protectedNames.add(rep.n);protectedNames.add(rep.s);
     const W = 1600, H = 900, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
     const [vl, vc] = VERDICT[rep.vd] || VERDICT.unk; const addr = checksum(rep.a);
     frame(g, W, H); decoCandles(g, 1250, 230, 320, 560, rep.a);
@@ -235,10 +239,11 @@
     const lf = fit(g, "492gueq-gif.github.io/PreBuyScan/?t=" + rep.a.slice(0, 12) + "…", 900, 32, 800, FONT_B, 18); txt(g, "↗ " + lf.t, 74, 832, lf.s, 800, C.teal, FONT_B);
     box(g, 1066, 784, 488, 74, 18, "rgba(11,23,36,.85)", C.line, 0, 2);
     const df = fit(g, when(rep.ts), 450, 28, 700, FONT_B, 16); txt(g, df.t, 1310, 830, df.s, 700, C.white, FONT_B, "center");
-    txt(g, "Reporte " + meta.id + " · SHA-256 " + meta.hash.slice(0, 16) + "… · " + rep.al + (rep.b ? " · bloque " + rep.b.toLocaleString("es-MX") : "") + " · Informativo: no garantiza seguridad ni rentabilidad.", 56, 880, 17, 600, C.gray, FONT_B);
+    txt(g, "Reporte " + meta.id + " · SHA-256 " + meta.hash.slice(0, 16) + "… · " + rep.al + (rep.b ? " · bloque " + rep.b.toLocaleString((globalThis.PBI18N?.locale||"es-MX")) : "") + " · Informativo: no garantiza seguridad ni rentabilidad.", 56, 880, 17, 600, C.gray, FONT_B);
     return c;
   }
   async function drawTelegram(rep, meta) {
+    protectedNames.add(rep.n);protectedNames.add(rep.s);
     const W = 1080, H = 1080, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
     const [vl, vc] = VERDICT[rep.vd] || VERDICT.unk; const addr = checksum(rep.a);
     frame(g, W, H);
@@ -270,6 +275,7 @@
     return { modules: n, size: real };
   }
   async function drawPremium(rep, meta) {
+    protectedNames.add(rep.n);protectedNames.add(rep.s);
     const W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
     const [vl, vc] = VERDICT[rep.vd] || VERDICT.unk; const addr = checksum(rep.a);
     frame(g, W, H);
@@ -281,7 +287,7 @@
     const nm = fit(g, rep.n || rep.s || "Token", 780, 52, 800, FONT_D, 24); txt(g, nm.t, 196, 232, nm.s, 800, C.white, FONT_D);
     txt(g, (rep.s ? rep.s + " · " : "") + "Robinhood Chain (4663)" + (logoOk ? "" : " · logo no verificado"), 196, 270, 22, 700, C.slate, FONT_B);
     const af = fit(g, addr, 960, 26, 500, FONT_M, 16); txt(g, af.t, 64, 320, af.s, 500, C.white, FONT_M);
-    txt(g, "Analizado: " + when(rep.ts) + (rep.b ? " · bloque " + rep.b.toLocaleString("es-MX") : ""), 64, 344, 18, 600, C.gray, FONT_B);
+    txt(g, "Analizado: " + when(rep.ts) + (rep.b ? " · bloque " + rep.b.toLocaleString((globalThis.PBI18N?.locale||"es-MX")) : ""), 64, 344, 18, 600, C.gray, FONT_B);
     // 2 evaluation
     box(g, 40, 372, 1000, 250, 20, "rgba(11,23,36,.92)", C.line, 0, 2);
     gauge(g, 190, 506, 96, rep.sc, vl, vc);
@@ -307,8 +313,8 @@
     const m = rep.m; const yM = Math.max(y + 6, 1010);
     if (m) {
       const age = m.ag ? (Date.now() / 1000 - m.ag) / 3600 : null;
-      const fmt = v => v == null ? "N/D" : "$" + Number(v).toLocaleString("es-MX");
-      const cells = [["Liquidez", fmt(m.l)], ["Volumen 24 h", fmt(m.v)], [m.fk === "mc" ? "Market cap" : "FDV", fmt(m.f)], ["Edad del par", age == null ? "N/D" : age < 48 ? age.toFixed(1) + " h" : Math.round(age / 24) + " días"], ["Holders", m.h == null ? "N/D" : Number(m.h).toLocaleString("es-MX")], ["Compras / ventas 24 h", m.tb == null ? "N/D" : m.tb + " / " + m.ts]];
+      const fmt = v => v == null ? "N/D" : "$" + Number(v).toLocaleString((globalThis.PBI18N?.locale||"es-MX"));
+      const cells = [["Liquidez", fmt(m.l)], ["Volumen 24 h", fmt(m.v)], [m.fk === "mc" ? "Market cap" : "FDV", fmt(m.f)], ["Edad del par", age == null ? "N/D" : age < 48 ? age.toFixed(1) + " h" : Math.round(age / 24) + " días"], ["Holders", m.h == null ? "N/D" : Number(m.h).toLocaleString((globalThis.PBI18N?.locale||"es-MX"))], ["Compras / ventas 24 h", m.tb == null ? "N/D" : m.tb + " / " + m.ts]];
       cells.forEach((cc, i) => { const cx = 40 + (i % 3) * 230, cy = yM + Math.floor(i / 3) * 88; box(g, cx, cy, 220, 78, 12, "rgba(11,23,36,.92)", C.line, 0, 2);
         txt(g, cc[0], cx + 14, cy + 26, 16, 700, C.gray, FONT_B); const vf = fit(g, cc[1], 196, 26, 800, FONT_D, 14); txt(g, vf.t, cx + 14, cy + 60, vf.s, 800, C.white, FONT_D); });
       txt(g, "Fuente: DexScreener (mercado) y Blockscout (holders), al momento del análisis.", 40, yM + 196, 15, 600, C.gray, FONT_B);

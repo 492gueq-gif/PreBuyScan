@@ -34,7 +34,7 @@
   function assess(p) {
     const checks = [];
     const add = (s, t, d) => checks.push({ s, t, d });
-    if (p.platform) add("unk", "Wallet de plataforma o servicio", "Tiene " + p.nonce.toLocaleString("es-MX") + " transacciones: es un servicio (plataforma de lanzamiento, exchange o bot), no una persona. Sus tokens no hablan de un solo creador.");
+    if (p.platform) add("unk", "Wallet de plataforma o servicio", "Tiene " + p.nonce.toLocaleString((globalThis.PBI18N?.locale||"es-MX")) + " transacciones: es un servicio (plataforma de lanzamiento, exchange o bot), no una persona. Sus tokens no hablan de un solo creador.");
     const known = p.created.filter(t => t.liq != null);
     const dead = known.filter(t => t.liq < 1000).length;
     const nCreated = Math.max(p.created.length, (p.db && p.db.launched) || 0);
@@ -49,7 +49,7 @@
     if (p.fundedFresh >= 10) add("high", "Fondeó a " + p.fundedFresh + " wallets nuevas", "Mandó ETH a " + p.fundedFresh + " wallets sin actividad previa: típico de quien prepara wallets para comprar en bloque (bundle).");
     else if (p.fundedFresh >= 3) add("warn", "Fondeó a " + p.fundedFresh + " wallets nuevas", "Mandó ETH a varias wallets sin actividad previa.");
     if (p.funder) {
-      if (p.funderPlatform) add("ok", "Fondeada desde un servicio grande", "Su primer ETH vino de " + short(p.funder) + " (" + p.funderNonce.toLocaleString("es-MX") + " transacciones: exchange, puente o servicio).");
+      if (p.funderPlatform) add("ok", "Fondeada desde un servicio grande", "Su primer ETH vino de " + short(p.funder) + " (" + p.funderNonce.toLocaleString((globalThis.PBI18N?.locale||"es-MX")) + " transacciones: exchange, puente o servicio).");
       else if (p.funderCreated >= 3) add("high", "La fondeó un creador serial", "Su primer ETH vino de " + short(p.funder) + ", que creó " + p.funderCreated + " tokens.");
     }
     if (p.ageDays != null && p.ageDays < 1 && !p.platform) add("warn", "Wallet recién creada", "Su primera transacción fue hace menos de 24 h.");

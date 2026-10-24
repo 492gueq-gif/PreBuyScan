@@ -257,6 +257,21 @@ def main():
                     english_text=pg.inner_text("#out")
                     check("report_english_%d" % w, "summary" in english_text.lower() and "caution" in english_text.lower(), english_text[:1600])
                     shot(pg,"report_english_%d" % w)
+                    check("english_report_sections_%d" % w, all(t in pg.text_content("#out") for t in ["Contract security", "Contract information", "Why this score?", "Wallet map"]) and "Seguridad del contrato" not in pg.text_content("#out"), english_text[:2500])
+                    check("english_input_placeholder_%d" % w, "Paste" in (pg.locator("#addr").get_attribute("placeholder") or ""))
+                    # Later attribute updates must be translated as well, including inputs.
+                    pg.evaluate("document.querySelector('#addr').setAttribute('title','Copiar dirección')")
+                    pg.locator('#addr[title="Copy address"]').wait_for(state="attached")
+                    check("english_dynamic_attribute_%d" % w, pg.locator("#addr").get_attribute("title") == "Copy address")
+                    for view,expected in [("home","How often it is right"),("settings","Appearance"),("explore","Explore tokens")]:
+                        pg.evaluate("v=>setView(v)",view)
+                        pg.locator("main",has_text=expected).wait_for(state="visible")
+                        check("english_view_%s_%d" % (view,w), expected in pg.inner_text("main"))
+                    # User-supplied token names must never be translated as UI labels.
+                    pg.evaluate("""() => {setView('result');render('"""+TOKEN+"""',{checks:[{s:'warn',t:'Liquidez baja',d:'fixture',c:'Mercado'}],facts:{name:'x'},notChecked:[],cr:{},pair:{baseToken:{name:'Liquidez',symbol:'SIN'},info:{},txns:{},priceChange:{},volume:{}},pairs:[]});}""")
+                    pg.locator("#out .score-reason",has_text="Why this score?").wait_for(state="visible")
+                    check("english_preserves_token_name_%d" % w, pg.locator("#out .ident h2").inner_text()=="Liquidez")
+
                     check("report_no_errors_%d" % w, not errs, errs[:5])
                     ctx.close()
 

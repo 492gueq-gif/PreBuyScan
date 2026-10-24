@@ -4,8 +4,8 @@
   const addr=x=>/^0x[0-9a-f]{40}$/i.test(x||'');
   const num=x=>x==null||x===''||!Number.isFinite(Number(x))?null:Number(x);
   const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const money=x=>x==null?'—':x.toLocaleString('es-MX',{style:'currency',currency:'USD',maximumFractionDigits:2});
-  const price=x=>x==null?'—':'$'+x.toLocaleString('es-MX',{maximumSignificantDigits:7});
+  const money=x=>x==null?'—':x.toLocaleString((globalThis.PBI18N?.locale||'es-MX'),{style:'currency',currency:'USD',maximumFractionDigits:2});
+  const price=x=>x==null?'—':'$'+x.toLocaleString((globalThis.PBI18N?.locale||'es-MX'),{maximumSignificantDigits:7});
   const short=x=>x.slice(0,6)+'…'+x.slice(-4);
   function normalize(data,token){
     const seen=new Set();token=token.toLowerCase();
@@ -38,11 +38,11 @@
         head=['Wallet','Compró USD','Vendió USD','Operaciones'];body=aggregate(rows).slice(0,30).map(w=>`<tr><td>${link(w.wallet)}</td><td class="pos">${money(w.buy)}</td><td class="neg">${money(w.sell)}</td><td>${w.n}</td></tr>`).join('');
       }else{
         head=['Hora / tipo','USD','Precio USD','Trader','Tx'];
-        body=rows.filter(r=>(side==='all'||r.side===side)&&(minimum===0||(r.usd!=null&&r.usd>=minimum))).map(r=>`<tr class="tape-${r.side}"><td class="${r.side==='buy'?'pos':'neg'}">${r.side==='buy'?'↑ Compra':'↓ Venta'}<small>${Number.isFinite(r.time)?new Date(r.time).toLocaleTimeString('es-MX'):'Hora no disponible'}</small></td><td>${money(r.usd)}${r.anomalous?' ⚠':''}</td><td>${price(r.price)}</td><td>${link(r.wallet)}</td><td>${r.hash?`<a href="https://robinhoodchain.blockscout.com/tx/${esc(r.hash)}" target="_blank" rel="noopener">↗</a>`:'—'}</td></tr>`).join('');
+        body=rows.filter(r=>(side==='all'||r.side===side)&&(minimum===0||(r.usd!=null&&r.usd>=minimum))).map(r=>`<tr class="tape-${r.side}"><td class="${r.side==='buy'?'pos':'neg'}">${r.side==='buy'?'↑ Compra':'↓ Venta'}<small>${Number.isFinite(r.time)?new Date(r.time).toLocaleTimeString((globalThis.PBI18N?.locale||'es-MX')):'Hora no disponible'}</small></td><td>${money(r.usd)}${r.anomalous?' ⚠':''}</td><td>${price(r.price)}</td><td>${link(r.wallet)}</td><td>${r.hash?`<a href="https://robinhoodchain.blockscout.com/tx/${esc(r.hash)}" target="_blank" rel="noopener">↗</a>`:'—'}</td></tr>`).join('');
       }
       table.innerHTML=`<table class="tt"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body||`<tr><td colspan="${head.length}">${tab==='holders'?'Holders no disponibles en este análisis.':rows.length?'Sin resultados para estos filtros.':'Sin operaciones disponibles.'}</td></tr>`}</tbody></table>`;
     }
-    const fresh=()=>stamp?'Última consulta correcta: '+new Date(stamp).toLocaleTimeString('es-MX')+' · '+rows.length+' operaciones.':'Sin una consulta correcta todavía.';
+    const fresh=()=>stamp?'Última consulta correcta: '+new Date(stamp).toLocaleTimeString((globalThis.PBI18N?.locale||'es-MX'))+' · '+rows.length+' operaciones.':'Sin una consulta correcta todavía.';
     async function tick(){
       if(dead)return;if(!el.isConnected){destroy();return;}if(paused||busy||root.document.hidden||!isActive())return;
       busy=true;
